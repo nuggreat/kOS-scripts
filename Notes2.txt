@@ -1,0 +1,12 @@
+r = sma * ((1-e^2) / (1 + e * cos(trueAnon)))
+
+1/rad = ( 1 + ecc * cos(trueAnon)) / (sma * (1 - ecc ^2 ))
+
+may solve for a height to a location
+
+cos-1 ((((sma * (1 - ecc ^2 )) / rad) - 1) / ecc) = trueAnon
+
+
+((((a * (1 - z ^2 )) / y) -1) / z) =z * cos(x)
+
+a = d * ((1-b^2) / (1 + b * cos(c)))

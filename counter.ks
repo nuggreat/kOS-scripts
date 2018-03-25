@@ -1,0 +1,1 @@
+FUNCTION counted {RETURN 0.}

@@ -1,0 +1,32 @@
+horzSpeed
+vertSpeedTrue = vertSpeed + (grav * burnTime)
+
+trueSpeed = (vertSpeedTrue^2 + horzSpeed^2)^0.5
+
+burnTime = trueSpeed / shipAccel
+
+
+burnTime = ((vertSpeed + (grav * burnTime))^2 + horzSpeed^2)^0.5 / shipAccel
+?
+burnTime = ((shipAccel^2 * horzSpeed^2 + shipAccel^2 + vertSpeed^2 - grav^2 * horzSpeed^2) / (shipAccel^2 - grav^2)^2)^0.5 - ((grav * vertSpeed) / (grav^2 - shipAccel^2))
+
+shipAccel = (((thrust / mass) + (thrust / (mass - ((thrust / (ISP * 9.802)) * burnTime)))) / 2)
+burnTime = (((vertSpeed + (grav * burnTime))^2 + horzSpeed^2)^0.5) / (((thrust / mass) + (thrust / (mass - (thrust / (ISP * 9.802)* burnTime)))) / 2)
+(((((v + (g * x))^2 + h^2)^0.5) / (((t / m) + (t / (m - ((t / (s * a))* x)))) / 2)) = x)
+
+(((v + (g * x))^2 + h^2)^0.5 / (((t / m) + (t / (m - (t / s * a * x)))) / 2) = x)
+
+burnTime =  (mass - (mass / (CONSTANT:E^ ((((vertSpeed + (grav * burnTime))^2 + horzSpeed^2)^0.5) / (ISP * 9.8102))))) / (thrust / (ISP * 9.8102))
+
+
+s = ISP
+m = mass
+g = grav
+v = vertSpeed
+h = horzSpeed
+t = thrust
+a = 9.802
+x = burnTime
+
+
+

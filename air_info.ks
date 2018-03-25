@@ -1,0 +1,8 @@
+RCS OFF.
+UNTIL RCS {
+	CLEARSCREEN.
+	PRINT "Radar Altitude: " + ROUND(ALT:RADAR).
+	PRINT "Air  Speed:     " + ROUND(SHIP:AIRSPEED,1).
+	PRINT "Vert Speed:     " + ROUND(VERTICALSPEED,1).
+	WAIT 0.01.
+}

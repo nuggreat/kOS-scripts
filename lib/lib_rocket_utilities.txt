@@ -1,0 +1,72 @@
+@LAZYGLOBAL OFF.
+GLOBAL nextStageTime IS TIME:SECONDS.
+
+FUNCTION isp_calc {	//calculates the average isp of all of the active engins on the ship
+	LOCAL engineList IS LIST().
+	LOCAL totalFlow IS 0.
+	LOCAL totalThrust IS 0.
+	LIST ENGINES IN engineList.
+	FOR engine IN engineList {
+		IF engine:IGNITION AND NOT engine:FLAMEOUT {
+			SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / engine:ISP).
+			SET totalThrust TO totalThrust + engine:AVAILABLETHRUST.
+		}
+	}
+	IF MAXTHRUST = 0 {
+		RETURN 1.
+	}
+	RETURN (totalThrust / totalFlow).
+}
+
+FUNCTION stage_check {	//a check for if the rocket needs to stage
+	PARAMETER enableStage IS TRUE.
+	LOCAL needStage IS FALSE.
+	IF enableStage AND STAGE:READY AND nextStageTime < TIME:SECONDS {
+		LOCAL engineList IS LIST().
+		LIST ENGINES IN engineList.
+		SET needStage TO MAXTHRUST = 0.
+		FOR engine IN engineList {
+			IF needStage { BREAK. }
+			SET needStage TO needStage OR engine:FLAMEOUT.
+		}
+		IF needStage	{
+			STAGE.
+			STEERINGMANAGER:RESETPIDS().
+			SET nextStageTime TO TIME:SECONDS + 2.
+		}
+	}
+	RETURN needStage.
+}
+
+FUNCTION active_engine { // check for a active engine on ship
+	LOCAL engineList IS LIST().
+	LIST ENGINES IN engineList.
+	LOCAL haveEngine IS FALSE.
+	FOR engine IN engineList {
+		IF engine:IGNITION AND NOT engine:FLAMEOUT {
+			SET haveEngine TO TRUE.
+			BREAK.
+		}
+	}
+	CLEARSCREEN.
+	IF NOT haveEngine {
+		PRINT "No Active Engines Found.".
+	} ELSE {
+		PRINT "Active Engine Found.".
+		WAIT 0.1.
+	}
+	RETURN haveEngine.
+}
+
+FUNCTION burn_duration {	//from isp, dv, and wet mass calculates the amount of time needed for the burn
+	PARAMETER sISP, DV, wMass.
+	LOCAL flowRate IS SHIP:AVAILABLETHRUST / (sISP * 9.806).
+	LOCAL dMass IS wMass / (CONSTANT:E^ (DV / (sISP * 9.806))).
+	RETURN (wMass - dMass) / flowRate.
+}
+
+FUNCTION control_point { 
+	PARAMETER pTag IS "controlPoint".
+	LOCAL controlList IS SHIP:PARTSTAGGED(pTag).
+	IF controlList:LENGTH > 0 { controlList[0]:CONTROLFROM(). }
+}

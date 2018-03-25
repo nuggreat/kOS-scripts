@@ -1,0 +1,12 @@
+RUN ablank.
+PRINT "waiting for messages".
+WAIT UNTIL NOT SHIP:MESSAGES:EMPTY.
+CORE:DOEVENT("Open Terminal").
+UNTIL FALSE {
+	RUN dock_station.
+	WAIT 10.
+	CLEARSCREEN.
+	PRINT "waiting for messages".
+	LOCK STEERING TO SHIP:FACING.
+	WAIT UNTIL NOT SHIP:MESSAGES:EMPTY.
+}
