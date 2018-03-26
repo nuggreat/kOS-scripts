@@ -100,7 +100,7 @@
   
     formated_time(31536000,5). will return the string " 001y 000d "
     formated_time(86400,5).    will return the string " 001d 00h  "
-    formated_time(3600,5).     will return the string "  01h 00m  "
+    formated_time(3600,5).     will return the string " 01h  00m  "
 	
     formated_time(31536000,6). will return the string " 001 Years   000 Days    "
     formated_time(86400,6).    will return the string " 001 Days    00 Hours    "
