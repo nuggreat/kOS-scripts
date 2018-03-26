@@ -58,7 +58,7 @@ LOCAL FUNCTION time_string {
 	}
 }
 
-FUNCTION formated_time {
+FUNCTION time_formating {
 	PARAMETER timeSec,	//the time in seconds to format
 	formatType IS 0,		//what type of format
 	rounding IS 0,		//what rounding on the seconds
@@ -89,7 +89,7 @@ FUNCTION formated_time {
 	}
 }
 
-FUNCTION si_formatting {
+FUNCTION si_formating {
 	PARAMETER num,//number to format,
 	unit IS "".//unit of number
 	LOCAL powerOfTen IS MIN(MIN(FLOOR(LOG10(ABS(num))),26),-24).

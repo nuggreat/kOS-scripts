@@ -33,7 +33,7 @@
     padding(-1,2,2,TRUE).  will return the string "-01.00"
     padding(-1,2,2,FALSE). will return the string "-01.00"
 	
-### the si_formatting function
+### the si_formating function
 
   Converts a number into a string matching standard SI formats with unit prefixes, will always return with 4 significant digits
   
@@ -44,12 +44,12 @@
 	
   Examples of use:
   
-    si_formatting(70000,"m").  will return the string "70.00 km"
-    si_formatting(0.1,"m").    will return the string "100.0 mm"
-    si_formatting(1000.1,"m"). will return the string "1.000 km"
-    si_formatting(500,"m/s").  will return the string "500.0  m/s"
+    si_formating(70000,"m").  will return the string "70.00 km"
+    si_formating(0.1,"m").    will return the string "100.0 mm"
+    si_formating(1000.1,"m"). will return the string "1.000 km"
+    si_formating(500,"m/s").  will return the string "500.0  m/s"
 	
-### the formated_time function
+### the time_formating function
 
   Converts number of seconds into a 1 of 7 formated strings for time
   
@@ -66,23 +66,23 @@
 	
   Examples of use:
   
-    formated_time(120).           will return the string " 02m 00s"
-    formated_time(120,0,2).       will return the string " 02m 00.00s"
-    formated_time(-120,0,2).      will return the string "-02m 00.00s"
-    formated_time(-120,0,2,true). will return the string "T- 02m 00.00s"
-    formated_time(120,0,2,true).  will return the string "T+ 02m 00.00s"
+    time_formating(120).           will return the string " 02m 00s"
+    time_formating(120,0,2).       will return the string " 02m 00.00s"
+    time_formating(-120,0,2).      will return the string "-02m 00.00s"
+    time_formating(-120,0,2,true). will return the string "T- 02m 00.00s"
+    time_formating(120,0,2,true).  will return the string "T+ 02m 00.00s"
 	
   the 7 format types have different results
   
   formats 0,1,2 will not show higher units than are what is needed for the given input
   
-    formated_time(1,0).   will return the string " 01s"
-    formated_time(100,0). will return the string " 1m 40s"
+    time_formating(1,0).   will return the string " 01s"
+    time_formating(100,0). will return the string " 1m 40s"
 	
 	
-    formated_time(31536000,0). will return the string " 001y 000d 00h 00m 00s"
-    formated_time(31536000,1). will return the string " 001 Years, 000 Days, 00:00:00"
-    formated_time(31536000,2). will return the string " 001 Years, 000 Days, 00 Hours, 00 Minutes, 00 Seconds"
+    time_formating(31536000,0). will return the string " 001y 000d 00h 00m 00s"
+    time_formating(31536000,1). will return the string " 001 Years, 000 Days, 00:00:00"
+    time_formating(31536000,2). will return the string " 001 Years, 000 Days, 00 Hours, 00 Minutes, 00 Seconds"
 	
   format 3,4 will only display hours, minutes, and seconds,
   
@@ -90,21 +90,21 @@
   
   format 4 will always display the hour, minute, second places
   
-    formated_time(3600,3). will return the string " 01:00:00"
-    formated_time(60,3).   will return the string " 01:00"
+    time_formating(3600,3). will return the string " 01:00:00"
+    time_formating(60,3).   will return the string " 01:00"
 	
-    formated_time(3600,4). will return the string " 01:00:00"
-    formated_time(60,4).   will return the string " 00:01:00"
+    time_formating(3600,4). will return the string " 01:00:00"
+    time_formating(60,4).   will return the string " 00:01:00"
 	
   format 5,6 will display only the 2 highest units for the passed in time they also try to keep the return string the exact same length regardless of input
   
-    formated_time(31536000,5). will return the string " 001y 000d "
-    formated_time(86400,5).    will return the string " 001d 00h  "
-    formated_time(3600,5).     will return the string " 01h  00m  "
+    time_formating(31536000,5). will return the string " 001y 000d "
+    time_formating(86400,5).    will return the string " 001d 00h  "
+    time_formating(3600,5).     will return the string " 01h  00m  "
 	
-    formated_time(31536000,6). will return the string " 001 Years   000 Days    "
-    formated_time(86400,6).    will return the string " 001 Days    00 Hours    "
-    formated_time(3600,6).     will return the string " 01 Hours    00 Minutes  "
+    time_formating(31536000,6). will return the string " 001 Years   000 Days    "
+    time_formating(86400,6).    will return the string " 001 Days    00 Hours    "
+    time_formating(3600,6).     will return the string " 01 Hours    00 Minutes  "
 	
 	
 	
