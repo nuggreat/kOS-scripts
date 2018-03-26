@@ -1,6 +1,6 @@
-##lib_formating.ks consists of 5 functions 3 global for use in other scripts and 2 for internal use by the library
+## lib_formating.ks consists of 5 functions 3 global for use in other scripts and 2 for internal use by the library
 
-###the padding function
+### the padding function
 
   Converts a number into a formated string with a fixed number of digits to the right of the decimal point and a minimum number of digits to the left of the decimal point.
   
@@ -33,7 +33,7 @@
     padding(-1,2,2,TRUE).  will return the string "-01.00"
     padding(-1,2,2,FALSE). will return the string "-01.00"
 	
-###the si_formatting function
+### the si_formatting function
 
   Converts a number into a string matching standard SI formats with unit prefixes, will always return with 4 significant digits
   
@@ -49,7 +49,7 @@
     si_formatting(1000.1,"m"). will return the string "1.000 km"
     si_formatting(500,"m/s").  will return the string "500.0  m/s"
 	
-###the formated_time function
+### the formated_time function
 
   Converts number of seconds into a 1 of 7 formated strings for time
   
