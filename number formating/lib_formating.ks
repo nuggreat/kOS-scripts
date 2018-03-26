@@ -92,7 +92,7 @@ FUNCTION time_formating {
 FUNCTION si_formating {
 	PARAMETER num,//number to format,
 	unit IS "".//unit of number
-	LOCAL powerOfTen IS MIN(MIN(FLOOR(LOG10(ABS(num))),26),-24).
+	LOCAL powerOfTen IS MAX(MIN(FLOOR(LOG10(ABS(num))),26),-24).
 	LOCAL SIfactor IS FLOOR(powerOfTen / 3).
 	LOCAL trailingLength IS 3 - MOD(powerOfTen,3).
 	LOCAL prefix IS LIST(" y"," z"," a"," f"," p"," n"," μ"," m","  "," k"," M"," G"," T"," P"," E"," Z"," Y")[SIfactor + 8].
