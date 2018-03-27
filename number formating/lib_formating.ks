@@ -92,7 +92,6 @@ FUNCTION time_formating {
 FUNCTION si_formating {
 	PARAMETER num,//number to format,
 	unit IS "".//unit of number
-<<<<<<< HEAD
 	IF num = 0 {
 		RETURN padding(num,1,3) + "  " + unit.
 	} ELSE {
@@ -102,13 +101,6 @@ FUNCTION si_formating {
 		LOCAL prefix IS LIST(" y"," z"," a"," f"," p"," n"," μ"," m","  "," k"," M"," G"," T"," P"," E"," Z"," Y")[SIfactor + 8].
 		RETURN padding(num/1000^SIfactor,1,trailingLength) + prefix + unit.
 	}
-=======
-	LOCAL powerOfTen IS MAX(MIN(FLOOR(LOG10(ABS(num))),26),-24).
-	LOCAL SIfactor IS FLOOR(powerOfTen / 3).
-	LOCAL trailingLength IS 3 - MOD(powerOfTen,3).
-	LOCAL prefix IS LIST(" y"," z"," a"," f"," p"," n"," μ"," m","  "," k"," M"," G"," T"," P"," E"," Z"," Y")[SIfactor + 8].
-	RETURN padding(num/1000^SIfactor,1,trailingLength) + prefix + unit.
->>>>>>> origin/Dcumented-Scipts
 }
 
 FUNCTION padding {
