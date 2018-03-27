@@ -82,10 +82,10 @@ FUNCTION time_formating {
 		RETURN time_string(timeSec,3,stringList,leading0List,roundingList,tMinus).
 	} ELSE IF formatType = 5 {
 		LOCAL stringList IS LIST("s  ","m  ","h  ","d ","y ").
-		RETURN time_string(timeSec,2,stringList,leading0List,roundingList,tMinus).
+		RETURN time_string(timeSec,2,stringList,leading0List,LIST(0,0,0,0,0),tMinus).
 	} ELSE IF formatType = 6 {
 		LOCAL stringList IS LIST(" Seconds  "," Minutes  "," Hours    "," Days    "," Years   ").
-		RETURN time_string(timeSec,2,stringList,leading0List,roundingList,tMinus).
+		RETURN time_string(timeSec,2,stringList,leading0List,LIST(0,0,0,0,0),tMinus).
 	}
 }
 

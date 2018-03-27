@@ -96,7 +96,7 @@
     time_formating(3600,4). will return the string " 01:00:00"
     time_formating(60,4).   will return the string " 00:01:00"
 	
-  format 5,6 will display only the 2 highest units for the passed in time they also try to keep the return string the exact same length regardless of input
+  format 5,6 will display only the 2 highest units for the passed in time they also try to keep the return string the exact same length regardless of input.  Parameter 3 is set to 0 for theses formats and can't be change with out editing the code
   
     time_formating(31536000,5). will return the string " 001y 000d "
     time_formating(86400,5).    will return the string " 001d 00h  "
