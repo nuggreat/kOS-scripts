@@ -44,10 +44,10 @@
 	
   Examples of use:
   
-    si_formating(70000,"m").  will return the string "70.00 km"
-    si_formating(0.1,"m").    will return the string "100.0 mm"
-    si_formating(1000.1,"m"). will return the string "1.000 km"
-    si_formating(500,"m/s").  will return the string "500.0  m/s"
+    si_formating(70000,"m").  will return the string " 70.00 km"
+    si_formating(0.1,"m").    will return the string " 100.0 mm"
+    si_formating(1000.1,"m"). will return the string " 1.000 km"
+    si_formating(500,"m/s").  will return the string " 500.0  m/s"
 	
 ### the time_formating function
 
