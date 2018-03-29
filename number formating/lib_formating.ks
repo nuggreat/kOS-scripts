@@ -60,12 +60,12 @@ LOCAL FUNCTION time_string {
 	}
 }
 
-lib_formating_lex:ADD("timeFormat0",LIST("s  ","m  ","h  ","d ","y ")).
+lib_formating_lex:ADD("timeFormat0",LIST("s","m ","h ","d ","y ")).
 lib_formating_lex:ADD("timeFormat1",LIST("",":",":"," Days, "," Years, ")).
 lib_formating_lex:ADD("timeFormat2",LIST(" Seconds"," Minutes, "," Hours, "," Days, "," Years, ")).
 lib_formating_lex:ADD("timeFormat3",LIST("",":",":")).
 //format 4 uses the same list as format 3
-//format 5 uses the same list as format 0
+lib_formating_lex:ADD("timeFormat5",LIST("s  ","m  ","h  ","d ","y ")).
 lib_formating_lex:ADD("timeFormat6",LIST(" Seconds  "," Minutes  "," Hours    "," Days    "," Years   ")).
 
 FUNCTION time_formating {
@@ -85,7 +85,7 @@ FUNCTION time_formating {
 	} ELSE IF formatType = 4 {
 		RETURN time_string(timeSec,3,lib_formating_lex["timeFormat3"],roundingList,tMinus).
 	} ELSE IF formatType = 5 {
-		RETURN time_string(timeSec,2,lib_formating_lex["timeFormat0"],roundingList,tMinus).
+		RETURN time_string(timeSec,2,lib_formating_lex["timeFormat5"],roundingList,tMinus).
 	} ELSE IF formatType = 6 {
 		RETURN time_string(timeSec,2,lib_formating_lex["timeFormat6"],roundingList,tMinus).
 	}
@@ -100,7 +100,7 @@ FUNCTION si_formating {
 	} ELSE {
 		LOCAL powerOfTen IS MAX(MIN(FLOOR(LOG10(ABS(num))),26),-24).
 		LOCAL SIfactor IS FLOOR(powerOfTen / 3).
-		LOCAL trailingLength IS 3 - MOD(powerOfTen,3).
+		LOCAL trailingLength IS 3 - (powerOfTen - SIfactor * 3).
 		LOCAL prefix IS lib_formating_lex["siPrefixList"][SIfactor + 8].
 		RETURN padding(num/1000^SIfactor,1,trailingLength) + prefix + unit.
 	}
