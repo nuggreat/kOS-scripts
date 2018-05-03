@@ -139,7 +139,7 @@ FUNCTION pid_debug {
 }
 
 FUNCTION impact_eta { //returns the impact time in UT from after the next node, note only works on airless bodies
-  PARAMETER posTime. //posTime must be in UT seconds (TIME:SECONDS)
+  PARAMETER posTime IS TIME:SECONDS. //posTime must be in UT seconds (TIME:SECONDS)
   LOCAL stepVal IS 100.
   LOCAL maxScanTime IS SHIP:ORBIT:PERIOD + posTime.
   IF (SHIP:ORBIT:PERIAPSIS < 0) AND (SHIP:ORBIT:TRANSITION <> "escape") {
