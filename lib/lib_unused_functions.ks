@@ -155,21 +155,21 @@ FUNCTION impact_eta { //returns the impact time in UT from after the next node, 
       IF altitudeAt > targetAltitudeHi {
         SET scanTime TO scanTime + stepVal.
         SET pos TO POSITIONAT(SHIP,scanTime).
-        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime):TERRAINHEIGHT.
+        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime,pos):TERRAINHEIGHT.
         IF altitudeAt < targetAltitudeLow {
           SET scanTime TO scanTime - stepVal.
           SET pos TO POSITIONAT(SHIP,scanTime).
-          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime):TERRAINHEIGHT.
+          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime,pos):TERRAINHEIGHT.
           SET stepVal TO stepVal / 2.
         }
       } ELSE IF altitudeAt < targetAltitudeLow {
         SET scanTime TO scanTime - stepVal.
         SET pos TO POSITIONAT(SHIP,scanTime).
-        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime):TERRAINHEIGHT.
+        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime,pos):TERRAINHEIGHT.
         IF altitudeAt > targetAltitudeHi {
           SET scanTime TO scanTime + stepVal.
           SET pos TO POSITIONAT(SHIP,scanTime).
-          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime):TERRAINHEIGHT.
+          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime,pos):TERRAINHEIGHT.
           SET stepVal TO stepVal / 2.
         }
       }
