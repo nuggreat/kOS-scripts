@@ -34,6 +34,7 @@ FUNCTION advanced_heading {//works just like HEADING but lets you set the roll
 	RETURN ANGLEAXIS(myRoll,returnDir:FOREVECTOR) * returnDir.
 }
 
+
 FUNCTION pseudo_throttle {
 	PARAMETER throt, tConfig.  //tConfig LIST(LIST(triger level for engine set, list of engines to cycle))
 	FOR data IN tConfig {
@@ -121,4 +122,74 @@ FUNCTION burn_along_vector {//needs libs formating, rocker utilities
 
 		IF stage_check(doStage) { SET shipISP TO isp_calc(). }//if i stage recalculate the ISP
 	}
+}
+
+FUNCTION pid_debug {
+	PARAMETER pidToDebug.
+	CLEARSCREEN.
+	PRINT "Setpoint: " + ROUND(pidToDebug:SETPOINT,2)).
+	PRINT "   Input: " + ROUND(pidToDebug:ERROR,2)).
+	PRINT "       P: " + ROUND(pidToDebug:PTERM,3).
+	PRINT "       I: " + ROUND(pidToDebug:ITERM,3).
+	PRINT "       D: " + ROUND(pidToDebug:DTERM,3).
+	PRINT "     Max: " + ROUND(pidToDebug:MAXOUTPUT,2).
+	PRINT "  Output: " + ROUND(pidToDebug:OUTPUT,2)).
+	PRINT "     min: " + ROUND(pidToDebug:MINOUTPUT,2).
+//	LOG (pidToDebug:SETPOINT + "," + pidToDebug:ERROR + "," + pidToDebug:PTERM + "," + pidToDebug:ITERM + "," + pidToDebug:DTERM + "," + pidToDebug:MAXOUTPUT + "," + pidToDebug:OUTPUT +  "," + pidToDebug:MINOUTPUT) TO PATH("0:/pidLog.txt").
+}
+
+FUNCTION impact_eta { //returns the impact time in UT from after the next node, note only works on airless bodies
+  PARAMETER posTime. //posTime must be in UT seconds (TIME:SECONDS)
+  LOCAL stepVal IS 100.
+  LOCAL maxScanTime IS SHIP:ORBIT:PERIOD + posTime.
+  IF (SHIP:ORBIT:PERIAPSIS < 0) AND (SHIP:ORBIT:TRANSITION <> "escape") {
+    LOCAL localBody IS SHIP:BODY.
+    LOCAL resetTime IS TIME:SECONDS.
+    LOCAL resetCounter IS 0.
+    LOCAL scanTime IS posTime.
+    LOCAL targetAltitudeHi IS 1 .
+    LOCAL targetAltitudeLow IS 0.
+    LOCAL pos IS POSITIONAT(SHIP,scanTime).
+    LOCAL altitudeAt IS localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
+    UNTIL (altitudeAt < targetAltitudeHi) AND (altitudeAt > targetAltitudeLow) {
+      IF altitudeAt > targetAltitudeHi {
+        SET scanTime TO scanTime + stepVal.
+        SET pos TO POSITIONAT(SHIP,scanTime).
+        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime):TERRAINHEIGHT.
+        IF altitudeAt < targetAltitudeLow {
+          SET scanTime TO scanTime - stepVal.
+          SET pos TO POSITIONAT(SHIP,scanTime).
+          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime):TERRAINHEIGHT.
+          SET stepVal TO stepVal / 2.
+        }
+      } ELSE IF altitudeAt < targetAltitudeLow {
+        SET scanTime TO scanTime - stepVal.
+        SET pos TO POSITIONAT(SHIP,scanTime).
+        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime):TERRAINHEIGHT.
+        IF altitudeAt > targetAltitudeHi {
+          SET scanTime TO scanTime + stepVal.
+          SET pos TO POSITIONAT(SHIP,scanTime).
+          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime):TERRAINHEIGHT.
+          SET stepVal TO stepVal / 2.
+        }
+      }
+      IF (resetTime + 10) < TIME:SECONDS {//resets loop if it takes more than 10 seconds
+        SET scanTime TO posTime.
+        SET stepVal TO 100.
+        SET resetTime TO TIME:SECONDS.
+        SET resetCounter TO resetCounter + 1.
+        IF resetCounter >= 3 { SET scanTime TO -1. BREAK. }
+      }
+      IF maxScanTime < scanTime {//resets loop if it is bigger than one period
+        SET scanTime TO posTime.
+        SET stepVal TO stepVal / 2.
+        SET resetTime TO TIME:SECONDS.
+        SET resetCounter TO resetCounter + 1.
+        IF resetCounter >= 3 { SET scanTime TO -1. BREAK. }
+      }
+    }
+    RETURN scanTime.
+  } ELSE {
+    RETURN -1.
+  }
 }
