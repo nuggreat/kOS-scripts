@@ -11,6 +11,7 @@ FUNCTION VecDrawAdd { // Draw the vector or update it.
 	}
 }
 
+FUNCTION target_to_geochordnate {	//converts types of vessel,part,waypoint, and string into geocoordinates
 	PARAMETER tar.					//for string function assumes this is the name of a waypoint
 	IF tar:ISTYPE("string") { SET tar TO WAYPOINT(tar). }
 	
@@ -24,6 +25,7 @@ FUNCTION VecDrawAdd { // Draw the vector or update it.
 		RETURN SHIP:BODY:GEOPOSITIONOF(tar:POSITION).
 		
 	} ELSE {
+		PRINT "I don't know how use a dest type of :" + tar:TYPENAME.
 		RETURN FALSE.
 	}
 }
