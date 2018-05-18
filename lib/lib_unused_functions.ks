@@ -11,6 +11,23 @@ FUNCTION VecDrawAdd { // Draw the vector or update it.
 	}
 }
 
+	PARAMETER tar.					//for string function assumes this is the name of a waypoint
+	IF tar:ISTYPE("string") { SET tar TO WAYPOINT(tar). }
+	
+	IF tar:ISTYPE("geocoordinates") {
+		RETURN tar.
+		
+	} ELSE IF tar:ISTYPE("vessel") OR tar:ISTYPE("waypoint") {
+		RETURN tar:GEOPOSITION.
+		
+	} ELSE  IF tar:ISTYPE("part") {
+		RETURN SHIP:BODY:GEOPOSITIONOF(tar:POSITION).
+		
+	} ELSE {
+		RETURN FALSE.
+	}
+}
+
 FUNCTION accel_data { //using the Accelerometer part returns the current acceleration of the SHIP in m/s
 	LOCAL accelPart IS SHIP:PARTSNAMED("sensorAccelerometer").
 	IF accelPart:LENGTH > 0 {
@@ -206,3 +223,32 @@ FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time
   IF newLNG > 180 { SET newLNG TO newLNG - 360. }
   RETURN LATLNG(posLATLNG:LAT,newLNG).
 }//function used but included for easy of reference for impact_eta function
+
+FUNCTION BURN_TIME_CALC{
+    PARAMETER CMAS,					//Current Mass
+	EISP,							//Engine ISP
+	MAXT,							//Max Thrust
+	CVEL.							//DV
+    LOCAL E IS CONSTANT():E. 
+    LOCAL G IS 9.80665.				// Gravity for ISP Conv
+    LOCAL I IS EISP * G.				// ISP in m/s units.
+    LOCAL M IS CMAS * 1000.			// Mass in kg.
+    LOCAL T IS MAXT * 1000.			// Thrust in N.
+    LOCAL F IS T/I.					// Fuel flow in kg/s.
+    RETURN (M/F)*(1-E^(-CVEL/I)).	// Burn time in seconds 
+}
+
+FUNCTION BURN_DIST_CALC{
+	PARAMETER CMAS,										//Current Mass
+	EISP,												//Engine ISP
+	MAXT,												//Max Thrust
+	CVEL.												//DV
+	LOCAL E IS CONSTANT():E.
+	LOCAL G IS 9.80665.									// Gravity for ISP Conv
+	LOCAL I IS EISP * G.									// ISP in m/s units.
+	LOCAL M IS CMAS * 1000.								// Mass in kg.
+	LOCAL T IS MAXT * 1000.								// Thrust in N.
+	LOCAL F IS T/I.										// Fuel Flow in kg/s.
+	LOCAL DT IS BURN_TIME_CALC(CMAS,EISP,MAXT,CVEL).		// Burn time in seconds.
+	RETURN I*(DT-(M/F))*LN(1-(F*DT/M))-(I*DT)+(CVEL*DT).	// Braking distance, somehow.
+}
