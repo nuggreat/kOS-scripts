@@ -25,7 +25,7 @@ FUNCTION target_to_geochordnate {	//converts types of vessel,part,waypoint, and 
 		RETURN SHIP:BODY:GEOPOSITIONOF(tar:POSITION).
 		
 	} ELSE {
-		PRINT "I don't know how use a dest type of :" + tar:TYPENAME.
+		PRINT "I don't know how use a target type of :" + tar:TYPENAME.
 		RETURN FALSE.
 	}
 }
