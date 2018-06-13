@@ -90,7 +90,7 @@ FUNCTION node_manipulation {//adjustst burn start time so trajectory is closer t
 	LOCAL scoreInital IS hillValues["score"].
 	LOCAL nodeBackup IS hillValues["nodeBackup"].
 	LOCAL found IS FALSE.
-	
+
 	IF manipMode = "time" {
 		IF targetNode:ETA < 120 {
 			SET hillValues["stepVal"] TO varConstants["initalStep"].
@@ -115,7 +115,7 @@ FUNCTION node_manipulation {//adjustst burn start time so trajectory is closer t
 	periapsis_manipulaiton(targetNode,-10000).
 	LOCAL pos IS pos_at_height(targetNode,posTime,10,varConstants).
 	LOCAL scoreNew IS score(pos,targetNode,varConstants).
-	
+
 	IF scoreNew < scoreInital {
 		SET found TO TRUE.
 	} ELSE {
@@ -139,7 +139,7 @@ FUNCTION node_manipulation {//adjustst burn start time so trajectory is closer t
 			SET targetNode TO nodeBackup.
 		}
 	}
-	
+
 	IF found {
 		SET posTime TO pos["time"].
 		SET nodeBackup TO targetNode.

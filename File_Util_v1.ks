@@ -34,7 +34,7 @@ LOCAL subMenu IS interface:ADDSTACK.  //set up mode interface
     SET rfnName:STYLE:WIDTH TO 300.
  LOCAL editFile IS subMenu:ADDVBOX.
   LOCAL efLabel IS editFile:ADDLABEL("Edit File Set With Source").
-  
+
  LOCAL copyDir IS subMenu:ADDVBOX.  //directory modes
   LOCAL copdLabel IS copyDir:ADDLABEL("Copy Directory From Source To Destination").
  LOCAL moveDir IS subMenu:ADDVBOX.
@@ -139,15 +139,15 @@ interface:DISPOSE.
 REBOOT.
 
 FUNCTION run_mode {//calls chosed mode,rebuild of source/destination lists
-	
+
 	iGoButton:HIDE.
 	iWorking:SHOW.
-	
+
 	LOCAL chosenMode IS iModeList:VALUE.
 	PRINT " ".
 	modeLex[chosenMode]:CALL().
 	PRINT " ".
-	
+
 	IF iSourceMenu:VISIBLE AND (chosenMode <> "Edit Files") {//recreate source/destination dir/file lists after a mode runs
 		LOCAL menuValue IS ismvList:VALUE.
 		IF iDestinationMenu:VISIBLE { SET menuValue TO idmvList:VALUE. }
@@ -160,7 +160,7 @@ FUNCTION run_mode {//calls chosed mode,rebuild of source/destination lists
 		destination_dir_slector(idmvList:VALUE).
 		source_dir_slector(ismvList:VALUE).
 	}
-	
+
 	iWorking:HIDE.
 	iGoButton:SHOW.
 }

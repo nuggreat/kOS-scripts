@@ -101,11 +101,13 @@ ABORT OFF.
 PRINT "Ship at 0/0 Relitave to Target.".
 PRINT " ".
 
-port_open(craftPort).
+IF craftPort[2] = 1 {
+	port_open(craftPort[0]).
+}
 
 PRINT "Waiting for Station to Stablise.".
-craftPort:CONTROLFROM().
-LOCK STEERING TO LOOKDIRUP(-stationPort:PORTFACING:FOREVECTOR, stationPort:PORTFACING:TOPVECTOR).
+craftPort[0]:CONTROLFROM().
+LOCK STEERING TO LOOKDIRUP(-stationPort[0]:PORTFACING:FOREVECTOR, stationPort[0]:PORTFACING:TOPVECTOR).
 message_wait(buffer).
 SET signal TO buffer:POP().
 
@@ -114,7 +116,7 @@ LOCAL timePre IS TIME:SECONDS.
 SET done TO FALSE.
 UNTIL done {
 	LOCAL angleTo IS ABS(STEERINGMANAGER:ANGLEERROR) + ABS(STEERINGMANAGER:ROLLERROR).
-//	LOCAL angleTo IS VANG(craftPort:PORTFACING:FOREVECTOR, -stationPort:PORTFACING:FOREVECTOR) + VANG(craftPort:PORTFACING:TOPVECTOR, stationPort:PORTFACING:TOPVECTOR).
+//	LOCAL angleTo IS VANG(craftPort[0]:PORTFACING:FOREVECTOR, -stationPort[0]:PORTFACING:FOREVECTOR) + VANG(craftPort[0]:PORTFACING:TOPVECTOR, stationPort[0]:PORTFACING:TOPVECTOR).
 	IF angleTo < 0.5 {
 		IF (TIME:SECONDS - timePre) >= 5 { SET done TO TRUE. }
 	} ELSE {
@@ -128,7 +130,7 @@ ABORT OFF.
 RCS ON.
 LOCAL reffList IS LIST(craftPort,stationPort,transSpeed).
 IF NOT stationMove {
-	IF axis_distance(craftPort,stationPort)[1] < noFlyZone {
+	IF axis_distance(craftPort[0],stationPort[0])[1] < noFlyZone {
 		translate(reffList,"Moving out of No Fly Zone of Station.",TRUE,LIST(0,1,1),noFlyZone).
 		RCS ON.
 		translate(reffList,"Translating Infront of Target Port.",FALSE,LIST(1,0,0),LIST(noFlyZone,0,0),1).
@@ -154,10 +156,9 @@ RCS OFF.
 
 FUNCTION translate {
 	PARAMETER neededRef,screenText,leaveNoFlyZone,vecMode,distTar,minDist IS 0.1,translationAccel IS 0.04.
-	LOCAL craftPort IS neededRef[0]. LOCAL stationPort IS neededRef[1]. LOCAL station IS stationPort:SHIP. LOCAL maxSpeed IS neededRef[2].
-	LOCAL portSize IS port_to_port_size(craftPort).
+	LOCAL craftPort IS neededRef[0]. LOCAL stationPort IS neededRef[1]. LOCAL station IS stationPort[0]:SHIP. LOCAL maxSpeed IS neededRef[2].
 	LOCAL axisSpeed IS axis_speed(SHIP,station).
-	LOCAL axisDist IS axis_distance(craftPort,stationPort).
+	LOCAL axisDist IS axis_distance(craftPort[0],stationPort[0]).
 
 	LOCAL  forDistDif IS 0.
 	LOCAL  topDistDif IS 0.
@@ -181,9 +182,9 @@ FUNCTION translate {
 		SET distDif TO distTar - noFlyDist.
 	}
 
-	LOCAL done IS distDif < minDist OR (stationPort:STATE = "Docked (docker)") OR (stationPort:STATE = "Docked (dockee)").
+	LOCAL done IS distDif < minDist OR (stationPort[0]:STATE = "Docked (docker)") OR (stationPort[0]:STATE = "Docked (dockee)").
 	UNTIL done {
-		SET axisDist TO axis_distance(craftPort,stationPort).
+		SET axisDist TO axis_distance(craftPort[0],stationPort[0]).
 		SET axisSpeed TO axis_speed(SHIP,station).
 
 		IF leaveNoFlyZone {
@@ -214,8 +215,8 @@ FUNCTION translate {
 		CLEARSCREEN.
 		PRINT screenText.
 		PRINT " ".
-		PRINT "Port Size: " + portSize.
-		PRINT "Distance:  " + ROUND(distDif,1).
+		PRINT "Port Size: " + craftPort[1].
+		PRINT "Disttance: " + ROUND(distDif,1).
 		//PRINT " ".
 		//PRINT "      Dist: " + ROUND(axisDist[0],2).
 		//PRINT "     Speed: " + ROUND(axisSpeed[0]:MAG,2).
@@ -229,7 +230,7 @@ FUNCTION translate {
 		//PRINT "Star  Dist: " + ROUND(axisDist[3],2).
 		//PRINT "Star Speed: " + ROUND(axisSpeed[3],2).
 
-		SET done TO (distDif < minDist) OR (stationPort:STATE = "Docked (docker)") OR (stationPort:STATE = "Docked (dockee)") OR (axisDist[0] < 1).
+		SET done TO (distDif < minDist) OR (stationPort[0]:STATE = "Docked (docker)") OR (stationPort[0]:STATE = "Docked (dockee)") OR (axisDist[0] < 1).
 	}
 	SET SHIP:CONTROL:FORE TO 0.
 	SET SHIP:CONTROL:TOP TO 0.
@@ -246,32 +247,28 @@ FUNCTION RCS_decel_setpoint {
 }
 
 FUNCTION port_lock {
-	PARAMETER craftPortLex,stationPortLex,use,ignore.
-	//LOCAL matchingSizeList IS port_size_matching(craftPortLex,stationPortLex).
-
+	PARAMETER craftPortList,stationPortList,use,ignore.
 	LOCAL matchingPort IS LEX("match",FALSE).
-	FOR pSize IN port_size_matching(craftPortLex,stationPortLex) {
-		FOR shipP IN craftPortLex[pSize] { FOR stationP IN stationPortLex[pSize] {
-			IF shipP[1] = stationP[1] {
-				IF ignore = -99999 OR ((shipP[2] <> ignore) AND (stationP[2] <> ignore)) {
-					IF use = -99999 OR ((shipP[2] = use) AND (stationP[2] = use)) {
-						RETURN LEX("match",TRUE,"craftPort",shipP,"stationPort",stationP).
-					}
-					IF use <> -99999 AND ((shipP[2] = use) OR (stationP[2] = use)) AND (NOT matchingPort["match"]) {
-						SET matchingPort TO LEX("match",TRUE,"craftPort",shipP,"stationPort",stationP).
-					}
+	FOR shipP IN craftPortList { FOR stationP IN stationPortList {
+		IF shipP[1] = stationP[1] {
+			IF ignore = -99999 OR ((shipP[3] <> ignore) AND (stationP[3] <> ignore)) {
+				IF use = -99999 OR ((shipP[3] = use) AND (stationP[3] = use)) {
+					RETURN LEX("match",TRUE,"craftPort",shipP,"stationPort",stationP).
+				}
+				IF use <> -99999 AND ((shipP[3] = use) OR (stationP[3] = use)) AND (NOT matchingPort["match"]) {
+					SET matchingPort TO LEX("match",TRUE,"craftPort",shipP,"stationPort",stationP).
 				}
 			}
-		}}
-	}
+		}
+	}}
 	IF matchingPort["match"] {
 		RETURN matchingPort.
 	} ELSE IF use <> -99999 {
 		PRINT "Overiding Port Priority Tag".
-		RETURN port_lock(craftPortLex,stationPortLex,-99999,ignore).
+		RETURN port_lock(craftPortList,stationPortList,-99999,ignore).
 	} ELSE IF ignore <> -99999{
 		PRINT "Overiding Port Disable Tag".
-		RETURN port_lock(craftPortLex,stationPortLex,-99999,-99999).
+		RETURN port_lock(craftPortList,stationPortList,-99999,-99999).
 	} ELSE {
 		RETURN LEX("match",FALSE).
 	}

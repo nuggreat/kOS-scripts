@@ -22,11 +22,15 @@ IF targetGo {
 //LOCAL thrustLimitBackup IS twr_restriction(7.5).
 
 RUN land_at(landingCoordinates).
-RUN node_burn.
-//RUN land_at(landingCoordinates).
-//RUN node_burn.
-REMOVE NEXTNODE.
-RUN landing_vac(TRUE,landingCoordinates).
+IF NOT ABORT {
+	RUN node_burn.
+	//RUN land_at(landingCoordinates).
+	//RUN node_burn.
+	REMOVE NEXTNODE.
+	IF NOT ABORT {
+		RUN landing_vac(TRUE,landingCoordinates).
+	}
+}
 
 //twr_restore(thrustLimitBackup).
 

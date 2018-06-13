@@ -39,7 +39,7 @@ SET listETA TO LIST(LIST(target_distance(mark),TIME:SECONDS,1)).
 	SET speed_PID:KD TO 0.02.
 	SET speed_PID:MAXOUTPUT TO 1.
 	SET speed_PID:MINOUTPUT TO -1.
-	
+
 	SET steer_PID TO PIDLOOP().
 	SET steer_PID:KP TO 1/(8*2.5).//2.5-/-10
 	SET steer_PID:KI TO 1/(8*16).//16-/-64
@@ -57,7 +57,7 @@ LOCAL dist IS target_distance(mark).
 SET speed_PID:SETPOINT TO speed_adv(dist).
 
 UNTIL roving {	//roving to mark
-	
+
 	LOCAL forSpeed IS forward_speed().
 	LOCAL timeStep IS TIME:SECONDS.
 	SET SHIP:CONTROL:WHEELTHROTTLE TO speed_PID:UPDATE(timeStep,forSpeed).
@@ -67,7 +67,7 @@ UNTIL roving {	//roving to mark
 		SET SHIP:CONTROL:WHEELSTEER TO 0 - steer_PID:UPDATE(timeStep,mark:BEARING).
 	}
 	PID_minMax(forSpeed,steer_PID).
-	
+
 	IF count > 5 {
 		SET dist TO target_distance(mark).
 		SET speed_PID:SETPOINT TO speed_adv(dist).
@@ -86,13 +86,13 @@ ABORT OFF.
 WAIT 0.01.
 SET speed_PID:SETPOINT TO 0.
 UNTIL stopping {	//stopping once close to mark
-	
+
 	LOCAL forSpeed IS forward_speed().
 	LOCAL timeStep IS TIME:SECONDS.
 	SET SHIP:CONTROL:WHEELTHROTTLE TO speed_PID:UPDATE(timeStep,forSpeed).
 	SET SHIP:CONTROL:WHEELSTEER TO steer_PID:UPDATE(timeStep,mark:BEARING).
 	PID_minMax(forSpeed,steer_PID).
-	
+
 	IF count > 5 {
 		SET dist TO target_distance(mark).
 		LOCAL speedDif IS speed_PID:SETPOINT - forSpeed.
@@ -129,9 +129,9 @@ FUNCTION screen_update {		//updates the terminal
 	LOCAL targetETA IS target_eta(dist - stoppingDist).
 //	CLEARSCREEN.
 	LOCAL printList IS LIST().
-	printList:ADD("Distance      : " + si_formatting(dist,"m")).
+	printList:ADD("Distance      : " + si_formating(dist,"m")).
 	IF NOT stopping {
-		printList:ADD("ETA           :" + formated_time(targetETA,5)).
+		printList:ADD("ETA           :" + time_formating(targetETA,5)).
 	} ELSE {
 		printList:ADD("                       ").
 	}

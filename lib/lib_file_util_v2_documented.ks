@@ -3,7 +3,7 @@
 //	dir_scan_list_for_files(path list, extension list)
 //		path list: a list of paths,volumes, or strings pointing at paths EXAMPLE: LIST("1:/","2:/",...) OR LIST(PATH("1:/"),PATH("2:/"),...)
 //		extension list: see dir_scan_for_files for extension list formating and function
-//		will call dir_scan_for_files for every path in the path list 
+//		will call dir_scan_for_files for every path in the path list
 //		will merge the returned lists from dir_scan_for_files calls into one x,y list of the same formating as dir_scan_for_files
 //		returns the merged list
 
@@ -66,7 +66,7 @@ FUNCTION dir_scan_for_files {
 			masterList:ADD(subFile).
 		}
 	}
-	IF doDirRevert { 
+	IF doDirRevert {
 		WAIT 0.01.
 		CD(dirRevert).
 	}

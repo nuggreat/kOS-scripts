@@ -28,13 +28,13 @@ FUNCTION dir_scan {
 			IF (NOT filter:ISFILE) {
 				dirList:ADD(dirPath:COMBINE(filter + "/")).
 			}
-			
+
 		}
 		FOR subFile IN dir_scan(dirList,extL,FALSE) {
 			returnList:ADD(subFile).
 		}
 	}
-	IF doDirRevert { 
+	IF doDirRevert {
 		WAIT 0.01.
 		CD(dirRevert).
 	}

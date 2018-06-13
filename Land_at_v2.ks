@@ -39,7 +39,7 @@ UNTIL close{
 	UNTIL done {
 		LOCAL timePre IS TIME:SECONDS.
 	//	LOCAL nodeList IS node_manipulation(NEXTNODE,hillValues).
-		
+
 		LOCAL stepVal IS hillValues["stepVal"].
 		LOCAL posTime IS hillValues["posTime"].
 		LOCAL nodeList IS LIST().
@@ -50,12 +50,12 @@ UNTIL close{
 			nodeList:ADD(node_scoring(NEXTNODE,manipType,stepVal,posTime)).
 			nodeList:ADD(node_scoring(NEXTNODE,"-"+manipType,-stepVal,posTime)).
 		}
-	
+
 	//	LOCAL bestNode IS nodeList[0].
 		LOCAL anyGood IS FALSE.
 		FOR nodes IN nodeList {
 		//	WAIT 1.
-			IF bestNode[0] > nodes[0] { 
+			IF bestNode[0] > nodes[0] {
 				SET bestNode TO nodes.
 	//			PRINT ROUND(bestNode[0]) + " " + ROUND(nodes[0]) + " t/f: " + (bestNode[0] > nodes[0]) + " type: " + nodes[2] + " step: " + nodes[3].
 	//			WAIT 1.
@@ -107,7 +107,7 @@ FUNCTION node_manipulation {//adjustst burn start time so trajectory is closer t
 	LOCAL dist IS hillValues["dist"].
 	LOCAL found IS FALSE.
 	LOCAL nodeList IS LIST().
-	
+
 	LOCAL manipList IS varConstants["manipList"].
 	nodeList:ADD(LIST(hillValues["score"],posTime,"no",0,dist)).
 	FOR manipType IN  manipList {

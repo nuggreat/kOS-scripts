@@ -39,7 +39,7 @@ UNTIL close{
 	}
 	LOCAL stepMod IS 0.
 	UNTIL done {
-		LOCAL timePre IS TIME:SECONDS.		
+		LOCAL timePre IS TIME:SECONDS.
 		LOCAL stepVal IS hillValues["stepVal"].
 		LOCAL posTime IS hillValues["posTime"].
 		LOCAL manipList IS varConstants["manipList"].
@@ -47,12 +47,12 @@ UNTIL close{
 		LOCAL bestNode IS LIST(hillValues["score"],posTime,"no",0,hillValues["dist"]).
 		FOR manipType IN  manipList {
 			FOR stepTmp IN LIST(stepVal,-stepVal) {
-			
+
 				node_set(NEXTNODE,manipType,stepTmp).
 				LOCAL scoreNew IS score(NEXTNODE,posTime).
 				node_set(NEXTNODE,manipType,-stepTmp).
 				LOCAL nodeTmp IS LIST(scoreNew["score"],scoreNew["posTime"],manipType,stepTmp,scoreNew["dist"]).
-				
+
 				IF bestNode[0] > nodeTmp[0] {
 					SET bestNode TO nodeTmp.
 					SET anyGood TO TRUE.
@@ -61,7 +61,7 @@ UNTIL close{
 			}
 			IF anyGood { BREAK. }
 		}
-		
+
 		IF anyGood {
 			node_set(NEXTNODE,bestNode[2],bestNode[3]).
 			SET hillValues["score"] TO bestNode[0].

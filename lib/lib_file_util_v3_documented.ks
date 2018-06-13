@@ -13,10 +13,10 @@
 //		has 2 different types of returns depending on what the extension
 //			type 1 return is a x,y list in the form of LIST(LIST(path of file1, name of file1),LIST(path of file2, name of file2),...)
 //				will only return files with a extension in the extension list
-//					sending a extension list of LIST("-99999") will disable extension filtering 
+//					sending a extension list of LIST("-99999") will disable extension filtering
 //				"path of file" is of type path, EXAMPLE: PATH("1:/lib/")
 //				"name of file" is of type VolumeItem
-//			type 2 returns a list of all directories found EXAMPLE: LIST(PATH("1:/"),PATH("1:/lib"),...) 
+//			type 2 returns a list of all directories found EXAMPLE: LIST(PATH("1:/"),PATH("1:/lib"),...)
 
 //	no_root(path or list)
 //		path: should be a path EXAMPLE: PATH("1:/lib/lib_file_util.ks")
@@ -75,7 +75,7 @@ FUNCTION dir_scan {
 			masterList:ADD(subFile).
 		}
 	}
-	IF doDirRevert { 
+	IF doDirRevert {
 		WAIT 0.01.
 		CD(dirRevert).
 	}

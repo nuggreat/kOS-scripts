@@ -2,7 +2,7 @@ FUNCTION sim_land_spot {//credit to dunbaratu for the orignal code
 PARAMETER
 ves,
 isp,		//the isp of the active engines
-dragCof,		//the cofecent of drag * area 
+dragCof,		//the cofecent of drag * area
 atmoDenc,	//the dencity of he atmosphere
 tDelta,		//time step for sim
 cruse.		//a cruse time with no thrust in seconds
@@ -24,7 +24,7 @@ LOCAL cycles IS 0.
 IF cruse >= 0 {
 UNTIL t >= cruse {	//advancses the simulation of the craft with out burning for the amount of time defined by cruse
 	LOCAL upVec IS (pos - bodyPos).
-	
+
 //	LOCAL up_unit IS up_vec:NORMALIZED.
 //	LOCAL localGrav IS GM / upVec:SQRMAGNITUDE.
 //	LOCAL retroVec IS - vel:NORMALIZED.
@@ -33,24 +33,24 @@ UNTIL t >= cruse {	//advancses the simulation of the craft with out burning for 
 //	LOCAL accelVec IS (dragAcc * retroVec) - (localGrav * up_unit).
 	LOCAL accelVec IS (((vel:SQRMAGNITUDE * dragConstants) / m) * (-vel:NORMALIZED)) - ((GM / upVec:SQRMAGNITUDE) * upVec:NORMALIZED).
 	// above comented math is merged to save on IPU during the sim
-	
+
 	SET preVel TO vel.
 	SET vel TO vel + (accelVec * timeDelta).
-	
+
 //	LOCAL avgVel IS (vel + preVel) / 2.
-	
+
 //	SET pos TO pos + (avgVel * timeDelta).
 	SET pos TO pos + ((vel + preVel) / 2 * timeDelta).
-	
+
 	SET t TO t + timeDelta.
 	SET cycles TO cycles + 1.
 }}
 
 UNTIL FALSE {	//retroburn simulation
 	LOCAL upVec IS (pos - bodyPos).
-	
+
 	IF VDOT(vel, preVel) < 0 { BREAK. }	//ends sim when velosity reverses
-	
+
 //	LOCAL up_unit IS up_vec:NORMALIZED.
 //	LOCAL localGrav IS GM / upVec:SQRMAGNITUDE.
 //	LOCAL retroVec IS (- vel:NORMALIZED).
@@ -59,16 +59,16 @@ UNTIL FALSE {	//retroburn simulation
 //	LOCAL accelVec IS (retroAcc * retroVec) - (up_unit * localGrav).
 	LOCAL accelVec IS ((((vel:SQRMAGNITUDE * dragConstants) + thrustMax) / m) * (-vel:NORMALIZED)) - ((GM / upVec:SQRMAGNITUDE) * upVec:NORMALIZED).
 	// above comented math is merged to save on IPU during the sim
-	
+
 	SET preVel TO vel.
 	SET vel TO vel + (accelVec * timeDelta).
-	
+
 //	LOCAL avgVel is (vel + preVel) / 2.
-	
+
 //	SET pos TO pos + (avgVel * timeDelta).
 	SET pos TO pos + (((vel + preVel) / 2) * timeDelta).
 	SET m TO m - deltaM.
-	
+
 	IF m <= 0 { BREAK. }
 	SET t TO t + timeDelta.
 	SET cycles TO cycles + 1.

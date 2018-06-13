@@ -16,7 +16,7 @@ IF landingTar:ISTYPE("vessel") or landingTar:ISTYPE("waypoint") {
 	SET landingCoordinates TO landingTar:GEOPOSITION.
 } ELSE {
 	IF landingTar:ISTYPE("part") {
-		SET landingCoordinates TO BODY:GEOPOSITIONOF(landingTar:POSITION).
+		SET landingCoordinates TO SHIP:BODY:GEOPOSITIONOF(landingTar:POSITION).
 	} ELSE {
 		IF landingTar:ISTYPE("geocoordinates") {
 			SET landingCoordinates TO landingTar.
@@ -70,20 +70,20 @@ UNTIL close{
 	}
 	LOCAL stepMod IS 0.
 	UNTIL done {
-		LOCAL timePre IS TIME:SECONDS.		
+		LOCAL timePre IS TIME:SECONDS.
 		LOCAL stepVal IS hillValues["stepVal"].
 		LOCAL posTime IS hillValues["posTime"].
 		LOCAL anyGood IS FALSE.
 		LOCAL bestNode IS LIST(hillValues["score"],posTime,"no",0,hillValues["dist"]).
 		FOR manipType IN  varConstants["manipList"] {
 			FOR stepTmp IN LIST(stepVal,-stepVal) {
-			
+
 				node_set(NEXTNODE,manipType,stepTmp).
 				LOCAL scoreNew IS score(NEXTNODE,posTime).
 				LOCAL DVcheck IS NEXTNODE:DELTAV:MAG < varConstants["maxDv"].
 				node_set(NEXTNODE,manipType,-stepTmp).
 				LOCAL nodeTmp IS LIST(scoreNew["score"],scoreNew["posTime"],manipType,stepTmp,scoreNew["dist"]).
-				
+
 				IF DVcheck AND bestNode[0] > nodeTmp[0] {
 					SET bestNode TO nodeTmp.
 					SET anyGood TO TRUE.
@@ -92,7 +92,7 @@ UNTIL close{
 			}
 			IF anyGood { BREAK. }
 		}
-		
+
 		IF anyGood {
 			node_set(NEXTNODE,bestNode[2],bestNode[3]).
 			SET stepMod TO MAX(stepMod - 0.005,0).
@@ -187,7 +187,7 @@ FUNCTION score { //returns the score of the node
 				}
 			}
 		}
-		
+
 		LOCAL dist IS dist_betwene_coordinates(varConstants["landingCoordinates"],ground_track(scanTime,POSITIONAT(SHIP,scanTime))).
 		LOCAL scored IS dist + peDiff * PEweight.
 		IF targetNode:ISTYPE("node") { SET scored TO scored + (targetNode:DELTAV:MAG * 6). }
@@ -267,7 +267,7 @@ FUNCTION margin_error { //approximates vertical drop needed for the craft to sto
 	LOCAL burnTime IS 0.
 	LOCAL burnTimePre IS 0.
 	LOCAL shipISP IS isp_calc().
-	
+
 	UNTIL FALSE {
 		//SET surBurnTime TO burn_duration(shipISP,(SQRT((burnTime * srfGrav + velSpeed) ^ 2) + velSpeed ^ 2)).
 		//LOCAL orbBurnTime IS burn_duration(shipISP,SQRT(((burnTime * orbGrav + velSpeed) ^ 2) + velSpeed ^ 2)).

@@ -75,7 +75,7 @@ UNTIL done {	//waiting for a node to exist or be locked in
 		IF SAS {
 			SAS OFF.
 			SET warping TO TRUE.
-		} 
+		}
 		IF burnStart < (nodeLock / 12) {
 			SET aborting TO TRUE.
 			PRINT "node burn aborted because the craft is to close to the node".

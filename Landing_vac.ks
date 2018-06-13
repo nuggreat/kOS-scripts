@@ -17,9 +17,9 @@ LOCAL headingOffset IS 0.
 LOCAL throt IS 1.
 
 //PID setup PIDLOOP(kP,kI,kD,min,max)
-SET landing_PID TO PIDLOOP(0.5,0.1,0.01,0,1).
-SET pitch_PID TO PIDLOOP(0.04,0.0005,0.075,-5,25).//was 0.04,0.0005,0.075
-SET heading_pid TO PIDLOOP(0.04,0.0005,0.075,-10,10).
+GLOBAL landing_PID IS PIDLOOP(0.5,0.1,0.01,0,1).
+GLOBAL pitch_PID IS PIDLOOP(0.04,0.0005,0.075,-5,25).
+GLOBAL heading_pid IS PIDLOOP(0.04,0.0005,0.075,-10,10).
 
 //start of core logic
 LOCAL haveTarget IS FALSE.
@@ -66,12 +66,12 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 		LOCAL retrogradeVec IS SHIP:SRFRETROGRADE:FOREVECTOR.
 //		LOCAL leftVec IS VCRS(retrogradeVec,SHIP:UP:FOREVECTOR).//vector normal to retrograde and up
 //		LOCAL retroVec IS VCRS(SHIP:UP:FOREVECTOR,leftVec).//retrograde vector parallel to the ground
-		LOCAL leftVec IS VCRS(retrogradeVec,positionUpVec).//vector normal to retrograde and up
-		LOCAL retroVec IS VCRS(positionUpVec,leftVec).//retrograde vector parallel to the ground
-		LOCAL pitchOffsetRaw IS VDOT(distVec, retroVec:NORMALIZED).	//if positive then will land short, if negative than will land long
+		LOCAL leftVec IS VCRS(retrogradeVec,positionUpVec):NORMALIZED.//vector normal to retrograde and up
+		LOCAL retroVec IS VCRS(positionUpVec,leftVec):NORMALIZED.//retrograde vector parallel to the ground
+		LOCAL pitchOffsetRaw IS VDOT(distVec, retroVec).	//if positive then will land short, if negative than will land long
 		SET pitch_PID:MINOUTPUT TO MIN(MAX(stopGap / (retroMargin / -5),-5),0).
 		SET pitchOffset TO pitch_PID:UPDATE(TIME:SECONDS,-pitchOffsetRaw).
-		LOCAL headingOffsetRaw IS VDOT(distVec, leftVec:NORMALIZED).	//if positive then landingTarget is to the left, if negative landingTarget is to the right
+		LOCAL headingOffsetRaw IS VDOT(distVec, leftVec).	//if positive then landingTarget is to the left, if negative landingTarget is to the right
 		SET headingOffset TO heading_pid:UPDATE(TIME:SECONDS,-headingOffsetRaw).
 		PRINT "pitchAdjustRaw:   " + ROUND(pitchOffsetRaw).
 		PRINT "Pitch   Offset:   " + ROUND(pitchOffset,2).
@@ -91,7 +91,6 @@ LOCAL decentLex IS decent_math(shipThrust).
 LOCK STEERING TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR,SHIP:NORTH:FOREVECTOR).
 SET landing_PID:SETPOINT TO sucideMargin - 0.1.
 LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,ALT:RADAR - decentLex["stopDist"]).
-//LOCAL done IS FALSE.
 UNTIL ALT:RADAR < sucideMargin {	//vertical suicide burn stopping at about 10m above surface
 	SET decentLex TO decent_math(shipThrust).
 	CLEARSCREEN.
@@ -100,7 +99,6 @@ UNTIL ALT:RADAR < sucideMargin {	//vertical suicide burn stopping at about 10m a
 	PRINT "Stoping Time: " + ROUND(decentLex["stopTime"],1).
 	PRINT "Dist to Burn: " + ROUND(ALT:RADAR - sucideMargin - decentLex["stopDist"],1).
 	WAIT 0.01.
-	//SET done TO ALT:RADAR < sucideMargin.
 }
 landing_PID:RESET().
 
@@ -110,10 +108,10 @@ LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 //LOCAL done IS FALSE.
 UNTIL STATUS = "LANDED" OR STATUS = "SPLASHED" {	//slow decent until touchdown
 	LOCAL decentLex IS decent_math(shipThrust).
-	
+
 	LOCAL vSpeedTar IS MIN(0 - (ALT:RADAR - vertMargin - (ALT:RADAR * decentLex["stopTime"])) / (11 - MIN(decentLex["twr"],10)),-0.5).
 	SET landing_PID:SETPOINT TO vSpeedTar.
-	
+
 	IF VERTICALSPEED < -1 {
 		SET steeringTar TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR:NORMALIZED + (SHIP:UP:FOREVECTOR:NORMALIZED * 3),SHIP:NORTH:FOREVECTOR).
 	} ELSE {
@@ -121,13 +119,12 @@ UNTIL STATUS = "LANDED" OR STATUS = "SPLASHED" {	//slow decent until touchdown
 		LOCAL adjustedPitch IS MAX(90-GROUNDSPEED,89).
 		SET steeringTar TO LOOKDIRUP(HEADING(retroHeading,adjustedPitch):FOREVECTOR,SHIP:NORTH:FOREVECTOR).
 	}
-	
+
 	WAIT 0.01.
 	CLEARSCREEN.
 	PRINT "Altitude:  " + ROUND(ALT:RADAR,1).
 	PRINT "vSpeedTar: " + ROUND(vSpeedTar,1).
 	PRINT "vSpeed:    " + ROUND(VERTICALSPEED,1).
-	//SET done TO STATUS = "LANDED" OR STATUS = "SPLASHED".
 }
 
 BRAKES ON.
@@ -156,7 +153,7 @@ FUNCTION decent_math {	// the math needed for suicide burn and final decent
 	RETURN LEX("stopTime",stopTime,"stopDist",stopDist,"twr",twr).
 }
 
-FUNCTION lowist_part {	//returns the largest dist from the COM for a part in the retrograde direction
+FUNCTION lowist_part {	//returns the largest dist from the root part for a part in the retrograde direction
 	PARAMETER craft.
 	LOCAL biggest IS 0.
 	LOCAL rootPosition IS SHIP:ROOTPART:POSITION.

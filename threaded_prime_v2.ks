@@ -25,10 +25,10 @@ IF CORE:PART:TAG = "server" {
 		SET curentNum TO 5.
 		primeList:ADD(3).
 	}
-	
+
 	CORE:DOEVENT("open terminal").
 	WAIT 1.
-	
+
 	LOCAL coreList IS LIST().
 	LIST PROCESSORS IN coreList.
 	LOCAL dataBuffer IS 10.
@@ -51,7 +51,7 @@ IF CORE:PART:TAG = "server" {
 			SET slaveCout TO slaveCout + 1.
 		}
 	}
-	
+
 	LOCAL doneCount IS SHIP:PARTSTAGGED("slave"):LENGTH.
 	LOCAL bufferMax IS dataBuffer * coreList:LENGTH.
 	UNTIL primeList:LENGTH <= bufferMax {
@@ -85,7 +85,7 @@ IF CORE:PART:TAG = "server" {
 						}
 						primeList:INSERT(indexNum,primeTemp).
 					} ELSE { primeList:ADD(primeTemp). }
-					
+
 					UNTIL primeList:LENGTH <= bufferMax {
 						IF maxNum = -1 OR maxNum > primeList[0] {
 							PRINT primeList[0].
@@ -97,7 +97,7 @@ IF CORE:PART:TAG = "server" {
 					}
 				}
 				local_connection(data):SENDMESSAGE(LIST(CORE:PART:TAG,"num",curentNum)).
-				
+
 				SET curentNum TO curentNum + 2.
 				IF testList:LENGTH > 0 {
 					LOCAL numGood IS FALSE.
@@ -131,7 +131,7 @@ IF CORE:PART:TAG = "server" {
 		WAIT UNTIL NOT buffer:EMPTY.
 		LOCAL signal IS buffer:POP().
 		LOCAL data IS signal:CONTENT.
-		
+
 		IF data[1] = "done" {
 			SET done TO TRUE.
 			local_connection(data):SENDMESSAGE(LIST(CORE:PART:TAG,"done")).

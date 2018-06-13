@@ -4,7 +4,7 @@ In the cource of testing this I discovered it is because of order of exicution n
 
 SET pFloyd TO HIGHLIGHT(SHIP:PARTS,RGBA(255,20,147,0.01)). SET pFloyd:ENABLED TO TRUE.
 IF NOT EXISTS("1:/run_me_once_1.ks") { LOG "PRINT 12345." TO "1:/run_me_once_1.ks". }
-IF NOT EXISTS("1:/test_print_1.ks") { 
+IF NOT EXISTS("1:/test_print_1.ks") {
   LOG "
     RUN ONCE run_me_once_1.ks.
     PARAMETER printMe IS FALSE.

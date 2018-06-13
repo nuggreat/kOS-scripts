@@ -1,6 +1,6 @@
 PARAMETER tankTag,    //tankTag is the tag or list of tags that define the tanks you want to pump into or out of
     pumpDirection IS "out".  // if pumpDirection is "in" then script will pump into the taged tanks defaults to pumping out
-	
+
 ABORT OFF.
 LOCAL tagedTanks IS LIST().
 LOCAL notTagedTanks IS LIST().
@@ -15,7 +15,7 @@ FOR tTag IN tagList {
 }
 
 LOCAL resourceList TO LIST().
-FOR tank IN tagedTanks {	//populates resourceList list baced on tagedTanks
+FOR tank IN tagedTanks {	//populates resourceList list based on tagedTanks
 	FOR res IN tank:RESOURCES {
 		IF NOT resourceList:CONTAINS(res:NAME) {
 			resourceList:ADD(res:NAME).
@@ -85,7 +85,7 @@ FUNCTION res_filter {	//filters tankList for given res
 	RETURN filteredTanks.
 }
 
-FUNCTION pump_fuel {	//pumps givin pumpAmount of res from source to dest
+FUNCTION pump_fuel {	//pumps given pumpAmount of res from source to dest
 	PARAMETER res,source,dest,pumpAmount,percentage.
 	LOCAL finalAmount IS dest[1]:AMOUNT + pumpAmount.
 	LOCAL pump IS TRANSFER(res,source[0],dest[0],pumpAmount).

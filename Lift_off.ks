@@ -48,6 +48,15 @@ IF GEAR {
 	DEPLOYDRILLS OFF.
 	WAIT 0.
 }
+
+LOCAL timePast IS TIME:SECONDS + 0.1.
+WHEN timePast < TIME:SECONDS THEN{
+	SET timePast TO TIME:SECONDS + 0.1.
+	IF drop_tanks() {
+		PRESERVE.
+	}
+}
+
 //start of flight
 LOCAL etaSet IS 60.
 LOCAL vertSpeed IS 50.

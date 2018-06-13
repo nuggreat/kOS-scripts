@@ -43,7 +43,7 @@ count_down(5).
 //start of flight
 LOCK STEERING TO HEADING(targetHeading,90).
 LOCAL vertSpeed IS 25.
-LOCAL pitchTo IS 40.	
+LOCAL pitchTo IS 40.
 LOCK THROTTLE TO throttle_PID(55,0.25).
 IF bodyAtmosphere:EXISTS {
 	SET vertSpeed TO 100.
@@ -123,10 +123,10 @@ UNTIL SHIP:ORBIT:PERIAPSIS > (targetAP * 0.99) {
 		LOCK THROTTLE TO (SHIP:ORBIT:PERIOD - ETA:APOAPSIS)/etaTarget/2.5 .
 		SET pitchTo TO 0 - circulisePID:UPDATE(TIME:SECONDS, SHIP:ORBIT:APOAPSIS).
 	}
-	
+
 	LOCAL headingTo IS heading_of_vector(SHIP,SHIP:PROGRADE:FOREVECTOR).
 	LOCK STEERING TO HEADING(headingTo,pitchTo).
-	
+
 	stage_check().
 	WAIT 0.01.
 }
@@ -166,8 +166,8 @@ FUNCTION throttle_PID {	//throttle PID for assent and circularization
 	RETURN MAX(throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS),minThrottle).
 }
 //	start flight for inclination set
-//		lock controls 
-//			to pitch of 90		
+//		lock controls
+//			to pitch of 90
 //			to heading of other for inclination
-//				for inclination set 90 - inclination parameter (include degree wrap) + headingPID 
+//				for inclination set 90 - inclination parameter (include degree wrap) + headingPID
 //					headingPID how far off inclination, KP about 0.1, KI about 0.01, KD about 0.01

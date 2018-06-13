@@ -79,7 +79,7 @@ IF axis_speed(SHIP,station)[0]:MAG > 0.1 {
 		WAIT 0.01.
 	}
 	ABORT OFF.
-	
+
 	SET done TO FALSE.
 	UNTIL done {
 		LOCAL axisSpeed IS axis_speed(SHIP,station).
@@ -182,7 +182,7 @@ UNTIL done {
 	IF NOT stationMove {
 		SET topRCS_PID:SETPOINT TO RCS_decel_setpoint(0.05,axisDist[2],-transSpeed,transSpeed,1).
 		SET starRCS_PID:SETPOINT TO RCS_decel_setpoint(0.05,axisDist[3],-transSpeed,transSpeed,1).
-	} 
+	}
 	translation_control().
 	WAIT 0.01.
 	screen_update("Docking.",craftPort,axisDist[1]).

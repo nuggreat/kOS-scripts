@@ -45,28 +45,28 @@ SET listETA TO LIST(LIST(target_distance(),TIME:SECONDS,1)).
 	SET throttlePID:KD TO 0.01.
 	SET throttlePID:MAXOUTPUT TO 1.
 	SET throttlePID:MINOUTPUT TO 0.
-	
+
 	SET pitchTar TO PIDLOOP().
 	SET pitchTar:KP TO 0.005.
 	SET pitchTar:KI TO 0.00002.
 	SET pitchTar:KD TO 0.05.
 	SET pitchTar:MAXOUTPUT TO pitchMax.
 	SET pitchTar:MINOUTPUT TO 0 - pitchMax.
-	
+
 	SET pitchCon TO PIDLOOP().
 	SET pitchCon:KP TO 0.05.
 	SET pitchCon:KI TO 0.005.
 	SET pitchCon:KD TO 0.01.
 	SET pitchCon:MAXOUTPUT TO 1.
 	SET pitchCon:MINOUTPUT TO -1.
-	
+
 	SET rollTar TO PIDLOOP().
 	SET rollTar:KP TO 2.
 	SET rollTar:KI TO 0.001.
 	SET rollTar:KD TO 2.
 	SET rollTar:MAXOUTPUT TO rollMax.
 	SET rollTar:MINOUTPUT TO 0 - rollMax.
-	
+
 	SET rollCon TO PIDLOOP().
 	SET rollCon:KP TO 0.01.
 	SET rollCon:KI TO 0.0005.
@@ -137,7 +137,7 @@ FUNCTION screen_update {	//-----updates the terminal-----
 //	PRINT "      P: " + ROUND(rollCon:PTERM,3).
 //	PRINT "      I: " + ROUND(rollCon:ITERM,3).
 //	PRINT "      D: " + ROUND(rollCon:DTERM,3).
-//	
+//
 //	PRINT " ".
 //	PRINT "pitchDif: " + ROUND(cruseAltitude - ALTITUDE,0).
 //	PRINT " pitchTo: " + ROUND(pitchTo,2).

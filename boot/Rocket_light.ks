@@ -1,3 +1,4 @@
+IF NOT SHIP:UNPACKED AND SHIP:LOADED { PRINT "waiting for unpack". WAIT UNTIL SHIP:UNPACKED AND SHIP:LOADED. WAIT 1. PRINT "unpacked". }
 IF NOT EXISTS("1:/lib/") {CREATEDIR("1:/lib/").}
 DELETEPATH("1:/boot/rocket_light.ks").
 COPYPATH("0:/boot/Post Startup Bootfiles/ablank.ks","1:/").

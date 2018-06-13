@@ -1,5 +1,21 @@
 @LAZYGLOBAL OFF.
-LOCAL lib_dock_lex IS LEX("sizeConversion",LEX(
+
+FUNCTION port_scan {
+	PARAMETER craft, canDeploy IS TRUE.	//-----the ship that is scanned for ports-----
+	LOCAL portList IS LIST().
+	FOR port IN craft:DOCKINGPORTS {
+		IF port:STATE = "Ready" {
+			portList:ADD(list(port,port:NODETYPE,0,port:TAG)).
+		} ELSE IF port:STATE = "Disabled" AND canDeploy {
+			portList:ADD(list(port,port:NODETYPE,1,port:TAG)).
+		}
+	}
+	RETURN port_sorting(portList).
+}
+
+LOCAL FUNCTION port_sorting {
+	PARAMETER portList.
+	LOCAL sizeConversion IS LEX(
 	"size4","5m",				//from: NearFuture(lifters)
 	"size2","2.5m",				//from: stock
 	"conSize2","2.5m Con",		//from: USI konstruction
@@ -9,62 +25,19 @@ LOCAL lib_dock_lex IS LEX("sizeConversion",LEX(
 	"size1","1.25m",			//from: stock
 	"conSize1","1.25m Con",		//from: USI konstruction
 	"size0","0.625m",			//from: stock
-	"conSize0","0.625m Con")).	//from: USI konstruction
-
-FUNCTION port_scan {
-	PARAMETER craft, canDeploy IS TRUE.	//-----the ship that is scanned for ports-----
-	LOCAL portList IS LIST().
-	FOR port IN craft:DOCKINGPORTS {
-		IF port:STATE = "Ready" {
-			portList:ADD(port).
-			port_to_port_size(port).//check for unknown ports
-		} ELSE IF port:STATE = "Disabled" AND canDeploy {
-			portList:ADD(port).
-			port_to_port_size(port).//check for unknown ports
-		}
-	}
-	RETURN port_sorting(portList).
-}
-
-LOCAL FUNCTION port_sorting {
-	PARAMETER portList.
-	LOCAL sizeConversion IS lib_dock_lex["sizeConversion"].
-	//FOR port IN portList {
-	//	IF NOT sizeConversion:KEYS:CONTAINS(port:NODETYPE) {
-	//		sizeConversion:ADD(port:NODETYPE,port:NODETYPE).
-	//	}
-	//}
-
-	LOCAL sortedLex IS LEX().
-	FOR key IN sizeConversion:KEYS {
-		sortedLex:ADD(sizeConversion[key],LIST()).
-	}
-
+	"conSize0","0.625m Con").	//from: USI konstruction
 	FOR port IN portList {
-		sortedLex[sizeConversion[port:NODETYPE]]:ADD(port).
-	}
-
-	FOR key IN sortedLex:KEYS {
-		IF sortedLex[key]:LENGTH = 0 {
-			sortedLex:REMOVE(key).
+		IF NOT sizeConversion:KEYS:CONTAINS(port[1]) {
+			sizeConversion:ADD(port[1],port[1]).
 		}
 	}
-
-	RETURN sortedLex.
-}
-
-FUNCTION port_to_port_size {
-	PARAMETER port.
-	IF port:ISTYPE("List") {
-		LOCAL returnList IS LIST().
-		FOR p IN port { returnList:ADD(port_to_port_size(p)). }
-		RETURN returnList.
-	} ELSE {
-		IF NOT lib_dock_lex["sizeConversion"]:HASKEY(port:NODETYPE) {
-			lib_dock_lex["sizeConversion"]:ADD(port:NODETYPE,port:NODETYPE).
+	LOCAL sortedList IS LIST().
+	FOR sort IN sizeConversion:KEYS {
+		FOR port IN portList {
+			IF port[1] = sort { sortedList:ADD(LIST(port[0],sizeConversion[port[1]],port[2],port[3])). }
 		}
-		RETURN lib_dock_lex["sizeConversion"][port:NODETYPE].
 	}
+	RETURN sortedList.
 }
 
 FUNCTION port_open {
@@ -77,28 +50,21 @@ FUNCTION port_open {
 }
 
 FUNCTION port_uid_filter {
-	PARAMETER portLex.
-	LOCAL portLexFiltered IS LEX().//will be LEX(portSize,LIST(portUid,portDeployFlag,portTag)
-	FOR key IN portLex:KEYS {
-		portLexFiltered:ADD(key,LIST()).
-		FOR port IN portLex[key]{
-			IF port:STATE = "Ready" {
-				portLexFiltered[key]:ADD(LIST(port:UID,0,port:TAG)).
-			} ELSE IF port:STATE = "Disabled" {
-				portLexFiltered[key]:ADD(LIST(port:UID,1,port:TAG)).
-			}
-		}
+	PARAMETER portList.
+	LOCAL portListFiltered IS LIST().
+	FOR port IN portList {
+		portListFiltered:ADD(LIST(port[0]:UID,port[1],port[2],port[3])).
 	}
-	RETURN portLexFiltered.
+	RETURN portListFiltered.
 }
 
 FUNCTION port_lock_true {
-	PARAMETER shipPortLex,
-	stationPortLex,
+	PARAMETER shipPortList,
+	stationPortList,
 	portLock.
 	IF portLock["match"] {
-		LOCAL shipPortTrue IS uid_to_port(shipPortLex,portLock["craftPort"][0]).
-		LOCAL stationPortTrue IS uid_to_port(stationPortLex,portLock["stationPort"][0]).
+		LOCAL shipPortTrue IS uid_to_port(shipPortList,portLock["craftPort"][0]).
+		LOCAL stationPortTrue IS uid_to_port(stationPortList,portLock["stationPort"][0]).
 		RETURN LEX("match",TRUE,"craftPort",shipPortTrue,"stationPort",stationPortTrue).
 	} ELSE {
 		RETURN portLock.
@@ -106,26 +72,13 @@ FUNCTION port_lock_true {
 }
 
 LOCAL FUNCTION uid_to_port {
-	PARAMETER portLex,
+	PARAMETER portList,
 	portUid.
-	FOR key IN portLex:KEYS {
-		FOR port IN portLex[key]{
-			IF port:UID = portUid {
-				RETURN port.
-			}
+	FOR port IN portList {
+		IF port[0]:UID = portUid {
+			RETURN port.
 		}
 	}
-}
-
-FUNCTION port_size_matching {
-	PARAMETER portLex1,portLex2.
-	LOCAL returnList IS LIST().
-	FOR shipSize IN portLex1:KEYS {
-		IF portLex2:HASKEY(shipSize){
-			returnList:ADD(shipSize).
-		}
-	}
-	RETURN returnList.
 }
 
 //FUNCTION no_fly_zone {
@@ -175,10 +128,10 @@ FUNCTION axis_speed {
 	PARAMETER craft,		//the craft to calculate the speed of (craft using RCS)
 	//craftPort,			//port that all speeds are relative to (craft using RCS)
 	station.				//the target the speed is relative  to
-	LOCAL localStation IS target_craft(station).
-	LOCAL localCraft IS target_craft(craft).
-	LOCAL craftFacing IS localCraft:FACING.
-	LOCAL relitaveSpeedVec IS localCraft:VELOCITY:ORBIT - localStation:VELOCITY:ORBIT.	//relitaveSpeedVec is the speed as reported by the navball in target mode as a vector along the target prograde direction
+	LOCAL localStation IS station.
+	IF station:ISTYPE("dockingPort") { SET localStation TO station:SHIP. }
+	LOCAL craftFacing IS craft:FACING.
+	LOCAL relitaveSpeedVec IS craft:VELOCITY:ORBIT - localStation:VELOCITY:ORBIT.	//relitaveSpeedVec is the speed as reported by the navball in target mode as a vector along the target prograde direction
 	LOCAL speedFor IS VDOT(relitaveSpeedVec, craftFacing:FOREVECTOR).	//positive is moving forwards, negative is moving backwards
 	LOCAL speedTop IS VDOT(relitaveSpeedVec, craftFacing:TOPVECTOR).	//positive is moving up, negative is moving down
 	LOCAL speedStar IS VDOT(relitaveSpeedVec, craftFacing:STARVECTOR).	//positive is moving right, negative is moving left
@@ -196,10 +149,4 @@ FUNCTION axis_distance {
 	LOCAL distTop IS VDOT(distVec, craftFacing:TOPVECTOR).		//if positive then stationPort is above of craftPort, if negative than stationPort is below of craftPort
 	LOCAL distStar IS VDOT(distVec, craftFacing:STARVECTOR).	//if positive then stationPort is to the right of craftPort, if negative than stationPort is to the left of craftPort
 	RETURN LIST(dist,distFor,distTop,distStar).
-}
-
-FUNCTION target_craft {
-	PARAMETER tar.
-	IF NOT tar:ISTYPE("Vessel") { RETURN tar:SHIP. }
-	RETURN tar.
 }

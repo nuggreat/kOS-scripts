@@ -79,7 +79,7 @@ IF axis_speed(SHIP,station)[0]:MAG > 0.1 {
 		WAIT 0.01.
 	}
 	ABORT OFF.
-	
+
 	SET done TO FALSE.
 	UNTIL done {
 		LOCAL axisSpeed IS axis_speed(SHIP,station).
@@ -154,13 +154,13 @@ FUNCTION translate {
 	LOCAL craftPort IS neededRef[0]. LOCAL stationPort IS neededRef[1]. LOCAL station IS stationPort[0]:SHIP. LOCAL maxSpeed IS neededRef[2].
 	LOCAL axisSpeed IS axis_speed(SHIP,station).
 	LOCAL axisDist IS axis_distance(craftPort[0],stationPort[0]).
-	
+
 	LOCAL  forDistDif IS 0.
 	LOCAL  topDistDif IS 0.
 	LOCAL starDistDif IS 0.
 	LOCAL distDif IS (forDistDif^2 + topDistDif^2 + starDistDif^2)^0.5.
 	LOCAL noFlyDist IS MAX(axisDist[1]^2 * vecMode[0] + axisDist[2]^2 * vecMode[1] + axisDist[3]^2 * vecMode[2],1)^0.5.
-	
+
 	IF vecMode[0] = 0 { SET forRCS_PID:SETPOINT TO 0. }
 	IF vecMode[1] = 0 { SET topRCS_PID:SETPOINT TO 0. }
 	IF vecMode[2] = 0 {SET starRCS_PID:SETPOINT TO 0. }
@@ -179,12 +179,12 @@ FUNCTION translate {
 		SET noFlyDist TO MAX(axisDist[1]^2 * vecMode[0] + axisDist[2]^2 * vecMode[1] + axisDist[3]^2 * vecMode[2],1)^0.5.
 		SET distDif TO distTar - noFlyDist.
 	}
-	
+
 	LOCAL docked IS (stationPort[0]:STATE = "Docked (docker)") OR (stationPort[0]:STATE = "Docked (dockee)").
 	LOCAL done IS distDif < 0.1 OR docked.
 	UNTIL done {
 		SET axisDist TO axis_distance(craftPort[0],stationPort[0]).
-		
+
 		IF leaveNoFlyZone {
 			SET noFlyDist TO MAX(axisDist[1]^2 * vecMode[0] + axisDist[2]^2 * vecMode[1] + axisDist[3]^2 * vecMode[2],1)^0.5.
 			SET distDif TO distTar - noFlyDist.
@@ -203,20 +203,20 @@ FUNCTION translate {
 			}
 			SET distDif TO (forDistDif^2 + topDistDif^2 + starDistDif^2)^0.5.
 		}
-		
+
 		LOCAL timeS IS TIME:SECONDS.
 		SET axisSpeed TO axis_speed(SHIP,station).
 		SET SHIP:CONTROL:FORE TO forRCS_PID:UPDATE(timeS,axisSpeed[1]).
 		SET SHIP:CONTROL:TOP TO topRCS_PID:UPDATE(timeS,axisSpeed[2]).
 		SET SHIP:CONTROL:STARBOARD TO starRCS_PID:UPDATE(timeS,axisSpeed[3]).
-		
+
 		WAIT 0.01.
 		CLEARSCREEN.
 		PRINT screenText.
 		PRINT " ".
 		PRINT "Port Size: " + craftPort[1].
 		PRINT "Disttance: " + ROUND(distDif,1).
-		
+
 		SET docked TO (stationPort[0]:STATE = "Docked (docker)") OR (stationPort[0]:STATE = "Docked (dockee)").
 		SET done TO distDif < 0.1 OR docked.
 	}

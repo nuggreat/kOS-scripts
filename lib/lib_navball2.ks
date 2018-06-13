@@ -2,7 +2,7 @@
 // All functions assume the vector originates from the vessel running the function for the sake of calculating the values
 @LAZYGLOBAL OFF.
 
-FUNCTION heading_of_vector { // heading_of_vector returns the heading of the vector (number renge   0 to 360)
+FUNCTION heading_of_vector { // heading_of_vector returns the heading of the vector (number range   0 to 360)
 	PARAMETER vecT.
 
 	LOCAL east IS VCRS(SHIP:UP:VECTOR, SHIP:NORTH:VECTOR).

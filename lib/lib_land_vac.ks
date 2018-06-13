@@ -22,21 +22,21 @@ IF coast > 0 {
 UNTIL t >= coast {	//advances the simulation of the craft with out burning for the amount of time defined by coast
 	SET cycles TO cycles + 1.
 	LOCAL up_vec IS (pos - b_pos).
-	
+
 //	LOCAL up_unit IS up_vec:NORMALIZED.//vector from craft pointing at craft from body you are around
 //	LOCAL r_square IS up_vec:SQRMAGNITUDE.//needed for gravity calculation
 //	LOCAL localGrav IS GM / r_square.//gravitational acceleration at current height
 //	LOCAL a_vec IS - up_unit * localGrav.//gravatational acceleration as a vector
 	LOCAL a_vec IS - up_vec:NORMALIZED * (GM / up_vec:SQRMAGNITUDE).
 	// above commented math is merged to save on IPU during the sim
-	
+
 	SET prev_vel TO vel.//store previous velocity vector for averaging
 	SET vel TO vel + a_vec * t_delta.//update velocity vector with calculated applied accelerations
-	
+
 	LOCAL avg_vel IS 0.5 * (vel + prev_vel).//average previous with current velocity vectors to smooth changes NOTE:might not be needed
-	
+
 	SET pos TO pos + avg_vel * t_delta.//change stored position by adding the velocity vector adjusted for time
-	
+
 	SET t TO t + t_delta.//increment clock
 }
 }
@@ -44,9 +44,9 @@ UNTIL t >= coast {	//advances the simulation of the craft with out burning for t
 UNTIL FALSE {	//retroburn simulation
 	SET cycles TO cycles + 1.
 	LOCAL up_vec IS (pos - b_pos).
-	
+
 	IF VDOT(vel, prev_vel) < 0 { break. }	//ends sim when velocity reverses
-	
+
 //	LOCAL up_unit IS up_vec:NORMALIZED.//vector from craft pointing at craft from body you are around
 //	LOCAL r_square IS up_vec:SQRMAGNITUDE.//needed for gravity calculation
 //	LOCAL localGrav IS GM / r_square.//gravitational acceleration at current height
@@ -55,15 +55,15 @@ UNTIL FALSE {	//retroburn simulation
 //	LOCAL a_vec IS eng_a_vec + g_vec.//adding engine acceleration and grav acceleration vectors to create a vector for all acceleration acting on craft
 	LOCAL a_vec IS ((t_max / m) * (- vel:NORMALIZED)) - ((GM / up_vec:SQRMAGNITUDE) * up_vec:NORMALIZED).
 	// above commented math is merged to save on IPU during the sim
-	
+
 	SET prev_vel TO vel.//store previous velocity vector for averaging
 	SET vel TO vel + a_vec * t_delta.//update velocity vector with calculated applied accelerations
-	
+
 	LOCAL avg_vel is 0.5 * (vel+prev_vel).//average previous with current velocity vectors to smooth changes NOTE:might not be needed
-	
+
 	SET pos TO pos + (avg_vel * t_delta).//change stored position by adding the velocity vector adjusted for time
 	SET m TO m - deltaM.//change stored mass for craft based on pre calculated change in mass per tick of sim
-	
+
 	IF m <= 0 { BREAK. }
 	SET t TO t + t_delta.//increment clock
 }

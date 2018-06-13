@@ -71,7 +71,7 @@ function to_bitstring {
 	local exp is 0.
 	// If there is an integer component, the exponent is positive
 	if i_bits:length>0 {
-		set exp to i_bits:length-1. 
+		set exp to i_bits:length-1.
 	} else {
 		set i to f_bits:indexof("1").
 		// If there are no "1"s in the fraction bitstring, the exponent is 0

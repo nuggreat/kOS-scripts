@@ -23,6 +23,7 @@ LOCAL warpState IS -1.
 IF autoWarp { SET warpState TO 1. }
 LOCK STEERING TO vecTar.
 SET pData[0] TO "Waiting for Node Lock".
+
 UNTIL done {	//waiting for a node to exist or be locked in
 	IF HASNODE {
 		screen_update(pData).
@@ -31,9 +32,9 @@ UNTIL done {	//waiting for a node to exist or be locked in
 		LOCAL burnStart IS NEXTNODE:ETA - burn_duration(shipISP,NEXTNODE:DELTAV:MAG / 2).
 		SET vecTar TO ANGLEAXIS(degreesOfRotation,NEXTNODE:BURNVECTOR:NORMALIZED) * LOOKDIRUP(NEXTNODE:BURNVECTOR:NORMALIZED,SHIP:UP:FOREVECTOR).
 //		SET vecTar TO NEXTNODE:BURNVECTOR:NORMALIZED.
-		SET pData[6] TO "( Burn Start In:" + formated_time(burnStart) + ")".
-		SET pData[7] TO "(   Burn Length:" + formated_time(burnDuration) + ")".
-		
+		SET pData[6] TO "( Burn Start In:" + time_formating(burnStart) + ")".
+		SET pData[7] TO "(   Burn Length:" + time_formating(burnDuration) + ")".
+
 		IF warpState = 0 {
 			SET timeCheck TO time:SECONDS + 10.
 			IF (burnStart - nodeLock * 5) < 1 { SET warpState TO 1. }
@@ -45,8 +46,8 @@ UNTIL done {	//waiting for a node to exist or be locked in
 			IF burnStart > nodeLock * 10 + 1 {
 				KUNIVERSE:TIMEWARP:WARPTO(TIME:SECONDS + (burnStart - (nodeLock * 10))).
 			}
-			SET pData[2] TO "Node Lock" + formated_time(nodeLock) + " Before The Node Burn Begins".
-			SET pData[4] TO "Warping To" + formated_time(nodeLock * 10) + " Before The Burn".
+			SET pData[2] TO "Node Lock" + time_formating(nodeLock) + " Before The Node Burn Begins".
+			SET pData[4] TO "Warping To" + time_formating(nodeLock * 10) + " Before The Burn".
 			SET pData[9] TO "Kill Warp Then Activate ABORT To Stop Auto Warping".
 			SET warpState TO 2.
 		} ELSE IF warpState = 2 {//aligning to node prior to getting to node
@@ -56,10 +57,10 @@ UNTIL done {	//waiting for a node to exist or be locked in
 					LOCAL timeDiff IS timeCheck - TIME:SECONDS.
 					IF timeDiff < 0 {
 						SET warpState TO 3.
-						SET pData[4] TO "Warping To" + formated_time(nodeLock) + " Before The Burn".
+						SET pData[4] TO "Warping To" + time_formating(nodeLock) + " Before The Burn".
 						KUNIVERSE:TIMEWARP:WARPTO(TIME:SECONDS + (burnStart - (nodeLock + 0.1))).
 					} ELSE {
-						SET pData[4] TO "Aligned To Burn Vector, resuming warp in" + formated_time(timeDiff,1).
+						SET pData[4] TO "Aligned To Burn Vector, resuming warp in" + time_formating(timeDiff,1).
 					}
 				} ELSE {
 					SET pData[4] TO "Aligning To Burn Vector, Off Vector by" + padding(angle,2,2) + " Degrees".
@@ -77,10 +78,10 @@ UNTIL done {	//waiting for a node to exist or be locked in
 					IF NOT resumeWarp {
 						IF timeDiff < 0 {
 							SET resumeWarp TO TRUE.
-							SET pData[4] TO "Warping To" + formated_time(nodeLock * 10) + " Before The Burn".
+							SET pData[4] TO "Warping To" + time_formating(nodeLock * 10) + " Before The Burn".
 							KUNIVERSE:TIMEWARP:WARPTO(TIME:SECONDS + (burnStart - (nodeLock * 10))).
 						} ELSE {
-							SET pData[4] TO "Resuming Warp In" + formated_time(timeDiff,1).
+							SET pData[4] TO "Resuming Warp In" + time_formating(timeDiff,1).
 						}
 					}
 				}
@@ -88,8 +89,8 @@ UNTIL done {	//waiting for a node to exist or be locked in
 		} ELSE IF warpState = 3 {
 			SET done TO ((burnStart - nodeLock) < 1).
 		} ELSE IF warpState = -1 {
-			SET pData[2] TO "Node Lock At" + formated_time(nodeLock * 5) + " Before The Node Burn Begins".
-			SET pData[4] TO "Activate The SAS To Warp To" + formated_time(nodeLock) + " Before The Burn".
+			SET pData[2] TO "Node Lock At" + time_formating(nodeLock) + " Before The Node Burn Begins".
+			SET pData[4] TO "Activate The SAS To Warp To" + time_formating(nodeLock) + " Before The Burn".
 			SET pData[9] TO "Activate ABORT To End Script".
 			SET warpState TO 0.
 		}
@@ -128,11 +129,11 @@ IF NOT aborting {
 //	LOCK STEERING TO DVvector.
 	LOCAL burnDuration IS burn_duration(shipISP,burnDV).
 	LOCAL burnETA IS NEXTNODE:ETA + TIME:SECONDS.
-	SET pData[7] TO "(   Burn Length:" + formated_time(burnDuration,1) + ")            ".
+	SET pData[7] TO "(   Burn Length:" + time_formating(burnDuration,1) + ")            ".
 	LOCAL done IS FALSE.
 	UNTIL done {	//the node is locked waiting for the start of the burn
 		LOCAL burnStart IS burnETA - (burn_duration(shipISP,burnDV / 2) + TIME:SECONDS).
-		SET pData[6] TO "( Burn Start In:" + formated_time(burnStart,1) + ")            ".
+		SET pData[6] TO "( Burn Start In:" + time_formating(burnStart,0,1) + ")            ".
 		SET aborting TO ABORT.
 		SET done TO (burnStart < 0.1) OR aborting.
 		WAIT 0.01.
@@ -158,8 +159,8 @@ IF NOT aborting {
 			LOCAL shipAcceleration IS (shipAccel * MAX(throt,0.01)) * deltaTime.
 			SET DVvector TO DVvector - (shipAcceleration * shipFacingFore).
 			IF count >= 5 {
-				PRINT " DeltaV left on burn:" + padding(DVvector:MAG,1,1) + "m/s      " AT(0,0).
-				PRINT "   Time left on burn:" + formated_time(burn_duration(shipISP,DVvector:MAG),1) + "      " AT(0,1).
+				PRINT " DeltaV left on burn:" + si_formating(DVvector:MAG,"m/s") + "      " AT(0,0).
+				PRINT "   Time left on burn:" + time_formating(burn_duration(shipISP,DVvector:MAG),0,1) + "      " AT(0,1).
 				SET count TO 0.
 			} ELSE {
 				SET count TO count + 1.

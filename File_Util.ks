@@ -5,8 +5,9 @@ IF HOMECONNECTION:ISCONNECTED {
 LOCAL archiveRoot IS PATH("0:/").
 LOCAL localRoot IS PATH(CORE:CURRENTVOLUME).
 
-GLOBAL localDirs IS dir_scan(localRoot,FALSE).
-GLOBAL archiveDirs IS dir_scan(archiveRoot,FALSE).
+LOCAL localDirs IS dir_scan(localRoot,FALSE).
+LOCAL archiveDirs IS dir_scan(archiveRoot,FALSE).
+LOCAL needRebuild IS TRUE.
 LOCAL done IS FALSE.
 
 LOCAL interface IS GUI(500).
@@ -71,7 +72,7 @@ LOCAL iDestinationMenu IS interface:ADDVBOX.//set up destination interface
 LOCAL iLabel1 IS interface:ADDLABEL(" ").
 LOCAL doneButton IS interface:ADDBUTTON("Done").
 
-//seting up trigers
+//setting up triggers
 file_directory_slector(TRUE).
 SET ifdsFile:ONTOGGLE TO file_directory_slector@.
 SET iModeList:ONCHANGE TO subMenu_slector@.
@@ -112,34 +113,35 @@ interface:DISPOSE.
 
 
 FUNCTION run_mode {//calls chosen mode,rebuild of source/destination lists
-	LOCAL dirRebild IS ifdsDir:PRESSED.  //info needed for rebuild
 	LOCAL menuValue IS ismvList:VALUE.   //info needed for rebuild
 	IF iDestinationMenu:VISIBLE { SET menuValue TO idmvList:VALUE. }
-	
+
 	iGoButton:HIDE.
 	iWorking:SHOW.
-	
+
 	LOCAL chosenMode IS iModeList:VALUE.
 	PRINT " ".
 	modeLex[chosenMode]:CALL().
 	PRINT " ".
-	
-	IF dirRebild AND iSourceMenu:VISIBLE {//rebuild source/destination dir/file lists after a mode runs
+
+	IF needRebuild {//rebuild source/destination dir/file lists after a mode runs
+		PRINT "rebuilding file list".
 		IF menuValue = "archive" {
 			SET archiveDirs TO dir_scan(archiveRoot,FALSE).
 		}
 		IF menuValue = "local" {
 			SET localDirs TO dir_scan(localRoot,FALSE).
 		}
+		PRINT "rebuilt file list".
 	}
 	destination_dir_slector(idmvList:VALUE).
 	source_dir_slector(ismvList:VALUE).//end of rebuild
-	
+
 	iWorking:HIDE.
 	iGoButton:SHOW.
 }
 
-FUNCTION file_directory_slector {//cycles mode list betwene file and directory options
+FUNCTION file_directory_slector {//cycles mode list between file and directory options
 	PARAMETER slection.
 	PRINT ifdSlect:RADIOVALUE.
 	IF ifdSlect:RADIOVALUE = "File Tools" {
@@ -152,7 +154,7 @@ FUNCTION file_directory_slector {//cycles mode list betwene file and directory o
 	subMenu_slector(iModeList:VALUE).
 }
 
-FUNCTION subMenu_slector {//changed visible mode
+FUNCTION subMenu_slector {//changed visible mode and if a rebuild is needed for a given mode
 	PARAMETER chosenMode.
 	PRINT "mode: " + chosenMode.
 	IF ifdsFile:PRESSED {
@@ -160,18 +162,21 @@ FUNCTION subMenu_slector {//changed visible mode
 			SET smLabel:TEXT TO "Copy File From Source To Destination".
 			SET iGoButton:TEXT TO "Copy".
 			SET iWorking:TEXT TO "Copying".
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,1,1,0).
 		}
 		IF chosenMode = "Compile Files" {
 			SET smLabel:TEXT TO "Compile File From Source To Destination".
 			SET iGoButton:TEXT TO "Compile".
 			SET iWorking:TEXT TO "Compiling".
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,1,1,0).
 		}
 		IF chosenMode = "Move Files" {
 			SET smLabel:TEXT TO "Move File From Source To Destination".
 			SET iGoButton:TEXT TO "Move".
 			SET iWorking:TEXT TO "Moving".
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,1,1,0).
 		}
 		IF chosenMode = "Change Bootfile"{
@@ -180,12 +185,14 @@ FUNCTION subMenu_slector {//changed visible mode
 			source_dir_slector(ismvList:VALUE).
 			SET iGoButton:TEXT TO "Change".
 			SET iWorking:TEXT TO "Changing".
+			SET needRebuild TO FALSE.
 			show_hide_inputs(1,0,1,0).
 		}
 		IF chosenMode = "Delete Files" {
 			SET smLabel:TEXT TO "Delete File Set With Source".
 			SET iGoButton:TEXT TO "Delete".
 			SET iWorking:TEXT TO "Deleting".
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,0,1,0).
 		}
 		IF chosenMode = "Rename Files" {
@@ -194,12 +201,14 @@ FUNCTION subMenu_slector {//changed visible mode
 			SET iGoButton:TEXT TO "Rename".
 			SET iWorking:TEXT TO "Renaming".
 			SET smnName:TEXT TO ismfList:VALUE:NAME.
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,0,1,1).
 		}
 		IF chosenMode = "Edit Files" {
 			SET smLabel:TEXT TO "Edit File Set With Source".
 			SET iGoButton:TEXT TO "Edit".
 			SET iWorking:TEXT TO "Editing".
+			SET needRebuild TO FALSE.
 			show_hide_inputs(1,0,1,0).
 		}
 	} ELSE {
@@ -207,12 +216,14 @@ FUNCTION subMenu_slector {//changed visible mode
 			SET smLabel:TEXT TO "Copy Directory From Source To Destination".
 			SET iGoButton:TEXT TO "Copy".
 			SET iWorking:TEXT TO "Copying".
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,1,0,0).
 		}
 		IF chosenMode = "Move Directory" {
 			SET smLabel:TEXT TO "Move Directory From Source To Destination".
 			SET iGoButton:TEXT TO "Move".
 			SET iWorking:TEXT TO "Moving".
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,1,0,2).
 		}
 		IF chosenMode = "New Directory" {
@@ -221,24 +232,28 @@ FUNCTION subMenu_slector {//changed visible mode
 			SET iGoButton:TEXT TO "Create".
 			SET iWorking:TEXT TO "Creating".
 			SET smnName:TEXT TO "".
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,0,0,1).
 		}
 		IF chosenMode = "Unpack Directory" {
 			SET smLabel:TEXT TO "Unpack Contents of Source Directory in Destination".
 			SET iGoButton:TEXT TO "Unack".
 			SET iWorking:TEXT TO "Unacking".
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,1,0,0).
 		}
 		IF chosenMode = "Update Local Volume" {
 			SET smLabel:TEXT TO "Update Local Volume".
 			SET iGoButton:TEXT TO "Update".
 			SET iWorking:TEXT TO "Updating".
+			SET needRebuild TO FALSE.
 			show_hide_inputs(0,0,0,4).
 		}
 		IF chosenMode = "Delete Directory" {
 			SET smLabel:TEXT TO "Delete Directory Set With Source".
 			SET iGoButton:TEXT TO "Delete".
 			SET iWorking:TEXT TO "Deleting".
+			SET needRebuild TO TRUE.
 			show_hide_inputs(1,0,0,3).
 		}
 	}
@@ -249,7 +264,7 @@ FUNCTION show_hide_inputs {
 	IF ism = 1 { iSourceMenu:SHOW. } ELSE { iSourceMenu:HIDE. }
 	IF idm = 1 { iDestinationMenu:SHOW. } ELSE { iDestinationMenu:HIDE. }
 	IF ismf = 1 { ismFile:SHOW. } ELSE { ismFile:HIDE. }
-	
+
 	IF ismx = 1 { smNew:SHOW. } ELSE { smNew:HIDE. }
 	IF ismx = 2 { mdWarning:SHOW. } ELSE { mdWarning:HIDE. }
 	IF ismx = 3 { ddWarning:SHOW. } ELSE { ddWarning:HIDE. }

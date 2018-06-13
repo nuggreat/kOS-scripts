@@ -124,10 +124,10 @@ LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 LOCAL done IS FALSE.
 UNTIL done {	//slow decent until tuchdown
 	LOCAL decentLex IS decent_math(shipThrust).
-	
+
 	LOCAL vSpeedTar IS MIN(0 - (ALT:RADAR - vertMargin - (ALT:RADAR * decentLex["stopTime"])) / (11 - MIN(decentLex["twr"],10)),-0.5).
 	SET landing_PID:SETPOINT TO vSpeedTar.
-	
+
 	IF VERTICALSPEED < -1 {
 		SET steeringTar TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR:NORMALIZED + (SHIP:UP:FOREVECTOR:NORMALIZED * 3),SHIP:NORTH:FOREVECTOR).
 	} ELSE {
@@ -135,7 +135,7 @@ UNTIL done {	//slow decent until tuchdown
 		LOCAL adjustedPitch IS MAX(90-GROUNDSPEED,89).
 		SET steeringTar TO LOOKDIRUP(HEADING(retroHeading,adjustedPitch):FOREVECTOR,SHIP:NORTH:FOREVECTOR).
 	}
-	
+
 	CLEARSCREEN.
 	PRINT "Altitude:  " + ROUND(ALT:RADAR,1).
 	PRINT "vSpeedTar: " + ROUND(vSpeedTar,1).

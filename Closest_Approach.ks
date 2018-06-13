@@ -16,7 +16,7 @@ UNTIL timeStep < 0.1 {
 	LOCAL pos IS distance_at_time(approachTime + timeStep, tarBody).
 	LOCAL equ IS distance_at_time(approachTime, tarBody).
 	LOCAL neg IS distance_at_time(approachTime - timeStep, tarBody).
-	
+
 	IF (pos < equ) OR (neg < equ) {
 		IF pos < neg {
 		SET approachTime TO approachTime + timeStep.
@@ -27,7 +27,7 @@ UNTIL timeStep < 0.1 {
 	} ELSE {
 		SET timeStep TO (timeStep / 2).
 	}
-	
+
 	CLEARSCREEN.
 	PRINT "closest approach ETA: " + time_converter(etaEstmation).
 	IF (approachTime - TIME:SECONDS) < 0 {
@@ -62,7 +62,7 @@ FUNCTION time_converter {
 
 	LOCAL returnString IS padding(MOD(localTime,60),2,rounding) + "s".
 	SET localTime TO (localTime - MOD(localTime,60)) / 60.
-	IF localTime > 0 {	
+	IF localTime > 0 {
 		SET returnString TO padding(MOD(localTime,60),2,0) + "m" + returnString.
 		SET localTime TO (localTime - MOD(localTime,60)) / 60.
 	}
@@ -77,7 +77,7 @@ FUNCTION time_converter {
 	IF localTime > 0 {
 		SET returnString TO localTime + "y" + returnString.
 	}
-	
+
 	IF timeSec < 0 {
 		SET returnString TO returnString:INSERT(1,"-").
 		IF tMinus {
@@ -102,7 +102,7 @@ FUNCTION si_formatting {
 FUNCTION padding {
 	PARAMETER num,leadingLenght,trailingLength.//number to pad,min length before decimal point, length after decimal point
 	LOCAL returnString IS ABS(ROUND(num,trailingLength)):TOSTRING.
-	
+
 	IF trailingLength > 0 {
 		IF NOT returnString:CONTAINS(".") {
 			SET returnString TO returnString + ".0".
@@ -112,7 +112,7 @@ FUNCTION padding {
 	} ELSE {
 		UNTIL returnString:LENGTH >= leadingLenght { SET returnString TO "0" + returnString. }
 	}
-	
+
 	IF num < 0 {
 		RETURN "-" + returnString.
 	} ELSE {

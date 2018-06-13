@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 LOCAL lib_rocket_utilities_lex IS LEX().
 lib_rocket_utilities_lex:ADD("nextStageTime",TIME:SECONDS).
+lib_rocket_utilities_lex:ADD("alignedTime",TIME:SECONDS).
 
 FUNCTION isp_calc {	//returns the average isp of all of the active engines on the ship
 	LOCAL engineList IS LIST().
@@ -39,6 +40,7 @@ FUNCTION stage_check {	//a check for if the rocket needs to stage
 			STAGE.
 			STEERINGMANAGER:RESETPIDS().
 			SET lib_rocket_utilities_lex["nextStageTime"] TO TIME:SECONDS + stageDelay.
+			PRINT "Staged".
 		}
 	}
 	RETURN needStage.
@@ -60,12 +62,14 @@ FUNCTION drop_tanks {
 		IF drop {
 			STAGE.
 			SET lib_rocket_utilities_lex["nextStageTime"] TO TIME:SECONDS + 10.
+			PRINT "Tank Dropped".
 		}
 	}
 	RETURN tankList:LENGTH > 0.
 }
 
 FUNCTION active_engine { // check for a active engine on ship
+	PARAMETER doPrint IS TRUE.
 	LOCAL engineList IS LIST().
 	LIST ENGINES IN engineList.
 	LOCAL haveEngine IS FALSE.
@@ -75,13 +79,14 @@ FUNCTION active_engine { // check for a active engine on ship
 			BREAK.
 		}
 	}
-	CLEARSCREEN.
-	IF NOT haveEngine {
-		PRINT "No Active Engines Found.".
-	} ELSE {
+	IF haveEngine AND doPrint {
+		CLEARSCREEN.
 		PRINT "Active Engine Found.".
-		WAIT 0.1.
+	} ELSE IF NOT haveEngine {
+		CLEARSCREEN.
+		PRINT "No Active Engines Found.".
 	}
+	WAIT 0.1.
 	RETURN haveEngine.
 }
 
@@ -92,10 +97,16 @@ FUNCTION burn_duration {	//from isp and dv using current mass of the ship return
 	RETURN (wMass - dMass) / flowRate.
 }
 
-FUNCTION control_point { 
+FUNCTION control_point {
 	PARAMETER pTag IS "controlPoint".
 	LOCAL controlList IS SHIP:PARTSTAGGED(pTag).
-	IF controlList:LENGTH > 0 { controlList[0]:CONTROLFROM(). }
+	IF controlList:LENGTH > 0 {
+		controlList[0]:CONTROLFROM().
+	} ELSE {
+		IF SHIP:ROOTPART:HASSUFFIX("CONTROLFROM") {
+			SHIP:ROOTPART:CONTROLFROM().
+		}
+	}
 }
 
 FUNCTION not_warping {
@@ -104,4 +115,24 @@ FUNCTION not_warping {
 
 FUNCTION clear_all_nodes {
 	IF HASNODE { PRINT "havenode". UNTIL NOT HASNODE { REMOVE NEXTNODE. PRINT "removed node". WAIT 0. }}
+}
+
+FUNCTION steering_alinged_duration {//wait until steering is aligned with what it is locked to
+	PARAMETER careAboutRoll IS FALSE, maxError IS 1, resetTime IS FALSE.
+	LOCAL localTime IS TIME:SECONDS.
+	IF resetTime {
+		SET lib_rocket_utilities_lex["alignedTime"] TO localTime.
+		RETURN 0.
+	}
+
+	LOCAL steerError IS ABS(STEERINGMANAGER:ANGLEERROR).
+	IF careAboutRoll {
+		SET steerError TO ABS(STEERINGMANAGER:ANGLEERROR) + ABS(STEERINGMANAGER:ROLLERROR).
+	}
+
+	IF steerError > maxError {
+		SET lib_rocket_utilities_lex["alignedTime"] TO localTime.
+		RETURN 0.
+	}
+	RETURN localTime - lib_rocket_utilities_lex["alignedTime"].
 }

@@ -40,10 +40,10 @@ LOCAL vecBurn IS burn_vector(vecSpeedAtNode,normal_of_orbit(TARGET)).
 //PRINT "Alt dn:  " + SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodesUTs["dn"])).
 //PRINT "HighNode:" + highNode.
 //PRINT " ".
-//PRINT "AN UTs:  " + formated_time(nodesUTs["an"]).
-//PRINT "AD UTs:  " + formated_time(nodesUTs["dn"]).
-//PRINT "AN time: " + formated_time(nodesUTs["an"] - TIME:SECONDS).
-//PRINT "DN time: " + formated_time(nodesUTs["dn"] - TIME:SECONDS).
+//PRINT "AN UTs:  " + time_formating(nodesUTs["an"]).
+//PRINT "AD UTs:  " + time_formating(nodesUTs["dn"]).
+//PRINT "AN time: " + time_formating(nodesUTs["an"] - TIME:SECONDS).
+//PRINT "DN time: " + time_formating(nodesUTs["dn"] - TIME:SECONDS).
 
 LOCAL baseNode IS node_from_vector(vecBurn,nodesUTs[highNode]).
 ADD baseNode.
@@ -83,7 +83,7 @@ FUNCTION node_from_vector {//only works if you are in the same SOI as the node
 //		SET vecNodeNormal IS VCRS(vecNodePrograde,POSITIONAT(SHIP,nodeTime) - POSITIONAT(localBody,nodeTime):NORMALIZED).
 //	}
 	LOCAL vecNodeRadial IS VCRS(vecNodePrograde,vecNodeNormal).
-	
+
 	LOCAL nodePrograde IS VDOT(vecTarget,vecNodePrograde:NORMALIZED).
 	LOCAL nodeNormal IS VDOT(vecTarget,vecNodeNormal:NORMALIZED).
 	LOCAL nodeRadial IS VDOT(vecTarget,vecNodeRadial:NORMALIZED).

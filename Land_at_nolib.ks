@@ -65,19 +65,19 @@ UNTIL close{
 	}
 	LOCAL stepMod IS 0.
 	UNTIL done {
-		LOCAL timePre IS TIME:SECONDS.		
+		LOCAL timePre IS TIME:SECONDS.
 		LOCAL stepVal IS hillValues["stepVal"].
 		LOCAL posTime IS hillValues["posTime"].
 		LOCAL anyGood IS FALSE.
 		LOCAL bestNode IS LIST(hillValues["score"],posTime,"no",0,hillValues["dist"]).
 		FOR manipType IN  varConstants["manipList"] {
 			FOR stepTmp IN LIST(stepVal,-stepVal) {
-			
+
 				node_set(NEXTNODE,manipType,stepTmp).
 				LOCAL scoreNew IS score(NEXTNODE,posTime).
 				node_set(NEXTNODE,manipType,-stepTmp).
 				LOCAL nodeTmp IS LIST(scoreNew["score"],scoreNew["posTime"],manipType,stepTmp,scoreNew["dist"]).
-				
+
 				IF bestNode[0] > nodeTmp[0] {
 					SET bestNode TO nodeTmp.
 					SET anyGood TO TRUE.
@@ -86,7 +86,7 @@ UNTIL close{
 			}
 			IF anyGood { BREAK. }
 		}
-		
+
 		IF anyGood {
 			node_set(NEXTNODE,bestNode[2],bestNode[3]).
 			SET stepMod TO MAX(stepMod - 0.025,-0.1).
@@ -150,7 +150,7 @@ FUNCTION score { //returns the score of the node
 				SET stepVal TO stepVal / 2.
 			}
 		}
-		
+
 		LOCAL dist IS dist_betwene_coordinates(varConstants["landingCoordinates"],pos_to_choordinates(POSITIONAT(SHIP,scanTime),scanTime)).
 		LOCAL scored IS dist + peDiff / 3.
 		IF targetNode:ISTYPE("node") { SET scored TO scored + (targetNode:DELTAV:MAG * 6). }
@@ -223,7 +223,7 @@ FUNCTION margen_error { //aproximates vertical drop needed for the craft to stop
 	LOCAL burnTimePre IS 0.
 	LOCAL shipMass IS SHIP:MASS.
 	LOCAL shipISP IS isp_calc().
-	
+
 	UNTIL FALSE {
 		SET burnTime TO burn_duration(shipISP,((((burnTime * srfGrav + velSpeed) ^ 2) + velSpeed ^ 2) ^ 0.5),shipMass).
 		IF ABS(burnTime - burnTimePre) <0.01 { RETURN burnTime * srfGrav. }
@@ -255,7 +255,7 @@ FUNCTION burn_duration {	//from isp, dv, and wet mass calculates the amount of t
 	RETURN (wMass - dMass) / flowRate.
 }
 
-FUNCTION control_point { 
+FUNCTION control_point {
 	PARAMETER pTag IS "controlPoint".
 	LOCAL controlList IS SHIP:PARTSTAGGED(pTag).
 	IF controlList:LENGTH > 0 {

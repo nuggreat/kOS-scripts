@@ -49,11 +49,11 @@ UNTIL craftDone AND stationDone {
 					IF craftPortListRaw:LENGTH = 0 {SET craftPortListRaw TO port_scan(SHIP).}
 					LOCAL portLock IS port_lock(port_uid_filter(craftPortListRaw),sData,"enabled","disabled").
 					returnData:ADD("portLockUID",portLock)
-					
+
 					LOCAL stationPortListRaw IS port_scan(station).
 					IF stationPortListRaw:LENGTH = 0 {SET stationPortListRaw TO port_scan(station).}
 					returnData:ADD("portLock",port_lock_true(craftPortListRaw,stationPortListRaw,portLock))
-					
+
 					SET getLEX[sWhat] TO FALSE.
 					SET haveLEX[sWhat] TO TRUE.
 				}
@@ -139,7 +139,7 @@ UNTIL craftDone AND stationDone {
 			LOCAL sType IS signal["type"].
 			LOCAL sWhat IS signal["what"].
 			LOCAL sData IS signal["data"].
-			
+
 			IF sType = "responce" AND haveLEX["craft"] AND getLEX[sWhat] {
 				IF sWhat = "handshake" {
 					SET getLEX[sWhat] TO FALSE.
@@ -219,7 +219,7 @@ FUNCTION coms_formater {
 	replyList,//list of strings
 	replyData,//lex with one item for every item in replyList
 	comTarget IS FALSE.
-	
+
 	LOCAL comMode IS 0.
 	IF comTarget:ISTYPE("vessel") {
 		requestLEX:ADD("target",FALSE).
@@ -228,13 +228,13 @@ FUNCTION coms_formater {
 		requestLEX:ADD("target",TRUE).
 		SET comMode TO -1.
 	}
-	
+
 	LOCAL requestLEX IS LEX("handshake",TRUE,"echoDone",TRUE).
 	FOR requestItem IN requestList { requestLEX:ADD(requestItem,TRUE). }
 	LOCAL responceData IS LEX().
-	
+
 	LOCAL comsDone IS LEX("self",FALSE,"target",FALSE).
-	
+
 	RETURN LEX(
 	"comMode",comMode,
 	"comTarget",comTarget.
@@ -256,7 +256,7 @@ FUNCTION general_coms {
 	LOCAL replyList IS formatedLEX["replyList"].
 	LOCAL replyData IS formatedLEX["replyData"].
 	LOCAL comsDone IS formatedLEX["comsDone"].
-	
+
 	LOCAL rejectedSignals IS QUEUE().
 	UNTIL buffer:EMPTY {
 		LOCAL signal IS buffer:POP().
@@ -264,7 +264,7 @@ FUNCTION general_coms {
 			LOCAL sType IS signal:CONTENT["type"].
 			LOCAL sWhat IS signal:CONTENT["what"].
 			LOCAL sData IS signal:CONTENT["data"].
-			
+
 			IF sType = "responce" AND requestLEX[sWhat] AND (NOT requestLEX["target"]) {
 				IF sWhat = "handshake" {
 					SET requestLEX[sWhat] TO FALSE.
@@ -309,7 +309,7 @@ FUNCTION general_coms {
 			rejectedSignals:PUSH(signal).
 		}
 	}
-	
+
 	IF comMode <> -1 AND (NOT requestLEX["target"]) {
 		IF comMode = 0 {
 			IF requestLEX["handshake"] {
@@ -333,7 +333,7 @@ FUNCTION general_coms {
 			} ELSE { SET formatedLEX["comMode"] TO -1. SET comMode TO -1. }
 		}
 	}
-	
+
 	RETURN rejectedSignals.
 }
 

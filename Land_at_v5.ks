@@ -69,19 +69,19 @@ UNTIL close{
 	}
 	LOCAL stepMod IS 0.
 	UNTIL done {
-		LOCAL timePre IS TIME:SECONDS.		
+		LOCAL timePre IS TIME:SECONDS.
 		LOCAL stepVal IS hillValues["stepVal"].
 		LOCAL posTime IS hillValues["posTime"].
 		LOCAL anyGood IS FALSE.
 		LOCAL bestNode IS LIST(hillValues["score"],posTime,"no",0,hillValues["dist"]).
 		FOR manipType IN  varConstants["manipList"] {
 			FOR stepTmp IN LIST(stepVal,-stepVal) {
-			
+
 				node_set(NEXTNODE,manipType,stepTmp).
 				LOCAL scoreNew IS score(NEXTNODE,posTime).
 				node_set(NEXTNODE,manipType,-stepTmp).
 				LOCAL nodeTmp IS LIST(scoreNew["score"],scoreNew["posTime"],manipType,stepTmp,scoreNew["dist"]).
-				
+
 				IF bestNode[0] > nodeTmp[0] {
 					SET bestNode TO nodeTmp.
 					SET anyGood TO TRUE.
@@ -90,7 +90,7 @@ UNTIL close{
 			}
 			IF anyGood { BREAK. }
 		}
-		
+
 		IF anyGood {
 			node_set(NEXTNODE,bestNode[2],bestNode[3]).
 			SET stepMod TO MAX(stepMod - 0.005,-0.2).
@@ -147,7 +147,7 @@ FUNCTION score { //returns the score of the node
 			LOCAL lowPointAlt IS localBody:ALTITUDEOF(POSITIONAT(SHIP,lowPoint)).
 			LOCAL posNeg IS 1.
 			IF lowPointAlt < localBody:ALTITUDEOF(POSITIONAT(SHIP,lowPoint["time"] + stepVal)) { SET posNeg TO - 1. }
-			
+
 			UNTIL lowPointAlt < targetAltitude {
 				SET lowPoint TO lowPoint + stepVal * posNeg.
 				SET lowPointAlt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,lowPoint)).
@@ -168,7 +168,7 @@ FUNCTION score { //returns the score of the node
 			SET midPoint TO (lowPoint + highPoint) / 2.
 			SET midPointAlt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,midPoint)) - targetAltitude.
 		}
-		
+
 		LOCAL dist IS dist_betwene_coordinates(varConstants["landingCoordinates"],ground_track(midPoint)).
 		LOCAL scored IS dist + peDiff * PEweight.
 		IF targetNode:ISTYPE("node") { SET scored TO scored + (targetNode:DELTAV:MAG * 6). }
@@ -248,7 +248,7 @@ FUNCTION margin_error { //approximates vertical drop needed for the craft to sto
 	LOCAL burnTime IS 0.
 	LOCAL burnTimePre IS 0.
 	LOCAL shipISP IS isp_calc().
-	
+
 	UNTIL FALSE {
 		//SET surBurnTime TO burn_duration(shipISP,(SQRT((burnTime * srfGrav + velSpeed) ^ 2) + velSpeed ^ 2)).
 		//LOCAL orbBurnTime IS burn_duration(shipISP,SQRT(((burnTime * orbGrav + velSpeed) ^ 2) + velSpeed ^ 2)).

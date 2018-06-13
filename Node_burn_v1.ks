@@ -47,7 +47,7 @@ UNTIL done {	//waiting for a node to exist or be locked in
 			SAS OFF.
 			SET warping TO TRUE.
 			KUNIVERSE:TIMEWARP:WARPTO(TIME:SECONDS + (burnStart - (nodeLock + 1))).
-		} 
+		}
 		SET done TO ((burnStart - nodeLock) < 1).
 		IF burnStart < (nodeLock / 12) {
 			SET aborting TO TRUE.

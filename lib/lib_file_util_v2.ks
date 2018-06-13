@@ -40,7 +40,7 @@ FUNCTION dir_scan_for_files {
 			masterList:ADD(subFile).
 		}
 	}
-	IF doDirRevert { 
+	IF doDirRevert {
 		WAIT 0.01.
 		CD(dirRevert).
 	}

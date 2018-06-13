@@ -98,7 +98,7 @@ UNTIL done
     IF listPlace > (10 / tS - 1) {SET listPlace TO 0.}
 
     SET deltaDistAvr TO 0.
-    FOR deltaDist IN deltaDistList 
+    FOR deltaDist IN deltaDistList
       {SET deltaDistAvr TO deltaDistAvr + deltaDist.}
     SET timeTo TO distPrev / (deltaDistAvr / deltaDistList:LENGTH) / (60 / (TIME:SECONDS - timePrev)).
 

@@ -22,7 +22,7 @@ IF CORE:PART:TAG = "server" {
 		SET startNum TO 5. PRINT "3".
 		IF logData { LOG "3" TO logFile. }
 	}
-	
+
 	CORE:DOEVENT("open terminal").
 	WAIT 1.
 	LOCAL coreList IS LIST().
@@ -84,7 +84,7 @@ IF CORE:PART:TAG = "server" {
 		WAIT UNTIL NOT buffer:EMPTY.
 		LOCAL signal IS buffer:POP().
 		LOCAL packet IS signal:CONTENT.
-		
+
 		IF packet[1] = "done" {
 			SET done TO TRUE.
 			local_connection(packet):SENDMESSAGE(LIST(CORE:PART:TAG,"done")).

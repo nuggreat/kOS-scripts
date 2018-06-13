@@ -1,6 +1,6 @@
 FUNCTION VecDrawAdd { // Draw the vector or update it.
 	PARAMETER vecDrawLex,vecStart,vecTarget,localColour,localLabel,localScale.
-	
+
 	IF vecDrawLex:KEYS:CONTAINS(localLabel) {
 		SET vecDrawLex[localLabel]:START to vecStart.
 		SET vecDrawLex[localLabel]:VEC to vecTarget.
@@ -11,21 +11,21 @@ FUNCTION VecDrawAdd { // Draw the vector or update it.
 	}
 }
 
-FUNCTION target_to_geochordnate {	//converts types of vessel,part,waypoint, and string into geocoordinates
+FUNCTION mis_types_to_geochordnate {	//converts types of vessel,part,waypoint, and string into geocoordinates
 	PARAMETER tar.					//for string function assumes this is the name of a waypoint
 	IF tar:ISTYPE("string") { SET tar TO WAYPOINT(tar). }
-	
+
 	IF tar:ISTYPE("geocoordinates") {
 		RETURN tar.
-		
+
 	} ELSE IF tar:ISTYPE("vessel") OR tar:ISTYPE("waypoint") {
 		RETURN tar:GEOPOSITION.
-		
+
 	} ELSE  IF tar:ISTYPE("part") {
 		RETURN SHIP:BODY:GEOPOSITIONOF(tar:POSITION).
-		
+
 	} ELSE {
-		PRINT "I don't know how use a dest type of :" + tar:TYPENAME.
+		PRINT "I don't know how use a target type of :" + tar:TYPENAME.
 		RETURN FALSE.
 	}
 }
@@ -77,20 +77,20 @@ FUNCTION pseudo_throttle_config { //creates config file for pseudo_throttle
 
 FUNCTION altitude_to_time { //returns the UT in seconds of when the orbit reaches the given altitude, returns -1 when target altitude is above/below orbit
 	PARAMETER targetAltitude.
-	
+
 	LOCAL returnTime IS -1.
 	IF targetAltitude < SHIP:ORBIT:APOAPSIS AND targetAltitude > SHIP:ORBIT:PERIAPSIS {
-	
+
 		LOCAL localBody IS SHIP:BODY.
 		LOCAL highPoint IS ETA:APOAPSIS + TIME:SECONDS.
 		LOCAL lowPoint IS ETA:PERIAPSIS + TIME:SECONDS.
-		
+
 		IF SHIP:ALTITUDE < targetAltitude AND SHIP:VERTICALSPEED > 0 {
 			SET lowPoint TO TIME:SECONDS.
 		} ELSE IF SHIP:ALTITUDE > targetAltitude AND SHIP:VERTICALSPEED < 0 {
 			SET highPoint TO TIME:SECONDS.
 		}
-		
+
 		LOCAL midPoint IS (lowPoint + highPoint) / 2.
 		LOCAL midPointAlt IS localBody:ALTITUDEOF(POSITIONAT(SHIP,midPoint)) - targetAltitude.
 		UNTIL ABS(midPointAlt) < 1 {
@@ -146,13 +146,13 @@ FUNCTION burn_along_vector {//needs libs formating, rocker utilities
 FUNCTION pid_debug {
 	PARAMETER pidToDebug.
 	CLEARSCREEN.
-	PRINT "Setpoint: " + ROUND(pidToDebug:SETPOINT,2)).
-	PRINT "   Input: " + ROUND(pidToDebug:ERROR,2)).
+	PRINT "Setpoint: " + ROUND(pidToDebug:SETPOINT,2).
+	PRINT "   Error: " + ROUND(pidToDebug:ERROR,2).
 	PRINT "       P: " + ROUND(pidToDebug:PTERM,3).
 	PRINT "       I: " + ROUND(pidToDebug:ITERM,3).
 	PRINT "       D: " + ROUND(pidToDebug:DTERM,3).
 	PRINT "     Max: " + ROUND(pidToDebug:MAXOUTPUT,2).
-	PRINT "  Output: " + ROUND(pidToDebug:OUTPUT,2)).
+	PRINT "  Output: " + ROUND(pidToDebug:OUTPUT,2).
 	PRINT "     min: " + ROUND(pidToDebug:MINOUTPUT,2).
 //	LOG (pidToDebug:SETPOINT + "," + pidToDebug:ERROR + "," + pidToDebug:PTERM + "," + pidToDebug:ITERM + "," + pidToDebug:DTERM + "," + pidToDebug:MAXOUTPUT + "," + pidToDebug:OUTPUT +  "," + pidToDebug:MINOUTPUT) TO PATH("0:/pidLog.txt").
 }
@@ -226,21 +226,21 @@ FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time
   RETURN LATLNG(posLATLNG:LAT,newLNG).
 }//function used but included for easy of reference for impact_eta function
 
-FUNCTION BURN_TIME_CALC{
+FUNCTION BURN_TIME_CALC{//need to reformat to remove uneeded *1000 elements as well as change var names to make sense to me
     PARAMETER CMAS,					//Current Mass
 	EISP,							//Engine ISP
 	MAXT,							//Max Thrust
 	CVEL.							//DV
-    LOCAL E IS CONSTANT():E. 
+    LOCAL E IS CONSTANT():E.
     LOCAL G IS 9.80665.				// Gravity for ISP Conv
     LOCAL I IS EISP * G.				// ISP in m/s units.
     LOCAL M IS CMAS * 1000.			// Mass in kg.
     LOCAL T IS MAXT * 1000.			// Thrust in N.
     LOCAL F IS T/I.					// Fuel flow in kg/s.
-    RETURN (M/F)*(1-E^(-CVEL/I)).	// Burn time in seconds 
+    RETURN (M/F)*(1-E^(-CVEL/I)).	// Burn time in seconds
 }
 
-FUNCTION BURN_DIST_CALC{
+FUNCTION BURN_DIST_CALC{//need to reformat to remove uneeded *1000 elements as well as change var names to make sense to me
 	PARAMETER CMAS,										//Current Mass
 	EISP,												//Engine ISP
 	MAXT,												//Max Thrust
@@ -253,4 +253,78 @@ FUNCTION BURN_DIST_CALC{
 	LOCAL F IS T/I.										// Fuel Flow in kg/s.
 	LOCAL DT IS BURN_TIME_CALC(CMAS,EISP,MAXT,CVEL).		// Burn time in seconds.
 	RETURN I*(DT-(M/F))*LN(1-(F*DT/M))-(I*DT)+(CVEL*DT).	// Braking distance, somehow.
+}
+
+FUNCTION wait_until_steering_aligned {//wait until steering is aligned with what it is locked to
+	PARAMETER careAboutRoll IS FALSE, steadyTime IS 10, maxError IS 1.
+	LOCAL resumeTime IS TIME:SECONDS + steadyTime.
+	LOCK steerError TO ABS(STEERINGMANAGER:ANGLEERROR).
+	IF careAboutRoll {
+		LOCK steerError TO ABS(STEERINGMANAGER:ANGLEERROR) + ABS(STEERINGMANAGER:ROLLERROR).
+	}
+	UNTIL resumeTime < TIME:SECONDS {
+		IF steerError > maxError {
+			SET resumeTime TO TIME:SECONDS + steadyTime.
+		}
+		WAIT 0.
+		CLEARSCREEN.
+		PRINT "error: " + ROUND(steerError,2).
+		PRINT "alignment done in: " + ROUND(resumeTime - TIME:SECONDS,2) + "s".
+	}
+}
+
+FUNCTION chute_deploy_all {
+	LOCAL chuteList IS LIST().
+	FOR par IN SHIP:PARTS {
+		IF par:HASMODULE("moduleParachute") {
+			chuteList:ADD(par).
+		}
+	}
+	LOCAL chutesDeployed IS 0.
+	UNTIL chutesDeployed >= chuteList:LENGTH {
+		FOR chute IN chuteList {
+			LOCAL moduleParachute IS chute:GETMODULE("moduleParachute").
+			IF chute:TAG <> "deployed" AND moduleParachute:HASFIELD("safe to deploy?") {
+				IF moduleParachute:GETFIELD("safe to deploy?") = "Safe" {
+					moduleParachute:SETFIELD("min pressure",0.01).
+					moduleParachute:DOEVENT("deploy chute").
+					SET chute:TAG TO "deployed".
+					SET chutesDeployed TO chutesDeployed + 1.
+				}
+			}
+		}
+		WAIT 0.
+	}
+}
+
+FUNCTION percent_resource_for_tag {//returns percentage of given resource in tagged tanks
+	PARAMETER tankTag, resName IS "LIQUIDFUEL".
+	LOCAL LFamount IS 0.
+	LOCAL LFcapacity IS 0.
+	FOR tank IN SHIP:PARTSTAGGED(tankTag) {
+		FOR res IN tank:RESOURCES {
+			IF res:NAME = resName {
+				SET LFamount TO LFamount + res:AMOUNT.
+				SET LFcapacity TO LFcapacity + res:CAPACITY.
+			}
+		}
+	}
+	RETURN ((LFamount * 100) / LFcapacity).
+}
+
+LOCAL functionData IS LEX("angleOldTime",TIME:SECONDS,"angleOldVec",v(0,0,0)).
+FUNCTION angle_delta {
+	PARAMETER currentVec,resetVec IS FALSE.
+	LOCAL localTime IS TIME:SECONDS.
+
+	LOCAL deltaTime IS localTime - functionData["angleOldTime"].
+	LOCAL deltaAngle IS VANG(currentVec, functionData["angleOldVec"]).
+	SET functionData["angleOldTime"] TO localTime.
+	SET functionData["angleOldVec"] TO currentVec.
+
+	IF resetVec {
+		RETURN 0.
+	} ELSE {
+		RETURN deltaAngle/deltaTime.
+	}
 }

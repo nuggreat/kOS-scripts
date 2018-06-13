@@ -4,7 +4,7 @@ PARAMETER dest,	//-----destnationas as a waypoint, geocoordinate, vessel, part, 
 	pitchMax,	//-----max pitch in deg-----
 	rollMax,		//-----mac roll  in deg-----
 	cruseSpeed,	//-----cruse speed in m/s-----
-	landingSpeed.//-----landing speed in m/s----- 
+	landingSpeed.//-----landing speed in m/s-----
 FOR lib IN LIST("lib_navball","lib_navball2") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 SET TERMINAL:WIDTH TO 60.
 SET TERMINAL:HEIGHT TO 15.
@@ -71,13 +71,13 @@ LOCAL done IS FALSE.
 UNTIL done {	//-----fly to target-----
 	WAIT 0.01.
 	LOCAL tarBearing IS mark:BEARING.
-	
+
 	LOCAL pitchTo IS pitchTar_PID:UPDATE(TIME:SECONDS,ALTITUDE).
 	LOCAL rollTo IS rollTar_PID:UPDATE(TIME:SECONDS,0 - tarBearing).
-	
+
 	LOCAL shipPitch IS pitch_for(SHIP).
 	LOCAL shipRoll IS roll_for(SHIP).
-	
+
 	SET SHIP:CONTROL:ROLL TO roll_to(rollTo,shipRoll).
 	SET SHIP:CONTROL:PITCH TO pitch_to(pitchTo,shipRoll,shipPitch).
 	SET SHIP:CONTROL:YAW TO yaw_to().
@@ -135,20 +135,20 @@ UNTIL align {	//-----alignging to runway-----
 	SET dist TO target_distance(runwayStart).
 	LOCAL vertSpeedTar IS 0 - ((ALTITUDE - 100) / ((dist - 100) / (GROUNDSPEED * 1.25))).
 	SET vSpeedCon_PID:SETPOINT TO vertSpeedTar.
-	
+
 	LOCAL tarBearing IS runwayStart:BEARING.
-	
+
 	LOCAL pitchTo IS vSpeedCon_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
-	
+
 	LOCAL headingDif IS runwayEnd:heading - runwayStart:heading .
 	LOCAL rollTo IS rollTar_PID:UPDATE(TIME:SECONDS,(headingDif * (dist / 1000)) - tarBearing).
-	
+
 	LOCAL speedTar IS MIN(MAX(landingSpeed,(dist - 100) / 100),landingSpeed * 2).
 	SET throttle_PID:SETPOINT TO speedTar.
-	
+
 	LOCAL shipPitch IS pitch_for(SHIP).
 	LOCAL shipRoll IS roll_for(SHIP).
-	
+
 	SET SHIP:CONTROL:ROLL TO roll_to(rollTo,shipRoll).
 	SET SHIP:CONTROL:PITCH TO pitch_to(pitchTo,shipRoll,shipPitch).
 	SET SHIP:CONTROL:YAW TO yaw_to().
@@ -183,14 +183,14 @@ GEAR ON.
 UNTIL land {	//-----landing-----
 	WAIT 0.01.
 	LOCAL tarBearing IS runwayEnd:BEARING.
-	
+
 	LOCAL pitchTo IS vSpeedCon_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
-	
+
 	LOCAL rollTo IS rollTar_PID:UPDATE(TIME:SECONDS,0 - tarBearing).
-	
+
 	LOCAL shipPitch IS pitch_for(SHIP).
 	LOCAL shipRoll IS roll_for(SHIP).
-	
+
 	SET SHIP:CONTROL:ROLL TO roll_to(rollTo,shipRoll).
 	SET SHIP:CONTROL:PITCH TO pitch_to(pitchTo,shipRoll,shipPitch).
 	SET SHIP:CONTROL:YAW TO yaw_to().
@@ -220,7 +220,7 @@ LOCAL stopped IS FALSE.
 UNTIL stopped {	//-----coming to a stop-----
 	WAIT 0.01.
 	LOCAL steerTo IS rollTar_PID:UPDATE(TIME:SECONDS,runwayEnd:BEARING).
-	
+
 	SET SHIP:CONTROL:YAW TO -steerTo.
 	SET SHIP:CONTROL:WHEELSTEER TO steerTo.
 	IF count >= 20 {
@@ -242,7 +242,7 @@ SAS ON.
 //	north west:  -0.0518,-74.7290
 //	soulth west: -0.0452,-74.7290
 //	centerpoint west: -0.0485,-74.7290
-                        
+
 //	soulth east: -0.0469,-74.4879
 //	notrh east:  -0.0535,-74.4879
 //	centerpoint east: -0.0502,-74.4879

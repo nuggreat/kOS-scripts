@@ -123,7 +123,7 @@ SET landing_PID:SETPOINT TO sucideMargin - 0.1.
 LOCAL done IS FALSE.
 UNTIL done {	//sucide burn stotoping at 25m above surface
 	LOCAL decentLex IS decent_math(shipThrust * 0.95).
-	
+
 	LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,ALT:RADAR - decentLex["stopDist"]).
 	CLEARSCREEN.
 	PRINT "Altitude:     " + ROUND(ALT:RADAR,1).
@@ -140,11 +140,11 @@ LOCK STEERING TO steeringTar.
 LOCAL done IS FALSE.
 UNTIL done {	//slow decent until tuchdown
 	LOCAL decentLex IS decent_math(shipThrust * 0.95).
-	
+
 	LOCAL vSpeedTar IS MIN(0 - (ALT:RADAR - vertMargin - (ALT:RADAR * decentLex["stopTime"])) / (11 - decentLex["twr"]),- ABS(decentMinSpeed)).
 	SET landing_PID:SETPOINT TO vSpeedTar.
 	LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
-	
+
 	IF VERTICALSPEED < -1 {
 		SET steeringTar TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR:NORMALIZED + (SHIP:UP:FOREVECTOR:NORMALIZED * 3),SHIP:NORTH:FOREVECTOR).
 	} ELSE {
@@ -152,7 +152,7 @@ UNTIL done {	//slow decent until tuchdown
 		LOCAL adjustedPitch IS MAX(90-GROUNDSPEED,89).
 		SET steeringTar TO LOOKDIRUP(HEADING(retroHeading,adjustedPitch):FOREVECTOR,SHIP:NORTH:FOREVECTOR).
 	}
-	
+
 	CLEARSCREEN.
 	PRINT "Altitude:  " + ROUND(ALT:RADAR,1).
 	PRINT "vSpeedTar: " + ROUND(vSpeedTar,1).
@@ -194,11 +194,11 @@ FUNCTION chute_deploy {
 	PARAMETER chuteTaged.
 	IF SHIP:BODY:ATM:HEIGHT / 2 > SHIP:ALTITUDE {
 		FOR chute IN SHIP:PARTSTAGGED(chuteTaged) {
-			LOCAL moduleParachure IS chute:GETMODULE("moduleParachute").
-			IF moduleParachure:HASFIELD("safe to deploy?") {
-				IF moduleParachure:GETFIELD("safe to deploy?") = "Safe" {
-					moduleParachure:SETFIELD("min pressure",0.01).
-					moduleParachure:DOEVENT("deploy chute").
+			LOCAL moduleParachute IS chute:GETMODULE("moduleParachute").
+			IF moduleParachute:HASFIELD("safe to deploy?") {
+				IF moduleParachute:GETFIELD("safe to deploy?") = "Safe" {
+					moduleParachute:SETFIELD("min pressure",0.01).
+					moduleParachute:DOEVENT("deploy chute").
 					SET chute:TAG TO "".
 				}
 			}
