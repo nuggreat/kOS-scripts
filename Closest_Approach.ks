@@ -89,18 +89,11 @@ FUNCTION time_converter {
 	RETURN returnString.
 }
 
-FUNCTION si_formatting {
-	PARAMETER num,//number to format,
-	unit,//unit of number
-	trailingLength IS 2,//number of places after decimal point
-	leadingLenght IS 1.//number of places before decimal point
-	LOCAL powerOfTen IS FLOOR(LOG10(ABS(num)) / 3).
-	LOCAL prefix IS LIST(" y"," z"," a"," f"," p"," n"," μ"," m","  "," k"," M"," G"," T"," P"," E"," Z"," Y")[powerOfTen + 8].
-	RETURN padding(num/1000^powerOfTen,leadingLenght,trailingLength) + prefix + unit.
-}
-
 FUNCTION padding {
-	PARAMETER num,leadingLenght,trailingLength.//number to pad,min length before decimal point, length after decimal point
+	PARAMETER num,	//number to pad
+	leadingLenght,	//min length to the left of the decimal point
+	trailingLength,	// length to the right of the decimal point
+	positiveLeadingSpace IS TRUE.//if when positive should there be a space before the returned string
 	LOCAL returnString IS ABS(ROUND(num,trailingLength)):TOSTRING.
 
 	IF trailingLength > 0 {
@@ -116,6 +109,10 @@ FUNCTION padding {
 	IF num < 0 {
 		RETURN "-" + returnString.
 	} ELSE {
-		RETURN " " + returnString.
+		IF positiveLeadingSpace {
+			RETURN " " + returnString.
+		} ELSE {
+			RETURN returnString.
+		}
 	}
 }
