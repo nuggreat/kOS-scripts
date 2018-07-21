@@ -36,8 +36,9 @@
 //			returns a list of file names without extensions matching the index values of the input list
 //				EXAMPLE:
 //				input of LIST(
-//					LIST(PATH("1:/"),PATH("1:/lib")),
-//					LIST("updater.ks","file_util.ks","list_file_util.ks")
+//					LIST(PATH("1:/"),"updater.ks"),
+//					LIST(PATH("1:/lib"),"file_util.ks",)
+//					LIST(PATH("1:/lib"),"list_file_util.ks")
 //				returns: LIST("updater","file_util","list_file_util")
 
 FUNCTION dir_scan {
