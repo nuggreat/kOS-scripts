@@ -4,7 +4,7 @@ CLEARSCREEN.
 SAS OFF.
 RCS OFF.
 ABORT OFF.
-LOCAL stationPortListRaw IS port_scan(SHIP).
+LOCAL stationPortListRaw IS port_scan_of(SHIP).
 LOCAL noFlyZone IS ROUND(no_fly_zone(SHIP) + 25).
 LOCAL buffer IS SHIP:MESSAGES.
 buffer:CLEAR().
@@ -21,7 +21,7 @@ message_wait(buffer).
 buffer:CLEAR().
 cratConect:SENDMESSAGE("Ready").		//ready to reveve data
 
-LOCAL craftPortListRaw IS port_scan(craft).
+LOCAL craftPortListRaw IS port_scan_of(craft).
 message_wait(buffer).
 LOCAL signal IS buffer:POP().
 LOCAL stationMove IS signal:CONTENT.	//receved if station should move

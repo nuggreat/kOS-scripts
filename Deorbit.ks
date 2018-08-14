@@ -1,40 +1,26 @@
 PARAMETER landingTar.
-FOR lib IN LIST("lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
+FOR lib IN LIST("lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 
-LOCAL targetGo IS TRUE.
-LOCAL landingCoordinates IS landingTar.
-IF landingTar:ISTYPE("string") {SET landingTar TO WAYPOINT(landingTar).}
-IF landingTar:ISTYPE("vessel") or landingTar:ISTYPE("waypoint") {
-	SET landingCoordinates TO landingTar:GEOPOSITION.
-} ELSE {
-	IF landingTar:ISTYPE("part") {
-		SET landingCoordinates TO BODY:GEOPOSITIONOF(landingTar:POSITION).
-	} ELSE {
-		IF landingTar:ISTYPE("geocoordinates") {
-			SET landingCoordinates TO landingTar.
-		} ELSE {
-			PRINT "I don't know how ues a dest type of :" + landingTar:TYPENAME.
-			SET targetGo TO false.
-		}
-	}
-}
-IF targetGo {
+LOCAL landingChord IS mis_types_to_geochordnate(landingTar)["chord"].
+
+IF landingChord:ISTYPE("geocoordinates") {
 //LOCAL thrustLimitBackup IS twr_restriction(7.5).
 
-RUN land_at(landingCoordinates).
+RUN land_at(landingTar).
 IF NOT ABORT {
 	RUN node_burn.
-	//RUN land_at(landingCoordinates).
+	//RUN land_at(landingChord).
 	//RUN node_burn.
 	REMOVE NEXTNODE.
 	IF NOT ABORT {
-		RUN landing_vac(TRUE,landingCoordinates).
+		RUN landing_vac(TRUE,landingTar).
 	}
 }
 
 //twr_restore(thrustLimitBackup).
 
-PRINT "Distance: " + ROUND(landingCoordinates:DISTANCE).
+PRINT "Distance: " + ROUND(landingChord:DISTANCE).
 }
 
 FUNCTION twr_restriction {

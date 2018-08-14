@@ -1,8 +1,8 @@
-The RUN ONCE comand can sometimes interfear with parameters being passed into a script.
+The RUN ONCE command can sometimes interfere with parameters being passed into a script.
 In the case of the test_print_1 script it can read the parameters the first time it is run but not the second time.
-In the cource of testing this I discovered it is because of order of exicution namly if the RUN ONCE is before the line with PARAMETER then the RUN ONCE will block parameters but only when the script being run with the RUN ONCE has already run.
+In the course of testing this I discovered it is because of order of execution namely if the RUN ONCE is before the line with PARAMETER then the RUN ONCE will block parameters but only when the script being run with the RUN ONCE has already run.
 
-SET pFloyd TO HIGHLIGHT(SHIP:PARTS,RGBA(255,20,147,0.01)). SET pFloyd:ENABLED TO TRUE.
+
 IF NOT EXISTS("1:/run_me_once_1.ks") { LOG "PRINT 12345." TO "1:/run_me_once_1.ks". }
 IF NOT EXISTS("1:/test_print_1.ks") {
   LOG "

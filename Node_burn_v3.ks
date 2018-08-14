@@ -24,24 +24,6 @@ IF autoWarp { SET warpState TO 1. }
 LOCK STEERING TO vecTar.
 SET pData[0] TO "Waiting for Node Lock".
 
-LOCAL oldSteeringSettings IS LEX(
-	"maxStoppingTime",STEERINGMANAGER:MAXSTOPPINGTIME,
-	"pitchTS",STEERINGMANAGER:PITCHTS,
-	"yawTS",STEERINGMANAGER:YAWTS,
-	"rollTS",STEERINGMANAGER:ROLLTS).
-
-IF SHIP:MASS > 200 {
-	LOCAL steerCoeficent IS 5.
-	SET nodeLock TO 60.
-	IF SHIP:MASS > 1000 {
-		SET steerCoeficent TO 10.
-	}
-	SET STEERINGMANAGER:MAXSTOPPINGTIME TO oldSteeringSettings["maxStoppingTime"] * steerCoeficent.
-//	SET STEERINGMANAGER:PITCHTS TO oldSteeringSettings["pitchTS"] / steerCoeficent.
-//	SET STEERINGMANAGER:YAWTS TO oldSteeringSettings["yawTS"] / steerCoeficent.
-//	SET STEERINGMANAGER:ROLLTS TO oldSteeringSettings["rollTS"] / steerCoeficent.
-}
-
 UNTIL done {	//waiting for a node to exist or be locked in
 	IF HASNODE {
 		screen_update(pData).
@@ -194,10 +176,7 @@ ABORT OFF.
 UNLOCK THROTTLE.
 UNLOCK STEERING.
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-SET STEERINGMANAGER:MAXSTOPPINGTIME TO oldSteeringSettings["maxStoppingTime"].
-SET STEERINGMANAGER:PITCHTS TO oldSteeringSettings["pitchTS"].
-SET STEERINGMANAGER:YAWTS TO oldSteeringSettings["yawTS"].
-SET STEERINGMANAGER:ROLLTS TO oldSteeringSettings["rollTS"].
+SET STEERINGMANAGER:MAXSTOPPINGTIME TO 2.
 
 
 //end of core logic start of functions

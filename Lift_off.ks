@@ -108,7 +108,8 @@ IF bodyAtmosphere:EXISTS {
 	LOCAL pitchTar IS pitch_target(gradeVec,etaSet,5,-5,20).
 	//LOCAL throttleLimit IS twr_limit(2).
 	LOCK STEERING TO HEADING(headingTar,pitchTar).
-	PID_config(throttlePID,etaSet,0.25).
+//	PID_config(throttlePID,etaSet,0.25).
+	PID_config(throttlePID,etaSet,0.5).
 //	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS).
 
 	UNTIL SHIP:ORBIT:APOAPSIS > targetAP	{

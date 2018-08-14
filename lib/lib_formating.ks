@@ -60,13 +60,29 @@ LOCAL FUNCTION time_string {
 	}
 }
 
+//adding list of format types
+//lib_formating_lex:ADD("timeFormats",LIST()).
 lib_formating_lex:ADD("timeFormat0",LIST("s","m ","h ","d ","y ")).
+//lib_formating_lex["timeFormats"]:ADD(LIST("s","m ","h ","d ","y ")).
+
 lib_formating_lex:ADD("timeFormat1",LIST("",":",":"," Days, "," Years, ")).
+//lib_formating_lex["timeFormats"]:ADD(LIST("",":",":"," Days, "," Years, ")).
+
 lib_formating_lex:ADD("timeFormat2",LIST(" Seconds"," Minutes, "," Hours, "," Days, "," Years, ")).
+//lib_formating_lex["timeFormats"]:ADD(LIST(" Seconds"," Minutes, "," Hours, "," Days, "," Years, ")).
+
 lib_formating_lex:ADD("timeFormat3",LIST("",":",":")).
+//lib_formating_lex["timeFormats"]:ADD(LIST("",":",":")).
+
 //format 4 uses the same list as format 3
+//lib_formating_lex:ADD("timeFormat4",LIST("",":",":")).
+//lib_formating_lex["timeFormats"]:ADD(LIST(lib_formating_lex["timeFormats"][3]).
+
 lib_formating_lex:ADD("timeFormat5",LIST("s  ","m  ","h  ","d ","y ")).
+//lib_formating_lex["timeFormats"]:ADD(LIST("s  ","m  ","h  ","d ","y ")).
+
 lib_formating_lex:ADD("timeFormat6",LIST(" Seconds  "," Minutes  "," Hours    "," Days    "," Years   ")).
+//lib_formating_lex["timeFormats"]:ADD(LIST(" Seconds  "," Minutes  "," Hours    "," Days    "," Years   ")).
 
 FUNCTION time_formating {
 	PARAMETER timeSec,	//the time in seconds to format

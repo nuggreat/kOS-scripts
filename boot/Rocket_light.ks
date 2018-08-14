@@ -7,6 +7,8 @@ COMPILE PATH("0:/lib/lib_rocket_utilities.ks") TO PATH("1:/lib/lib_rocket_utilit
 COMPILE PATH("0:/lib/lib_formating.ks") TO PATH("1:/lib/lib_formating.ksm").
 COMPILE PATH("0:/lib/lib_land_vac.ks") TO PATH("1:/lib/lib_land_vac.ksm").
 COMPILE PATH("0:/lib/lib_file_util.ks") TO PATH("1:/lib/lib_file_util.ksm").
+COMPILE PATH("0:/lib/lib_geochordnate.ks") TO PATH("1:/lib/lib_geochordnate.ksm").
+COMPILE PATH("0:/lib/lib_mis_utilities.ks") TO PATH("1:/lib/lib_mis_utilities.ksm").
 COMPILE PATH("0:/lift_off.ks") TO PATH("1:/lift_off.ksm").
 COMPILE PATH("0:/node_burn.ks") TO PATH("1:/node_burn.ksm").
 COMPILE PATH("0:/landing_vac.ks") TO PATH("1:/landing_vac.ksm").

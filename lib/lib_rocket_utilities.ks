@@ -1,7 +1,5 @@
 @LAZYGLOBAL OFF.
 LOCAL lib_rocket_utilities_lex IS LEX().
-lib_rocket_utilities_lex:ADD("nextStageTime",TIME:SECONDS).
-lib_rocket_utilities_lex:ADD("alignedTime",TIME:SECONDS).
 
 FUNCTION isp_calc {	//returns the average isp of all of the active engines on the ship
 	LOCAL engineList IS LIST().
@@ -20,8 +18,9 @@ FUNCTION isp_calc {	//returns the average isp of all of the active engines on th
 	RETURN (totalThrust / (totalFlow * 9.80665)).
 }
 
+lib_rocket_utilities_lex:ADD("nextStageTime",TIME:SECONDS).
 FUNCTION stage_check {	//a check for if the rocket needs to stage
-	PARAMETER enableStage IS TRUE, stageDelay IS 2.
+	PARAMETER enableStage IS TRUE, stageDelay IS 3.
 	LOCAL needStage IS FALSE.
 	IF enableStage AND STAGE:READY AND (lib_rocket_utilities_lex["nextStageTime"] < TIME:SECONDS) {
 		IF MAXTHRUST = 0 {
@@ -46,10 +45,11 @@ FUNCTION stage_check {	//a check for if the rocket needs to stage
 	RETURN needStage.
 }
 
+lib_rocket_utilities_lex:ADD("nextDropTime",TIME:SECONDS).
 FUNCTION drop_tanks {
 	PARAMETER tankTag IS "dropTank".
 	LOCAL tankList IS SHIP:PARTSTAGGED(tankTag).
-	IF (tankList:LENGTH > 0) AND STAGE:READY AND lib_rocket_utilities_lex["nextStageTime"] < TIME:SECONDS {
+	IF (tankList:LENGTH > 0) AND STAGE:READY AND lib_rocket_utilities_lex["nextDropTime"] < TIME:SECONDS {
 		LOCAL drop IS FALSE.
 		FOR tank IN tankList {
 			FOR res IN tank:RESOURCES {
@@ -61,7 +61,7 @@ FUNCTION drop_tanks {
 		}
 		IF drop {
 			STAGE.
-			SET lib_rocket_utilities_lex["nextStageTime"] TO TIME:SECONDS + 10.
+			SET lib_rocket_utilities_lex["nextDropTime"] TO TIME:SECONDS + 10.
 			PRINT "Tank Dropped".
 		}
 	}
@@ -110,29 +110,52 @@ FUNCTION control_point {
 }
 
 FUNCTION not_warping {
-	RETURN KUNIVERSE:TIMEWARP:RATE = 1 AND KUNIVERSE:TIMEWARP:ISSETTLED.
+	RETURN (KUNIVERSE:TIMEWARP:RATE = 1) AND KUNIVERSE:TIMEWARP:ISSETTLED.
 }
 
 FUNCTION clear_all_nodes {
 	IF HASNODE { PRINT "havenode". UNTIL NOT HASNODE { REMOVE NEXTNODE. PRINT "removed node". WAIT 0. }}
 }
 
+lib_rocket_utilities_lex:ADD("steerData",LEX("maxError",1,"careAboutRoll",FALSE,"alignedTime",TIME:SECONDS)).
 FUNCTION steering_alinged_duration {//wait until steering is aligned with what it is locked to
-	PARAMETER careAboutRoll IS FALSE, maxError IS 1, resetTime IS FALSE.
-	LOCAL localTime IS TIME:SECONDS.
-	IF resetTime {
-		SET lib_rocket_utilities_lex["alignedTime"] TO localTime.
-		RETURN 0.
-	}
+	LOCAL dataLex IS lib_rocket_utilities_lex["steerData"].
+	PARAMETER configure IS FALSE,
+	maxError IS lib_rocket_utilities_lex["steerData"]["maxError"],
+	careAboutRoll IS lib_rocket_utilities_lex["steerData"]["careAboutRoll"].
+	//maxError IS dataLex["maxError"],
+	//careAboutRoll IS dataLex["careAboutRoll"].
 
-	LOCAL steerError IS ABS(STEERINGMANAGER:ANGLEERROR).
-	IF careAboutRoll {
-		SET steerError TO ABS(STEERINGMANAGER:ANGLEERROR) + ABS(STEERINGMANAGER:ROLLERROR).
-	}
-
-	IF steerError > maxError {
-		SET lib_rocket_utilities_lex["alignedTime"] TO localTime.
+	IF configure {
+		SET lib_rocket_utilities_lex["steerData"]["maxError"] TO maxError.
+		SET lib_rocket_utilities_lex["steerData"]["careAboutRoll"] TO careAboutRoll.
+		SET lib_rocket_utilities_lex["steerData"]["alignedTime"] TO TIME:SECONDS.
+		//SET dataLex["maxError"] TO maxError.
+		//SET dataLex["careAboutRoll"] TO careAboutRoll.
+		//SET dataLex["alignedTime"] TO TIME:SECONDS.
 		RETURN 0.
+	} ELSE {
+		LOCAL localTime IS TIME:SECONDS.
+
+		LOCAL steerError IS ABS(STEERINGMANAGER:ANGLEERROR).
+		IF careAboutRoll {
+			SET steerError TO steerError + ABS(STEERINGMANAGER:ROLLERROR).
+		}
+
+		IF steerError > maxError {
+			SET lib_rocket_utilities_lex["steerData"]["alignedTime"] TO localTime.
+			//SET dataLex["alignedTime"] TO localTime.
+		}
+		RETURN localTime - lib_rocket_utilities_lex["steerData"]["alignedTime"].
+		//RETURN localTime - dataLex["alignedTime"].
 	}
-	RETURN localTime - lib_rocket_utilities_lex["alignedTime"].
 }
+
+FUNCTION burn_duration {	//from isp and dv using current mass of the ship returns the amount of time needed for the provided DV
+  PARAMETER ISPs, DV, wMass IS SHIP:MASS, sThrust IS SHIP:AVAILABLETHRUST.
+  LOCAL dMass IS wMass / (CONSTANT:E^ (DV / (ISPs * 9.80665))).
+  LOCAL flowRate IS sThrust / (ISPs * 9.80665).
+  RETURN (wMass - dMass) / flowRate.
+}
+
+

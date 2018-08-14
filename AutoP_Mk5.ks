@@ -5,7 +5,7 @@ PARAMETER dest,	//-----destnationas as a waypoint, geocoordinate, vessel, part, 
 	rollMax,		//-----mac roll  in deg-----
 	cruseSpeed,	//-----cruse speed in m/s-----
 	landingSpeed.//-----landing speed in m/s-----
-FOR lib IN LIST("lib_navball","lib_navball2") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_navball","lib_navball2","lib_geochordnate","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 SET TERMINAL:WIDTH TO 60.
 SET TERMINAL:HEIGHT TO 15.
 CLEARSCREEN.
@@ -15,41 +15,26 @@ GEAR OFF.
 BRAKES OFF.
 //SET pitchMax TO pMax.
 //SET rollMax TO rMax.
-LOCAL goFlight IS TRUE.
 LOCAL cruseAltitude TO cruseHeight * 1000.
 //SET cruseSpeed TO cSpeed.
 //SET landingSpeed TO lSpeed.
 LOCAL latOffset IS (cruseHeight / 3) + (cruseSpeed / 400).
 
+
+LOCAL goFlight IS TRUE.
+LOCAL doLanding IS FALSE
+LOCAL endDist IS 3000.
+LOCAL mark IS LATLNG(0,-74.5 + latOffset).
+LOCAL point IS dest.
+
 IF dest:ISTYPE("string") AND dest = "KSC" OR dest = "Kerbal Space Center" {
-	SET dest TO LATLNG(0,-74.5 + latOffset).
-	SET landingYN TO TRUE.
+	SET point TO "Kerbal Space Center".
+	SET doLanding TO TRUE.
 	SET endDist TO 5000.
 } ELSE {
-	SET landingYN TO FALSE.
-	SET endDist TO 30000.
-}
-IF dest:ISTYPE("string") {SET dest TO WAYPOINT(dest).}
-IF dest:ISTYPE("vessel") or dest:ISTYPE("waypoint") {
-	SET point TO dest:NAME.
-	SET mark TO dest:GEOPOSITION.
-} ELSE {
-	IF dest:ISTYPE("part") {
-		SET point TO dest:NAME.
-		SET mark TO BODY:GEOPOSITIONOF(dest:POSITION).
-	} ELSE {
-		IF dest:ISTYPE("geocoordinates") {
-			IF dest:LAT = 0 AND dest:LNG = (-74.5 + latOffset) {
-				SET point TO "Kerbal Space Center".
-			} ELSE {
-				SET point TO dest.
-			}
-			SET mark TO dest.
-		} ELSE {
-			PRINT "I don't know how ues a dest type of :" + dest:typename.
-			SET goFlight TO FALSE.
-		}
-	}
+	LOCAL destData IS mis_types_to_geochordnate(dest).
+	SET mark TO destData["chord"].
+	SET point TO destData["name"].
 }
 
 //PID setup PIDLOOP(kP,kI,kD,min,max)
@@ -64,6 +49,7 @@ SET yawCon_PID TO PIDLOOP(0.025,0,0.0125,-0.25,0.25).
 IF goFlight {	//-----start of core logic-----
 LOCAL count IS 0.
 LOCAL dist IS target_distance(mark).
+average_eta(dist,20,TRUE).
 SET pitchTar_PID:SETPOINT TO cruseAltitude.
 SET throttle_PID:SETPOINT TO cruseSpeed.
 LOCAL done IS FALSE.
@@ -85,19 +71,19 @@ UNTIL done {	//-----fly to target-----
 	IF count >= 20 {
 		CLEARSCREEN.
 		SET dist TO target_distance(mark).
-		LOCAL targetETA IS target_eta(dist).
+		LOCAL targetETA IS average_eta(dist).
 		PRINT "Mode:        Long Distance Flight".
 		PRINT "Destination: " + point.
 		PRINT " ".
-		PRINT "Distance:    " + ROUND(dist/1000,1) + "km".
-		PRINT "ETA(Min):    " + ROUND(targetETA/60,1).
+		PRINT "Distance:    " + si_formating(dist,"m").
+		PRINT "ETA:         " + time_formating(targetETA,0,0).
 		PRINT " ".
-		PRINT "Alitude:     " + ROUND(ALTITUDE).
-		PRINT "Air Speed:   " + ROUND(SHIP:AIRSPEED,1).
+		PRINT "Altitude:    " + si_formating(ALTITUDE,"m").
+		PRINT "Air Speed:   " + si_formating(SHIP:AIRSPEED,"m/s").
 		PRINT " ".
-		PRINT "Bearing:     " + ROUND(tarBearing,3).
-		PRINT "Roll:        " + ROUND(shipRoll,3).
-		PRINT "Pitch:       " + ROUND(shipPitch,3).
+		PRINT "Bearing:     " + padding(tarBearing,2,3).
+		PRINT "Roll:        " + padding(shipRoll,2,3).
+		PRINT "Pitch:       " + padding(shipPitch,2,3).
 		PRINT " ".
 //		PRINT " rollTo: " + ROUND(rollTo,2).
 //		PRINT "rollFor: " + ROUND(shipRoll,2).
@@ -121,7 +107,7 @@ UNTIL done {	//-----fly to target-----
 	}
 }
 
-IF landingYN AND NOT RCS {	//-----start of runway landing-----
+IF doLanding AND NOT RCS {	//-----start of runway landing-----
 LOCAL centerlineWest IS LATLNG(-0.0485,-74.7290).	//runway start for take off
 LOCAL centerLineCenter IS LATLNG(-0.0495,74.6085).
 LOCAL centerlineEast IS LATLNG(-0.0502,-74.4879).	//runway end for take off
@@ -158,17 +144,17 @@ UNTIL align {	//-----alignging to runway-----
 		PRINT "Mode:        Alignging to Runway".
 		PRINT "Destination: " + point.
 		PRINT " ".
-		PRINT "Distance:    " + ROUND(dist/1000,1) + "km".
-		PRINT "Alitude:     " + ROUND(ALTITUDE,1).
+		PRINT "Distance:    " + si_formating(dist,"m").
+		PRINT "Altitude:    " + si_formating(ALTITUDE,"m").
 		PRINT " ".
-		PRINT "Vert Speed:  " + ROUND(VERTICALSPEED,1).
-		PRINT "Air Speed:   " + ROUND(SHIP:AIRSPEED,1).
+		PRINT "Vert Speed:  " + si_formating(VERTICALSPEED,"m/s").
+		PRINT "Air Speed:   " + si_formating(SHIP:AIRSPEED,"m/s").
 		PRINT " ".
-		PRINT "Bearing:     " + ROUND(tarBearing,3).
+		PRINT "Bearing:     " + padding(tarBearing,2,3).
 //		PRINT "Roll Tar:    " + ROUND(rollTo,3).
-		PRINT "Roll:        " + ROUND(shipRoll,3).
+		PRINT "Roll:        " + padding(shipRoll,2,3).
 //		PRINT "Pitch Tar:   " + ROUND(pitchTo,3).
-		PRINT "Pitch:       " + ROUND(shipPitch,3).
+		PRINT "Pitch:       " + padding(shipPitch,2,3).
 		SET count TO 1.
 	}	ELSE {
 		SET count TO count + 1.
@@ -199,14 +185,14 @@ UNTIL land {	//-----landing-----
 		CLEARSCREEN.
 		PRINT "Mode:        Landing".
 		PRINT " ".
-		PRINT "Alitude:     " + ROUND(ALTITUDE).
+		PRINT "Altitude:    " + si_formating(ALTITUDE,"m").
 		PRINT " ".
-		PRINT "Vert Speed:  " + ROUND(VERTICALSPEED,1).
-		PRINT "Air Speed:   " + ROUND(SHIP:AIRSPEED,1).
+		PRINT "Vert Speed:  " + si_formating(VERTICALSPEED,"m/s").
+		PRINT "Air Speed:   " + si_formating(SHIP:AIRSPEED,"m/s").
 		PRINT " ".
-		PRINT "Bearing:     " + ROUND(tarBearing,3).
-		PRINT "Roll:        " + ROUND(shipRoll,3).
-		PRINT "Pitch:       " + ROUND(shipPitch,3).
+		PRINT "Bearing:     " + padding(tarBearing,2,3).
+		PRINT "Roll:        " + padding(shipRoll,2,3).
+		PRINT "Pitch:       " + padding(shipPitch,2,3).
 		SET count TO 1.
 	}	ELSE {
 		SET count TO count + 1.
@@ -273,30 +259,35 @@ FUNCTION yaw_to {	//-----returns the value to set yaw controls to-----
 	RETURN yawCon_PID:UPDATE(TIME:SECONDS,yawDif).
 }
 
-FUNCTION target_distance {	//-----calculates distance to target using Law of Cosines-----
-	PARAMETER distTar.
-	LOCAL bodyRadius IS SHIP:BODY:RADIUS.
-	LOCAL aVal IS (distTar:TERRAINHEIGHT + bodyRadius).
-	LOCAL bVal IS (ALTITUDE + bodyRadius).
-	LOCAL cVal IS (distTar:DISTANCE).
-	LOCAL cosOfC IS (cVal ^ 2 - (aVal ^ 2 + bVal ^ 2)) / (-2 * aVal *bVal).
-	RETURN (ARCCOS(cosOfC) / 360) * (CONSTANT():PI * bodyRadius * 2).
+FUNCTION target_distance {
+	PARAMETER p1
+	RETURN dist_betwene_coordinates(p1,SHIP:GEOPOSITION).
 }
 
-FUNCTION target_eta {	//-----calculates ETA to target-----
-	PARAMETER dist.
-	IF NOT (DEFINED listETA) { GLOBAL listETA IS LIST(LIST(target_distance(mark),TIME:SECONDS,1)). WAIT 0.01. RETURN 0.}
-	LOCAL deltaDist IS listETA[0][0] - dist.
-	LOCAL deltaTime IS TIME:SECONDS - listETA[0][1].
-	LOCAL stepETA IS dist / (deltaDist / deltaTime).
-	LOCAL totalETA IS 0.
-	listETA:ADD(LIST(dist,TIME:SECONDS,stepETA)).
-	IF listETA:LENGTH > 10 {listETA:REMOVE(0).}
-	FOR value IN listETA {
-		SET totalETA TO totalETA + value[2].
-	}
-	RETURN totalETA / listETA:LENGTH.
-}
+//FUNCTION target_distance {	//-----calculates distance to target using Law of Cosines-----
+//	PARAMETER distTar.
+//	LOCAL bodyRadius IS SHIP:BODY:RADIUS.
+//	LOCAL aVal IS (distTar:TERRAINHEIGHT + bodyRadius).
+//	LOCAL bVal IS (ALTITUDE + bodyRadius).
+//	LOCAL cVal IS (distTar:DISTANCE).
+//	LOCAL cosOfC IS (cVal ^ 2 - (aVal ^ 2 + bVal ^ 2)) / (-2 * aVal *bVal).
+//	RETURN (ARCCOS(cosOfC) / 360) * (CONSTANT():PI * bodyRadius * 2).
+//}
+//
+//FUNCTION target_eta {	//-----calculates ETA to target-----
+//	PARAMETER dist.
+//	IF NOT (DEFINED listETA) { GLOBAL listETA IS LIST(LIST(target_distance(mark),TIME:SECONDS,1)). WAIT 0.01. RETURN 0.}
+//	LOCAL deltaDist IS listETA[0][0] - dist.
+//	LOCAL deltaTime IS TIME:SECONDS - listETA[0][1].
+//	LOCAL stepETA IS dist / (deltaDist / deltaTime).
+//	LOCAL totalETA IS 0.
+//	listETA:ADD(LIST(dist,TIME:SECONDS,stepETA)).
+//	IF listETA:LENGTH > 10 {listETA:REMOVE(0).}
+//	FOR value IN listETA {
+//		SET totalETA TO totalETA + value[2].
+//	}
+//	RETURN totalETA / listETA:LENGTH.
+//}
 
 FUNCTION drop_tanks {
 	PARAMETER tankTag IS "dropTank".

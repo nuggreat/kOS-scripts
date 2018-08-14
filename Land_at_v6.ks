@@ -1,7 +1,8 @@
 PARAMETER landingTar,margin IS 100.
 IF NOT EXISTS ("1/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/lib_mis_utilities.ks"). }
 IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
-FOR lib IN LIST("lib_rocket_utilities","lib_mis_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+IF NOT EXISTS ("1/lib/lib_orbital_math.ks") { COPYPATH("0:/lib/lib_orbital_math.ks","1:/lib/lib_orbital_math.ks"). }
+FOR lib IN LIST("lib_rocket_utilities","lib_mis_utilities","lib_geochordnate","lib_orbital_math") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 //control_point().
 //WAIT UNTIL active_engine().
 //RCS OFF.
@@ -20,7 +21,16 @@ LOCAL localBody IS SHIP:BODY.
 LOCAL orbitalSpeed IS SQRT(localBody:MU / SHIP:ORBIT:SEMIMAJORAXIS).
 LOCAL maxDv IS orbitalSpeed.
 LOCAL marginHeight IS margin + margin_error(orbitalSpeed).
-GLOBAL varConstants IS LEX("landingChord",landingChord,"marginHeight",marginHeight,"initalStep",orbitalSpeed/10,"peTarget",(localBody:RADIUS / -1.5),"mode",0,"manipList",LIST("eta","pro","nor","rad"),"maxDv",maxDv).
+GLOBAL varConstants IS LEX(
+	"landingChord",landingChord,
+	"marginHeight",marginHeight,
+	"landingAlt",marginHeight + landingChord:TERRAINHEIGHT,
+	"initalStep",orbitalSpeed/10,
+	"peTarget",(localBody:RADIUS / -1.5),
+	"mode",0,
+	"manipList",LIST("eta","pro","nor","rad"),
+	"maxDv",maxDv
+).
 LOCAL refineDeorbit IS SHIP:ORBIT:PERIAPSIS < 0.
 
 IF refineDeorbit {
@@ -88,7 +98,7 @@ UNTIL close{
 			SET hillValues["stepVal"] TO varConstants["initalStep"] / (10^stepMod).
 			SET count TO count + 1.
 			CLEARSCREEN.
-			PRINT "old".
+			PRINT "new".
 			PRINT "Target Coordinates: (" + ROUND(varConstants["landingChord"]:LAT,2) + "," + ROUND(varConstants["landingChord"]:LNG,2) + ")".
 			PRINT "Score: " + ROUND(hillValues["score"]).
 			PRINT "Dist:  " + ROUND(hillValues["dist"]).
@@ -126,59 +136,17 @@ FUNCTION score { //returns the score of the node
 	LOCAL PEweight IS 1 / 3.
 //	IF varConstants["mode"] = 1 { SET PEweight TO 1 / 2. }
 	IF (targetNode:ORBIT:PERIAPSIS < 0) AND (targetNode:ORBIT:TRANSITION <> "escape") {
-		LOCAL stepVal IS varConstants["initalStep"].
-		LOCAL localBody IS SHIP:BODY.
-		LOCAL scanTime IS posTime.
-		LOCAL resetDelay IS 2000 / CONFIG:IPU.
-		LOCAL resetTime IS TIME:SECONDS + resetDelay.
-		LOCAL resetCount IS 0.
-		LOCAL maxScanTime IS targetNode:ORBIT:PERIOD + posTime.
-		LOCAL targetAltitudeHi IS varConstants["marginHeight"] + varConstants["landingChord"]:TERRAINHEIGHT + 1.
-		LOCAL targetAltitudeLow IS varConstants["marginHeight"] + varConstants["landingChord"]:TERRAINHEIGHT - 1.
-		LOCAL altitudeAt IS localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
-		UNTIL (altitudeAt < targetAltitudeHi) AND (altitudeAt > targetAltitudeLow) {
-			IF altitudeAt > targetAltitudeHi {
-				SET scanTime TO scanTime + stepVal.
-				SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
-				IF altitudeAt < targetAltitudeLow {
-					SET scanTime TO scanTime - stepVal.
-					SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
-					SET stepVal TO stepVal / 10.
-				}
-			} ELSE IF altitudeAt < targetAltitudeLow {
-				SET scanTime TO scanTime - stepVal.
-				SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
-				IF altitudeAt > targetAltitudeHi {
-					SET scanTime TO scanTime + stepVal.
-					SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
-					SET stepVal TO stepVal / 10.
-				}
-			}
-			IF maxScanTime < scanTime {
-				SET scanTime TO posTime.
-				SET stepVal TO stepVal / 10.
-				SET resetTime TO TIME:SECONDS + resetDelay.
-			}
-			IF resetTime < TIME:SECONDS {
-				SET posTime TO posTime + 10.
-				SET scanTime TO posTime.
-				SET stepVal TO varConstants["initalStep"].
-				SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
-				SET resetCount TO resetCount + 1.
-				SET resetTime TO TIME:SECONDS + resetDelay.
-				IF resetCount >= 10 {
-					LOCAL dist IS SHIP:BODY:RADIUS * 2 * CONSTANT():PI.
-					LOCAL peDiff IS targetNode:ORBIT:PERIAPSIS - varConstants["peTarget"].
-					LOCAL scored IS dist + peDiff * PEweight.
-					RETURN LEX("score",scored,"posTime",posTime,"dist",dist).
-				}
-			}
-		}
+		LOCAL nodeUTs IS targetNode:ETA + TIME:SECONDS.
+		LOCAL nodeAlt IS SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodeUTs)).
+		LOCAL nodeOrbit IS targetNode:ORBIT.
+		LOCAL nodeTime IS ta_to_time_from_pe(nodeOrbit,alt_to_ta(nodeOrbit,nodeAlt)[1]).
+		LOCAL targetTime IS ta_to_time_from_pe(nodeOrbit,alt_to_ta(nodeOrbit,varConstants["landingAlt"])[1]).
+		LOCAL impactTime IS (targetTime - nodeTime) + nodeUTs.
 
-		LOCAL dist IS dist_betwene_coordinates(varConstants["landingChord"],ground_track(scanTime,POSITIONAT(SHIP,scanTime))).
+		LOCAL dist IS dist_betwene_coordinates(varConstants["landingChord"],ground_track(impactTime,POSITIONAT(SHIP,impactTime))).
 		LOCAL scored IS dist + peDiff * PEweight.
 		IF targetNode:ISTYPE("node") { SET scored TO scored + (targetNode:DELTAV:MAG * 6). }
-		RETURN LEX("score",scored,"posTime",scanTime,"dist",dist).
+		RETURN LEX("score",scored,"posTime",impactTime,"dist",dist).
 	} ELSE {
 		LOCAL dist IS SHIP:BODY:RADIUS * 2 * CONSTANT():PI.
 		LOCAL peDiff IS targetNode:ORBIT:PERIAPSIS - varConstants["peTarget"].

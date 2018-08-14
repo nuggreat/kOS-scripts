@@ -15,6 +15,10 @@ COPYPATH("0:/landing_vac.ks","1:/").
 COPYPATH("0:/lib/lib_dock.ks","1:/lib").
 COPYPATH("0:/dock_ship.ks","1:/").
 COPYPATH("0:/land_at.ks","1:/").
+COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib").
+COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/").
+COPYPATH("0:/lib/lib_orbital_math.ks","1:/lib/").
+COPYPATH("0:/randevu.ks","1:/").
 COPYPATH("0:/deorbit.ks","1:/").
 COPYPATH("0:/rover.ks","1:/").
 COPYPATH("0:/fuel_pump.ks","1:/").

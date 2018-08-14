@@ -11,25 +11,6 @@ FUNCTION VecDrawAdd { // Draw the vector or update it.
 	}
 }
 
-FUNCTION mis_types_to_geochordnate {	//converts types of vessel,part,waypoint, and string into geocoordinates
-	PARAMETER tar.					//for string function assumes this is the name of a waypoint
-	IF tar:ISTYPE("string") { SET tar TO WAYPOINT(tar). }
-
-	IF tar:ISTYPE("geocoordinates") {
-		RETURN tar.
-
-	} ELSE IF tar:ISTYPE("vessel") OR tar:ISTYPE("waypoint") {
-		RETURN tar:GEOPOSITION.
-
-	} ELSE  IF tar:ISTYPE("part") {
-		RETURN SHIP:BODY:GEOPOSITIONOF(tar:POSITION).
-
-	} ELSE {
-		PRINT "I don't know how use a target type of :" + tar:TYPENAME.
-		RETURN FALSE.
-	}
-}
-
 FUNCTION accel_data { //using the Accelerometer part returns the current acceleration of the SHIP in m/s
 	LOCAL accelPart IS SHIP:PARTSNAMED("sensorAccelerometer").
 	IF accelPart:LENGTH > 0 {
@@ -326,5 +307,96 @@ FUNCTION angle_delta {
 		RETURN 0.
 	} ELSE {
 		RETURN deltaAngle/deltaTime.
+	}
+}
+
+FUNCTION tag_docking_ports {//tags all docking ports found with a tree scan that stops looking farther along a branch once a port is found
+	PARAMETER myPart,//part to start scan from
+	nameTag,//tag for docking port
+	scanUp IS TRUE.//direction of scan to find docking port, for internal use by the function only
+
+	IF myPart:ISTYPE("dockingport") {
+		SET myPart:TAG TO nameTag.
+		IF scanUp {//scan down the tree once port highest up the tree has be found
+			FOR child IN myPart:CHILDREN {
+				tag_docking_ports(child,nameTag,FALSE).
+			}
+		}
+		RETURN TRUE.
+	} ELSE {
+		IF scanUp {
+			IF myPart:HASPARENT {//scan up tree until root part then reverse scan direction
+				RETURN tag_docking_ports(myPart:PARENT,nameTag,scanUp).
+			} ELSE {
+				RETURN tag_docking_ports(myPart,nameTag,FALSE).
+			}
+		} ELSE {
+			LOCAL foundPort IS FALSE.
+			FOR child IN myPart:CHILDREN {
+				SET foundPort TO tag_docking_ports(child,nameTag,scanUp) OR foundPort.
+			}
+			RETURN foundPort.
+		}
+	}
+}
+
+
+FUNCTION docking_ports_near {//returns a list of docking ports found with a tree scan that stops looking farther along a branch once a port is found
+	PARAMETER myPart,//part to start scan from
+	scanUp IS TRUE.//direction of scan to find docking port, for internal use by the function only
+
+	IF myPart:ISTYPE("dockingport") {
+		LOCAL returnList IS LIST(myPart).
+		IF scanUp {//scan down the tree once port highest up the tree has be found
+			FOR child IN myPart:CHILDREN {
+				FOR port IN docking_ports_near(child,FALSE) {
+					returnList:ADD(port).
+				}
+			}
+		}
+		RETURN returnList.
+	} ELSE {
+		IF scanUp {
+			IF myPart:HASPARENT {//scan up tree until root part then reverse scan direction
+				RETURN docking_ports_near(myPart:PARENT,scanUp).
+			} ELSE {
+				RETURN docking_ports_near(myPart,FALSE).
+			}
+		} ELSE {
+			LOCAL returnList IS LIST().
+			FOR child IN myPart:CHILDREN {
+				FOR port IN docking_ports_near(child,scanUp) {
+					returnList:ADD(port).
+				}
+			}
+			RETURN returnList.
+		}
+	}
+}
+
+FUNCTION number_concatnation {
+	PARAMETER char,string.
+	LOCAL returnString TO string.
+	IF LIST("0","1","2","3","4","5","6","7","8","9","-","."):CONTAINS(char) {
+		IF LIST("0","1","2","3","4","5","6","7","8","9"):CONTAINS(char) {
+			RETURN returnString + char.
+		} ELSE IF char = "-" {
+			IF returnString:CONTAINS("-"){
+				returnString:REMOVE(0).
+				RETURN returnString.
+			} ELSE {
+				RETURN char + returnString.
+			}
+		} ELSE IF char = "." {
+			IF returnString:CONTAINS(".")
+				RETURN returnString.
+			} ELSE {
+				RETURN returnString + char.
+			}
+		}
+	} ELSE IF (char = TERMINAL:INPUT:BACKSPACE) AND (returnString:LENGTH > 0)  {
+		RETURN returnString:REMOVE(returnString:LENGTH - 1).
+	} ELSE {
+		RETURN returnString.
 	}
 }

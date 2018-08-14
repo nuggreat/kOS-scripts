@@ -11,46 +11,54 @@ LOCAL lib_dock_lex IS LEX("sizeConversion",LEX(
 	"size0","0.625m",			//from: stock
 	"conSize0","0.625m Con")).	//from: USI konstruction
 
-FUNCTION port_scan {
+//FUNCTION port_scan_of {
+//	PARAMETER craft, canDeploy IS TRUE.	//-----the ship that is scanned for ports-----
+//	LOCAL portList IS LIST().
+//	FOR port IN craft:DOCKINGPORTS {
+//		IF port:STATE = "Ready" {
+//			portList:ADD(port).
+//			port_to_port_size(port).//check for unknown ports
+//		} ELSE IF port:STATE = "Disabled" AND canDeploy {
+//			portList:ADD(port).
+//			port_to_port_size(port).//check for unknown ports
+//		}
+//	}
+//	RETURN port_sorting(portList).
+//}
+
+FUNCTION port_scan_of {
 	PARAMETER craft, canDeploy IS TRUE.	//-----the ship that is scanned for ports-----
 	LOCAL portList IS LIST().
-	FOR port IN craft:DOCKINGPORTS {
-		IF port:STATE = "Ready" {
-			portList:ADD(port).
-			port_to_port_size(port).//check for unknown ports
-		} ELSE IF port:STATE = "Disabled" AND canDeploy {
-			portList:ADD(port).
-			port_to_port_size(port).//check for unknown ports
-		}
-	}
-	RETURN port_sorting(portList).
-}
-
-LOCAL FUNCTION port_sorting {
-	PARAMETER portList.
+	LOCAL portLex IS LEX().
 	LOCAL sizeConversion IS lib_dock_lex["sizeConversion"].
-	//FOR port IN portList {
-	//	IF NOT sizeConversion:KEYS:CONTAINS(port:NODETYPE) {
-	//		sizeConversion:ADD(port:NODETYPE,port:NODETYPE).
-	//	}
-	//}
 
-	LOCAL sortedLex IS LEX().
+	LOCAL portLex IS LEX().//adding keys to lex in order of size
 	FOR key IN sizeConversion:KEYS {
-		sortedLex:ADD(sizeConversion[key],LIST()).
+		portLex:ADD(sizeConversion[key],LIST()).
 	}
 
-	FOR port IN portList {
-		sortedLex[sizeConversion[port:NODETYPE]]:ADD(port).
-	}
 
-	FOR key IN sortedLex:KEYS {
-		IF sortedLex[key]:LENGTH = 0 {
-			sortedLex:REMOVE(key).
+
+	FOR port IN craft:DOCKINGPORTS {
+		IF NOT sizeConversion:KEYS:CONTAINS(port:NODETYPE) {//check for unknown port sizes
+			sizeConversion:ADD(port:NODETYPE,port:NODETYPE).
+			portLex:ADD(sizeConversion[key],LIST()).
+		}
+
+		IF port:STATE = "Ready" {
+			portLex[sizeConversion[port:NODETYPE]]:ADD(port).
+		} ELSE IF port:STATE = "Disabled" AND canDeploy {
+			portLex[sizeConversion[port:NODETYPE]]:ADD(port).
 		}
 	}
 
-	RETURN sortedLex.
+	FOR key IN portLex:KEYS {//removing unused keys
+		IF portLex[key]:LENGTH = 0 {
+			portLex:REMOVE(key).
+		}
+	}
+
+	RETURN portLex.
 }
 
 FUNCTION port_to_port_size {
@@ -69,11 +77,28 @@ FUNCTION port_to_port_size {
 
 FUNCTION port_open {
 	PARAMETER port.
-	IF port:STATE = "Disabled" {
-		LOCAL portAminate IS port:GETMODULE("ModuleAnimateGeneric").
-		LOCAL portOpen IS portAminate:ALLEVENTNAMES[0].
-		portAminate:DOEVENT(portOpen).
-	}
+	IF port:ISTYPE("DockingPort") { IF (port:STATE = "Disabled") {
+		IF port:HASMODULE("ModuleAnimateGeneric") {
+			LOCAL portAminate IS port:GETMODULE("ModuleAnimateGeneric").
+			LOCAL portOpen IS portAminate:ALLEVENTNAMES[0].
+			RCS OFF.
+			WAIT UNTIL RCS.
+			portAminate:DOEVENT(portOpen).
+		}
+	}}
+}
+
+FUNCTION port_close {
+	PARAMETER port.
+	IF port:ISTYPE("DockingPort") { IF port:STATE = "Ready" {
+		IF port:HASMODULE("ModuleAnimateGeneric") {
+			LOCAL portAminate IS port:GETMODULE("ModuleAnimateGeneric").
+			LOCAL portClose IS portAminate:ALLEVENTNAMES[0].
+			RCS OFF.
+			WAIT UNTIL RCS.
+			portAminate:DOEVENT(portClose).
+		}
+	}}
 }
 
 FUNCTION port_uid_filter {

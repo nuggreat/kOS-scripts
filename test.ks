@@ -10,35 +10,55 @@ LOCAL oldLandAt IS 0.
 LOCAL newLandAt IS 0.
 LOCAL newFirst IS FALSE.
 LOCAl logPath IS PATH("0:/landing_log.txt").
-IF NOT EXISTS("0:/landing_log.txt") { LOG "distance" TO logPath. }
+IF EXISTS(logPath) { DELETEPATH(logPath). }
+IF NOT EXISTS(logPath) { LOG "timeOld,timeNew,old-new,old/new,total count" TO logPath. }
 high_delta_time_init().
 clear_all_nodes().
-ADD NODE(TIME:SECONDS,0,0,0).
-
-RCS OFF.
 SET CONFIG:IPU TO 2000.
 
-LOCAL randLat IS RANDOM() * 180 - 90.
-//WAIT 1.
-LOCAL randLng IS RANDOM() * 360 - 180.
-LOCAL landingTar IS LATLNG(randLat,randLng).
-//PRINT "landing at: (" + ROUND(randLat) + "," + ROUND(randLng) + ")".
-//WAIT 5.
+RCS OFF.
+UNTIL RCS {
 
-//RUN land_at(landingTar).
+	LOCAL randLat IS RANDOM() * 180 - 90.
+	//WAIT 1.
+	LOCAL randLng IS RANDOM() * 360 - 180.
+	LOCAL landingTar IS LATLNG(randLat,randLng).
+	WAIT 0.
+
+	SET oldTime TO TIME:SECONDS.
+	RUN land_at(landingTar).
+	LOCAL oldDelta IS TIME:SECONDS - oldTime.
+	clear_all_nodes().
+
+	WAIT 0.
+	SET oldTime TO TIME:SECONDS.
+	RUN land_at_v5(landingTar).
+	LOCAL newDelta IS TIME:SECONDS - oldTime.
+	LOCAL better IS 1.
+	IF newDelta > oldDelta { SET better TO 0. }
+	LOG padding(oldDelta,3,2) + "," + padding(newDelta,3,2) + "," + padding(oldDelta-newDelta,3,2) + "," + better + ",1" TO logPath.
+
+	LOCAL randLat IS RANDOM() * 180 - 90.
+	//WAIT 1.
+	LOCAL randLng IS RANDOM() * 360 - 180.
+	LOCAL landingTar IS LATLNG(randLat,randLng).
+	WAIT 0.
+
+	SET oldTime TO TIME:SECONDS.
+	RUN land_at_v5(landingTar).
+	LOCAL newDelta IS TIME:SECONDS - oldTime.
+	clear_all_nodes().
+
+	WAIT 0.
+	SET oldTime TO TIME:SECONDS.
+	RUN land_at(landingTar).
+	LOCAL oldDelta IS TIME:SECONDS - oldTime.
+	LOCAL better IS 1.
+	IF newDelta > oldDelta { SET better TO 0. }
+	LOG padding(oldDelta,3,2) + "," + padding(newDelta,3,2) + "," + padding(oldDelta-newDelta,3,2) + "," + better + ",1" TO logPath.
+}
 SET CONFIG:IPU TO 200.
-//RUN node_burn(TRUE).
-clear_all_nodes().
-//RUN landing_vac(TRUE,landingTar).
 
-//LOG (landingTar:DISTANCE) TO logPath.
-
-
-//SET CONFIG:IPU TO 200.
-
-//SHIP:BODY:GEOPOSITIONOF(POSITIONAT(SHIP,TIME:SECONDS + ETA:APOAPSIS))
-
-KUNIVERSE:QUICKLOAD().
 
 FUNCTION screenPrint {
 	//CLEARSCREEN.

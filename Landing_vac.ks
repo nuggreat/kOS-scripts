@@ -1,5 +1,6 @@
-PARAMETER warping IS FALSE,landingTarget IS FALSE,retroMargin IS 100.	//the distance above the gound that the ship will come to during the retroburn
-FOR lib IN LIST("lib_land_vac","lib_navball2","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+PARAMETER warping IS FALSE,landingTar IS FALSE,retroMargin IS 100.	//the distance above the gound that the ship will come to during the retroburn
+IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
+FOR lib IN LIST("lib_land_vac","lib_navball2","lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
 SAS OFF.
 SET TERMINAL:WIDTH TO 60.
@@ -15,6 +16,7 @@ LOCAL stopGap IS 0.
 LOCAL pitchOffset IS 0.
 LOCAL headingOffset IS 0.
 LOCAL throt IS 1.
+LOCAL landingChord IS FALSE.
 
 //PID setup PIDLOOP(kP,kI,kD,min,max)
 GLOBAL landing_PID IS PIDLOOP(0.5,0.1,0.01,0,1).
@@ -23,7 +25,15 @@ GLOBAL heading_pid IS PIDLOOP(0.04,0.0005,0.075,-10,10).
 
 //start of core logic
 LOCAL haveTarget IS FALSE.
-IF NOT landingTarget:ISTYPE("boolean") { SET haveTarget TO TRUE. }
+IF NOT landingTar:ISTYPE("boolean") {
+	SET landingData TO mis_types_to_geochordnate(landingTar,FALSE).
+	SET landingChord TO landingData["chord"].
+	IF landingChord:ISTYPE("geocoordinates") {
+		SET haveTarget TO TRUE.
+	} ELSE {
+		PRINT "No Target Set".
+	}
+}
 
 WHEN when_triger(simResults["pos"],retroMargin) THEN {
 	LOCK THROTTLE TO throt.
@@ -61,7 +71,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 	}
 	IF haveTarget AND THROTTLE = throt {
 		PRINT " ".
-		LOCAL distVec IS  stopPos - landingTarget:ALTITUDEPOSITION(retroMargin).
+		LOCAL distVec IS  stopPos - landingChord:ALTITUDEPOSITION(retroMargin).
 		LOCAL positionUpVec IS (stopPos - SHIP:BODY:POSITION):NORMALIZED.
 		LOCAL retrogradeVec IS SHIP:SRFRETROGRADE:FOREVECTOR.
 //		LOCAL leftVec IS VCRS(retrogradeVec,SHIP:UP:FOREVECTOR).//vector normal to retrograde and up
@@ -71,13 +81,13 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 		LOCAL pitchOffsetRaw IS VDOT(distVec, retroVec).	//if positive then will land short, if negative than will land long
 		SET pitch_PID:MINOUTPUT TO MIN(MAX(stopGap / (retroMargin / -5),-5),0).
 		SET pitchOffset TO pitch_PID:UPDATE(TIME:SECONDS,-pitchOffsetRaw).
-		LOCAL headingOffsetRaw IS VDOT(distVec, leftVec).	//if positive then landingTarget is to the left, if negative landingTarget is to the right
+		LOCAL headingOffsetRaw IS VDOT(distVec, leftVec).	//if positive then landingChord is to the left, if negative landingChord is to the right
 		SET headingOffset TO heading_pid:UPDATE(TIME:SECONDS,-headingOffsetRaw).
 		PRINT "pitchAdjustRaw:   " + ROUND(pitchOffsetRaw).
 		PRINT "Pitch   Offset:   " + ROUND(pitchOffset,2).
 		PRINT "headingAdjustRaw: " + ROUND(headingOffsetRaw).
 		PRINT "Heading   Offset: " + ROUND(headingOffset,2).
-		PRINT "Distance:         " + ROUND(landingTarget:DISTANCE).
+		PRINT "Distance:         " + ROUND(landingChord:DISTANCE).
 	}
 	//SET done TO VERTICALSPEED > -2 AND GROUNDSPEED < 10.
 }
@@ -155,16 +165,15 @@ FUNCTION decent_math {	// the math needed for suicide burn and final decent
 
 FUNCTION lowist_part {	//returns the largest dist from the root part for a part in the retrograde direction
 	PARAMETER craft.
-	LOCAL biggest IS 0.
-	LOCAL rootPosition IS SHIP:ROOTPART:POSITION.
-	LOCAL aft_unit IS (-1)*craft:FACING:FOREVECTOR. // unit vec in aft direction.
+	LOCAL smallest IS 0.
+	LOCAL rootPosition IS craft:ROOTPART:POSITION.
 	FOR p IN craft:PARTS {
-		LOCAL aft_dist IS VDOT(p:POSITION - rootPosition, aft_unit). // distance in terms of aft-ness.
-		IF aft_dist > biggest {
-			SET  biggest TO aft_dist.
+		LOCAL aft_dist IS VDOT(p:POSITION - craft:ROOTPART:POSITION, craft:FACING:FOREVECTOR)..
+		IF aft_dist < smallest {
+			SET  smallest TO aft_dist.
 		}
 	}
-	RETURN biggest.
+	RETURN -smallest.
 }
 
 FUNCTION adjusted_retorgrade {

@@ -41,4 +41,4 @@ UNTIL ABORT {
 	PRINT "Star Speed1: " + ROUND(relSpeed1[3],3).
 	PRINT "Star Speed0: " + ROUND(relSpeed[3],3).
 }
- UNLOCK STEERING.
+UNLOCK STEERING.

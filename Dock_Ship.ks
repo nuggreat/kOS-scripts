@@ -6,8 +6,8 @@ WAIT UNTIL active_engine().
 CLEARSCREEN.
 ABORT OFF.
 
-LOCAL craftPortListRaw IS port_scan(SHIP).
-IF craftPortListRaw:LENGTH = 0 {SET craftPortListRaw TO port_scan(SHIP).}
+LOCAL craftPortListRaw IS port_scan_of(SHIP).
+IF craftPortListRaw:LENGTH = 0 {SET craftPortListRaw TO port_scan_of(SHIP).}
 LOCAL buffer IS SHIP:MESSAGES.
 buffer:CLEAR().
 
@@ -30,8 +30,8 @@ LOCAL station IS TARGET.
 IF station:ISTYPE("part") {
 	SET station TO station:SHIP.
 }
-LOCAL stationPortListRaw IS port_scan(station).
-IF stationPortListRaw:LENGTH = 0 {SET stationPortListRaw TO port_scan(station).}
+LOCAL stationPortListRaw IS port_scan_of(station).
+IF stationPortListRaw:LENGTH = 0 {SET stationPortListRaw TO port_scan_of(station).}
 SET NAVMODE TO "TARGET".
 LOCAL stationConect IS station:CONNECTION.
 PRINT "Waiting for Handshake.".
@@ -70,22 +70,27 @@ PRINT " ".
 PRINT "Coming to 0/0 Relitave Stop.".
 IF axisSpeed[0]:MAG > 0.1 {
 	LOCK STEERING TO -axisSpeed[0]:NORMALIZED.
-	LOCAL timePre IS TIME:SECONDS.
-	LOCAL done IS FALSE.
-	UNTIL done {
+	//LOCAL timePre IS TIME:SECONDS.
+	//LOCAL done IS FALSE.
+	steering_alinged_duration(TRUE,0.5,FALSE).
+	UNTIL (steering_alinged_duration() >= 2.5) OR ABORT {
 		SET axisSpeed TO axis_speed(SHIP,station).
-		LOCAL angleTo IS ABS(STEERINGMANAGER:ANGLEERROR).
-		IF angleTo < 0.5 {
-			IF (TIME:SECONDS - timePre) >= 2.5 { SET done TO TRUE. }
-		} ELSE {
-			SET timePre TO TIME:SECONDS.
-			SET done TO ABORT.
-		}
-		WAIT 0.01.
 	}
+	//UNTIL done {
+	//	SET axisSpeed TO axis_speed(SHIP,station).
+	//	LOCAL angleTo IS ABS(STEERINGMANAGER:ANGLEERROR).
+	//	IF angleTo < 0.5 {
+	//		IF (TIME:SECONDS - timePre) >= 2.5 { SET done TO TRUE. }
+	//	} ELSE {
+	//		SET timePre TO TIME:SECONDS.
+	//		SET done TO ABORT.
+	//	}
+	//	WAIT 0.01.
+	//}
 	ABORT OFF.
 
-	SET done TO FALSE.
+	LOCAL done IS FALSE.
+	//SET done TO FALSE.
 	UNTIL done {
 		SET axisSpeed TO axis_speed(SHIP,station).
 		LOCAL stationSpeed IS -axisSpeed[1].
@@ -110,19 +115,22 @@ message_wait(buffer).
 SET signal TO buffer:POP().
 
 PRINT "Alineing to Target.".
-LOCAL timePre IS TIME:SECONDS.
-SET done TO FALSE.
-UNTIL done {
-	LOCAL angleTo IS ABS(STEERINGMANAGER:ANGLEERROR) + ABS(STEERINGMANAGER:ROLLERROR).
-//	LOCAL angleTo IS VANG(craftPort:PORTFACING:FOREVECTOR, -stationPort:PORTFACING:FOREVECTOR) + VANG(craftPort:PORTFACING:TOPVECTOR, stationPort:PORTFACING:TOPVECTOR).
-	IF angleTo < 0.5 {
-		IF (TIME:SECONDS - timePre) >= 5 { SET done TO TRUE. }
-	} ELSE {
-		SET timePre TO TIME:SECONDS.
-		SET done TO ABORT.
-	}
-	WAIT 0.01.
-}
+steering_alinged_duration(TRUE,0.5,TRUE).
+WAIT UNTIL (steering_alinged_duration() >= 5) OR ABORT.
+//LOCAL timePre IS TIME:SECONDS.
+//LOCAL done IS FALSE.
+//SET done TO FALSE.
+//UNTIL done {
+//	LOCAL angleTo IS ABS(STEERINGMANAGER:ANGLEERROR) + ABS(STEERINGMANAGER:ROLLERROR).
+////	LOCAL angleTo IS VANG(craftPort:PORTFACING:FOREVECTOR, -stationPort:PORTFACING:FOREVECTOR) + VANG(craftPort:PORTFACING:TOPVECTOR, stationPort:PORTFACING:TOPVECTOR).
+//	IF angleTo < 0.5 {
+//		IF (TIME:SECONDS - timePre) >= 5 { SET done TO TRUE. }
+//	} ELSE {
+//		SET timePre TO TIME:SECONDS.
+//		SET done TO ABORT.
+//	}
+//	WAIT 0.01.
+//}
 ABORT OFF.
 
 RCS ON.

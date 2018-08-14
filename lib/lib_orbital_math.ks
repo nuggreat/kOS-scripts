@@ -1,6 +1,4 @@
 @LAZYGLOBAL OFF.
-//COPYPATH("0:/randevu.ks","1:/").
-//RUN randevu.
 
 FUNCTION orbital_speed_at_altitude_from_ap_pe {
 	PARAMETER altitudeIn IS SHIP:ALTITUDE, APin IS SHIP:ORBIT:APOAPSIS, PEin IS SHIP:ORBIT:PERIAPSIS, localBody IS SHIP:BODY.
@@ -38,26 +36,33 @@ FUNCTION uts_of_nodes {//will return the UTs of the ascending and descending nod
 	}
 }
 
-FUNCTION ta_to_ea { //converts a true anomaly to the eccentric anomaly (degrees) NOTE: only works for non hyperbolic orbits
-	PARAMETER orbitIn, taDeg//orbit to predict for, true anomaly in degrees
-	LOCAL ecc is orbitIn:ECCENTRICITY.
-	LOCAL eccentricAnomalyDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
-	RETURN eccentricAnomalyDeg.
+FUNCTION alt_to_ta {//returns a list of the true anomalies of the 2 points where the craft's orbit passes the given altitude
+	PARAMETER orbitIn,altIn.
+	LOCAL sma IS orbitIn:SEMIMAJORAXIS.
+	LOCAL ecc IS orbitIn:ECCENTRICITY.
+	LOCAL rad IS altIn + orbitIn:BODY:RADIUS.
+	LOCAL taOfAlt IS ARCCOS((-sma * ecc ^2 + sma - rad) / (ecc * rad)).
+	RETURN LIST(taOfAlt,360-taOfAlt).//first true anomaly will be as orbit goes from PE to AP
 }
 
 FUNCTION ta_to_time_from_pe {//converts a true anomaly to a time (seconds) after pe
 	PARAMETER orbitIn, taDeg. //orbit to predict for, true anomaly in degrees
+	LOCAL sma IS orbitIn:SEMIMAJORAXIS.
+	LOCAL ecc IS orbitIn:ECCENTRICITY.
 
-//	LOCAL ecc IS orbitIn:ECCENTRICITY.
-//	LOCAL eccentricAnomalyDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg) ).
-//	LOCAL eccentricAnomalyRad IS eccentricAnomalyDeg * CONSTANT:DEGtoRAD.
-	LOCAL eccentricAnomalyRad IS ta_to_ea(orbitIn,taDeg).
-	LOCAL meanAnomalyRad IS eccentricAnomalyRad - orbitIn:ECCENTRICITY * SIN(eccentricAnomalyDeg).
+	LOCAL eccentricAnomalyDeg IS ta_to_ea(ecc,taDeg).
+	LOCAL eccentricAnomalyRad IS eccentricAnomalyDeg * CONSTANT:DEGtoRAD.
+	LOCAL meanAnomalyRad IS eccentricAnomalyRad - ecc * SIN(eccentricAnomalyDeg).
 
-	LOCAL rawTime IS meanAnomalyRad / SQRT( orbitIn:BODY:MU / orbitIn:SEMIMAJORAXIS^3 ).
+	LOCAL rawTime IS meanAnomalyRad / SQRT( orbitIn:BODY:MU / sma^3 ).
 
 	RETURN MOD(rawTime + orbitIn:PERIOD, orbitIn:PERIOD).
-	//RETURN meanAnomalyRad / SQRT( orbitIn:BODY:MU / orbitIn:SEMIMAJORAXIS^3 ).
+}
+
+FUNCTION ta_to_ea { //converts a true anomaly to the eccentric anomaly (degrees) NOTE: only works for non hyperbolic orbits
+	PARAMETER ecc, taDeg.//orbit to predict for, true anomaly in degrees
+	LOCAL eccentricAnomalyDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
+	RETURN eccentricAnomalyDeg.
 }
 
 FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to the orbit of craft2 or equator of craft2 if craft1 is in orbit of craft2
@@ -72,9 +77,7 @@ FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to
 
 	LOCAL vecBodyToNode IS VCRS(vecC1Normal,vecC2Normal).//vector from body to node
 	LOCAL vecBodyToC1 IS craft1:POSITION - craft1:BODY:POSITION.//vector from body to craft 1
-//	vecDrawList:ADD(VECDRAW(craft1:BODY:POSITION,vecBodyToNode:NORMALIZED * (craft1:POSITION - craft1:BODY:POSITION):MAG,WHITE,"node",1,TRUE,0.2)).
 	LOCAL relitiveAnomaly IS VANG(vecBodyToNode,vecBodyToC1).//the angle between the node and craft 1
-//	vecDrawList:ADD(VECDRAW(craft1:BODY:POSITION,VCRS(vecBodyToC1,vecC1Normal):NORMALIZED * (craft1:POSITION - craft1:BODY:POSITION):MAG,WHITE,"checkVec",1,TRUE,0.2)).
 
 	IF VDOT(vecBodyToNode,VCRS(vecC1Normal,vecBodyToC1):NORMALIZED) < 0 {//adjusts relative Anomaly for it it is ahead or behind of craft 1
 		SET relitiveAnomaly TO 360 - relitiveAnomaly.
@@ -99,7 +102,6 @@ FUNCTION phase_angle {
 	}
 	RETURN phaseAngle.
 }
-
 
 FUNCTION orbital_period {
 	PARAMETER sma,localBody.

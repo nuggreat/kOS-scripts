@@ -4,6 +4,7 @@ IF HOMECONNECTION:ISCONNECTED {
 
 LOCAL archiveRoot IS PATH("0:/").
 LOCAL localRoot IS PATH(CORE:CURRENTVOLUME).
+//LOCAL localRoot IS CORE:CURRENTVOLUME.
 
 LOCAL localDirs IS dir_scan(localRoot,FALSE).
 LOCAL archiveDirs IS dir_scan(archiveRoot,FALSE).

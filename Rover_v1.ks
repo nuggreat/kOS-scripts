@@ -1,4 +1,4 @@
-SET TERMINAL:WIDTH TO 60.
+SET TERMINAL:WIDTH TO 45.
 SET TERMINAL:HEIGHT TO 15.
 PARAMETER dest,		//destination as a waypoint, geocoordinate, vessel, or part
 	speedTarget,		//desired speed in m/s
@@ -6,17 +6,31 @@ PARAMETER dest,		//destination as a waypoint, geocoordinate, vessel, or part
 	minSpeed.		//desired minimum speed in m/s will be overridden by slope reductions
 IF NOT EXISTS("1:/lib/lib_formating.ks") COPYPATH("0:/lib/lib_formating.ks","1:/lib/").
 IF NOT EXISTS("1:/lib/lib_rocket_utilities.ks") COPYPATH("0:/lib/lib_rocket_utilities.ks","1:/lib/").
-IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
-FOR lib IN LIST("lib_navball","lib_formating","lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_navball","lib_formating","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 
 BRAKES OFF.
 RCS OFF.
 ABORT OFF.
-LOCAL markData IS mis_types_to_geochordnate(dest).
-LOCAL mark IS markData["chord"].
-LOCAL markName IS markData["name"].
-LOCAL doRoving IS FALSE.
-IF mark:ISTYPE("geocoordinates") { SET doRoving TO TRUE.}
+LOCAL mark IS LATLNG(0,0).
+LOCAL doIt IS TRUE.
+
+IF dest:ISTYPE("string") {SET dest TO WAYPOINT(dest).}
+IF dest:ISTYPE("vessel") or dest:ISTYPE("waypoint") {
+	SET mark TO dest:GEOPOSITION.
+} ELSE {
+	IF dest:ISTYPE("part") {
+		SET mark TO BODY:GEOPOSITIONOF(dest:POSITION).
+	} ELSE {
+		IF dest:ISTYPE("geocoordinates") {
+			SET mark TO dest.
+		} ELSE {
+			PRINT "I don't know how ues a dest type of :" + dest:TYPENAME.
+			SET doIt TO false.
+		}
+	}
+}
+
+SET listETA TO LIST(LIST(target_distance(mark),TIME:SECONDS,1)).
 
 //PID setup
 LOCAL speed_PID IS PIDLOOP().
@@ -34,13 +48,12 @@ SET steer_PID:MAXOUTPUT TO 1.
 SET steer_PID:MINOUTPUT TO -1.
 
 control_point("roverControl").
-IF doRoving {	//start of core logic
+IF doIt {	//start of core logic
 CLEARSCREEN.
 LOCAL roving IS false.
 LOCAL stopping IS false.
 LOCAL count IS 1.
 LOCAL dist IS target_distance(mark).
-average_eta(dist - stoppingDist,20,TRUE).//starting ETA function.
 SET speed_PID:SETPOINT TO speed_adv(dist).
 
 UNTIL roving {	//roving to mark
@@ -108,19 +121,17 @@ FUNCTION speed_adv {		//target speed reduced by how off targetBearing the rover 
 }
 
 FUNCTION forward_speed {		//the speed of the rover positave for forward movment negitave for reverse movment
-	RETURN VDOT( SHIP:VELOCITY:SURFACE,SHIP:FACING:FOREVECTOR).
+	RETURN VDOT( SHIP:VELOCITY:SURFACE, ANGLEAXIS(0, SHIP:FACING:STARVECTOR) * SHIP:FACING:FOREVECTOR).
 }
 
 FUNCTION screen_update {		//updates the terminal
 	PARAMETER dist,forSpeed,speedDif,stopping IS FALSE..
-//	LOCAL targetETA IS target_eta(dist - stoppingDist).
-	LOCAL targetETA IS average_eta(dist - stoppingDist).
+	LOCAL targetETA IS target_eta(dist - stoppingDist).
 //	CLEARSCREEN.
 	LOCAL printList IS LIST().
-	printList:ADD("Roving To: " + markName).
-	printList:ADD("Distance : " + si_formating(dist,"m")).
+	printList:ADD("Distance      : " + si_formating(dist,"m")).
 	IF NOT stopping {
-		printList:ADD("ETA      :" + time_formating(targetETA,5)).
+		printList:ADD("ETA           :" + time_formating(targetETA,5)).
 	} ELSE {
 		printList:ADD("                       ").
 	}
@@ -147,7 +158,7 @@ FUNCTION screen_update {		//updates the terminal
 	} ELSE {
 		printList:ADD("       ").
 		FROM { LOCAL i IS printList:LENGTH - 1. } UNTIL 0 > i STEP { SET i TO i - 1. } DO {
-			PRINT printList[i] + " " AT(0,i).
+			PRINT printList[i] + "      " AT(0,i).
 		}
 	}
 }
@@ -164,9 +175,28 @@ FUNCTION brake_check {	//a check for over speed to turn on the brakes
 	}
 }
 
-FUNCTION target_distance {
-	PARAMETER p1.
-	RETURN dist_betwene_coordinates(p1,SHIP:GEOPOSITION).
+FUNCTION target_distance {	//calculates distance to target using Law of Cosines for over land distance
+	PARAMETER distTar.
+	LOCAL bodyRadius IS SHIP:BODY:RADIUS.
+	LOCAL aVal IS (distTar:TERRAINHEIGHT + bodyRadius).
+	LOCAL bVal IS (ALTITUDE + bodyRadius).
+	LOCAL cVal IS (distTar:DISTANCE).
+	LOCAL cosOfC IS ARCCOS((cVal ^ 2 - (aVal ^ 2 + bVal ^ 2)) / (-2 * aVal *bVal)).
+	RETURN (cosOfC / 360) * (CONSTANT():PI * bodyRadius * 2).
+}
+
+FUNCTION target_eta {	//calculates ETA to target
+	PARAMETER dist.
+	LOCAL deltaDist IS listETA[0][0] - dist.
+	LOCAL deltaTime IS TIME:SECONDS - listETA[0][1].
+	LOCAL stepETA IS dist / (deltaDist / deltaTime).
+	LOCAL totalETA IS 0.
+	listETA:ADD(LIST(dist,TIME:SECONDS,stepETA)).
+	IF listETA:LENGTH > 10 {listETA:REMOVE(0).}
+	FOR value IN listETA {
+		SET totalETA TO totalETA + value[2].
+	}
+	RETURN totalETA / listETA:LENGTH.
 }
 
 FUNCTION PID_minMax {	//resets the max/min for a given pid depending on the speed that gets passed in
