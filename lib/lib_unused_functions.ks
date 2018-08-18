@@ -155,21 +155,21 @@ FUNCTION impact_eta { //returns the impact time in UT from after the next node, 
       IF altitudeAt > targetAltitudeHi {
         SET scanTime TO scanTime + stepVal.
         SET pos TO POSITIONAT(SHIP,scanTime).
-        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime,pos):TERRAINHEIGHT.
+        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(pos,scanTime):TERRAINHEIGHT.
         IF altitudeAt < targetAltitudeLow {
           SET scanTime TO scanTime - stepVal.
           SET pos TO POSITIONAT(SHIP,scanTime).
-          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime,pos):TERRAINHEIGHT.
+          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(pos,scanTime):TERRAINHEIGHT.
           SET stepVal TO stepVal / 2.
         }
       } ELSE IF altitudeAt < targetAltitudeLow {
         SET scanTime TO scanTime - stepVal.
         SET pos TO POSITIONAT(SHIP,scanTime).
-        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime,pos):TERRAINHEIGHT.
+        SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(pos,scanTime):TERRAINHEIGHT.
         IF altitudeAt > targetAltitudeHi {
           SET scanTime TO scanTime + stepVal.
           SET pos TO POSITIONAT(SHIP,scanTime).
-          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(scanTime,pos):TERRAINHEIGHT.
+          SET altitudeAt TO localBody:ALTITUDEOF(pos) - ground_track(pos,scanTime):TERRAINHEIGHT.
           SET stepVal TO stepVal / 2.
         }
       }
@@ -195,7 +195,7 @@ FUNCTION impact_eta { //returns the impact time in UT from after the next node, 
 }
 
 FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time(UTs) adjusting for planetary rotation over time
-  PARAMETER posTime,pos.
+  PARAMETER pos,posTime.
   LOCAL localBody IS SHIP:BODY.
   LOCAL rotationalDir IS VDOT(localBody:NORTH:FOREVECTOR,localBody:ANGULARVEL). //the number of radians the body will rotate in one second
   LOCAL posLATLNG IS localBody:GEOPOSITIONOF(pos).
@@ -398,5 +398,20 @@ FUNCTION number_concatnation {
 		RETURN returnString:REMOVE(returnString:LENGTH - 1).
 	} ELSE {
 		RETURN returnString.
+	}
+}
+
+LOCAL oldThings IS LEX().
+FUNCTION print_delta {
+	PARAMETER thing,key.
+	IF oldThings:KEYS:CONTAINS(key) {
+		LOCAL localTime IS TIME:SECONDS.
+		LOCAL deltaTime IS localTime - oldThings[key]["time"].
+		LOCAL delta is (oldThings[key]["thing"] - thing) / deltaTime.
+		SET oldThings[key]["time"] TO localTime.
+		SET oldThings[key]["thing"] TO thing.
+		PRINT key + ": " + delta.
+	} ELSE {
+		oldThings:ADD(key,LEX("thing",thing,"time",TIME:SECONDS)).
 	}
 }

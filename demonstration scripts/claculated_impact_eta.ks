@@ -1,28 +1,42 @@
 CLEARSCREEN.
 LOCAL oldTime IS TIME:SECONDS.
-UNTIL FALSE {
+RCS OFF.
+UNTIL RCS {
 	LOCAL localTime IS TIME:SECONDS.
 	IF periapsis > 0 {
+		WAIT 0.
 		CLEARSCREEN.
 		PRINT "no impact detected.".
 	} ELSE {
-		PRINT       "impact ETA: " + ROUND(impact_ETA,1) + "s  " AT(6,0).
-		PRINT "calculation time: " + ROUND(localTime - oldTime,2) + "s  " AT(0,1).
+		LOCAL impactData IS impact_UTs().
+		LOCAL tempTime IS TIME:SECONDS.
+		LOCAL impactLatLng IS ground_track(POSITIONAT(SHIP,impactData["time"]),impactData["time"]).
+		WAIT 0.
+		CLEARSCREEN.
+		PRINT "impact ETA: " + ROUND(impactData["time"] - TIME:SECONDS,1) + "s".
+		PRINT "impactHeight: " + ROUND(impactData["impactHeight"],2).
+		PRINT "converged: " + impactData["converged"].
+		PRINT "impact  at: latlng(" + ROUND(impactLatLng:LAT,2) + "," + ROUND(impactLatLng:LNG,2) + ")".
+		PRINT "calculation time: " + ROUND(tempTime - localTime,2) + "s".
 	}
 	SET oldTime TO localTime.
-	WAIT 0.
 }
 
-FUNCTION impact_ETA {//NOTE: only works for non hyperbolic orbits
-	PARAMETER craft IS SHIP.
-	LOCAL craftOrbit IS craft:ORBIT.
+FUNCTION impact_UTs {//returns the UTs of the ship's impact, NOTE: only works for non hyperbolic orbits
+	PARAMETER minError IS 1.
+	IF NOT (DEFINED impact_UTs_impactHeight) { GLOBAL impact_UTs_impactHeight IS 0. }
+	LOCAL startTime IS TIME:SECONDS.
+	LOCAL craftOrbit IS SHIP:ORBIT.
 	LOCAL sma IS craftOrbit:SEMIMAJORAXIS.
 	LOCAL ecc IS craftOrbit:ECCENTRICITY.
-	LOCAL localBody IS craft:BODY.
+	LOCAL craftTA IS craftOrbit:TRUEANOMALY.
 	LOCAL orbitPeriod IS craftOrbit:PERIOD.
-	LOCAL craftTime IS ta_to_time_from_pe(sma,ecc,localBody,orbitPeriod,alt_to_ta(sma,ecc,localBody,SHIP:ALTITUDE)[1]).
-	LOCAL impactTime IS ta_to_time_from_pe(sma,ecc,localBody,orbitPeriod,alt_to_ta(sma,ecc,localBody,0)[1]).
-	RETURN impactTime - craftTime.
+	LOCAL impactUTs IS time_betwene_two_ta(ecc,orbitPeriod,craftTA,alt_to_ta(sma,ecc,SHIP:BODY,impact_UTs_impactHeight)[1]) + startTime.
+	LOCAL newImpactHeight IS ground_track(POSITIONAT(SHIP,impactUTs),impactUTs):TERRAINHEIGHT.
+	SET impact_UTs_impactHeight TO (impact_UTs_impactHeight + newImpactHeight) / 2.
+	RETURN LEX("time",impactUTs,//the UTs of the ship's impact
+	"impactHeight",impact_UTs_impactHeight,//the aprox altitude of the ship's impact
+	"converged",((ABS(impact_UTs_impactHeight - newImpactHeight) * 2) < minError)).//will be true when the change in impactHeight between runs is less than the minError
 }
 
 FUNCTION alt_to_ta {//returns a list of the true anomalies of the 2 points where the craft's orbit passes the given altitude
@@ -32,20 +46,33 @@ FUNCTION alt_to_ta {//returns a list of the true anomalies of the 2 points where
 	RETURN LIST(taOfAlt,360-taOfAlt).//first true anomaly will be as orbit goes from PE to AP
 }
 
-FUNCTION ta_to_time_from_pe {//converts a true anomaly to a time (seconds) after pe
-	PARAMETER sma,ecc,bodyIn,periodIn,taDeg.
-
-	LOCAL eccentricAnomalyDeg IS ta_to_ea(ecc,taDeg).
-	LOCAL eccentricAnomalyRad IS eccentricAnomalyDeg * CONSTANT:DEGtoRAD.
-	LOCAL meanAnomalyRad IS eccentricAnomalyRad - ecc * SIN(eccentricAnomalyDeg).
-
-	LOCAL rawTime IS meanAnomalyRad / SQRT( bodyIn:MU / sma^3 ).
-
-	RETURN MOD(rawTime + periodIn, periodIn).
+FUNCTION time_betwene_two_ta {//returns the difference in time between 2 true anomalies, traveling from taDeg1 to taDeg2
+	PARAMETER ecc,periodIn,taDeg1,taDeg2.
+	
+	LOCAL maDeg1 IS ta_to_ma(ecc,taDeg1).
+	LOCAL maDeg2 IS ta_to_ma(ecc,taDeg2).
+	
+	LOCAL timeDiff IS periodIn * ((maDeg2 - maDeg1) / 360).
+	
+	RETURN MOD(timeDiff + periodIn, periodIn).
 }
 
-FUNCTION ta_to_ea { //converts a true anomaly to the eccentric anomaly (degrees)
-	PARAMETER ecc, taDeg.//Eccentricity, true anomaly in degrees
-	LOCAL eccentricAnomalyDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
-	RETURN eccentricAnomalyDeg.
+FUNCTION ta_to_ma {//converts a true anomaly(degrees) to the mean anomaly (degrees) NOTE: only works for non hyperbolic orbits
+	PARAMETER ecc,taDeg.
+	LOCAL eaDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
+	LOCAL maDeg IS eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG).
+	RETURN MOD(maDeg + 360,360).
+}
+
+FUNCTION ground_track {	//returns the geocoordinates of the position vector at a given time(UTs) adjusting for planetary rotation over time
+	PARAMETER pos,posTime.
+	LOCAL localBody IS SHIP:BODY.
+	LOCAL rotationalDir IS VDOT(localBody:NORTH:FOREVECTOR,localBody:ANGULARVEL). //the number of radians the body will rotate in one second
+	LOCAL posLATLNG IS localBody:GEOPOSITIONOF(pos).
+	LOCAL timeDif IS posTime - TIME:SECONDS.
+	LOCAL longitudeShift IS rotationalDir * timeDif * CONSTANT:RADtoDEG.
+	LOCAL newLNG IS MOD(posLATLNG:LNG + longitudeShift ,360).
+	IF newLNG < - 180 { SET newLNG TO newLNG + 360. }
+	IF newLNG > 180 { SET newLNG TO newLNG - 360. }
+	RETURN LATLNG(posLATLNG:LAT,newLNG).
 }

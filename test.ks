@@ -9,9 +9,17 @@ CORE:DOEVENT("Open Terminal").
 LOCAL oldLandAt IS 0.
 LOCAL newLandAt IS 0.
 LOCAL newFirst IS FALSE.
-LOCAl logPath IS PATH("0:/landing_log.txt").
-IF EXISTS(logPath) { DELETEPATH(logPath). }
-IF NOT EXISTS(logPath) { LOG "timeOld,timeNew,old-new,old/new,total count" TO logPath. }
+
+LOCAl logPath IS PATH("0:/log_land_at_tester.txt").
+//IF EXISTS(logPath) { DELETEPATH(logPath). }
+//IF NOT EXISTS(logPath) { LOG "timeOld,timeNew,old-new,old/new,total count" TO logPath. }
+
+LOCAl logPathOld IS PATH("0:/log_land_at.txt").
+//IF EXISTS(logPathOld) { DELETEPATH(logPathOld). }
+
+LOCAl logPathNew IS PATH("0:/log_land_at_v6.txt").
+//IF EXISTS(logPathNew) { DELETEPATH(logPathNew). }
+
 high_delta_time_init().
 clear_all_nodes().
 SET CONFIG:IPU TO 2000.
@@ -23,16 +31,17 @@ UNTIL RCS {
 	//WAIT 1.
 	LOCAL randLng IS RANDOM() * 360 - 180.
 	LOCAL landingTar IS LATLNG(randLat,randLng).
+	LOCAL startTime IS TIME:SECONDS + SHIP:ORBIT:PERIOD.
 	WAIT 0.
 
 	SET oldTime TO TIME:SECONDS.
-	RUN land_at(landingTar).
+	RUN land_at(landingTar,startTime).
 	LOCAL oldDelta IS TIME:SECONDS - oldTime.
 	clear_all_nodes().
 
 	WAIT 0.
 	SET oldTime TO TIME:SECONDS.
-	RUN land_at_v5(landingTar).
+	RUN land_at_v6(landingTar,startTime).
 	LOCAL newDelta IS TIME:SECONDS - oldTime.
 	LOCAL better IS 1.
 	IF newDelta > oldDelta { SET better TO 0. }
@@ -42,16 +51,17 @@ UNTIL RCS {
 	//WAIT 1.
 	LOCAL randLng IS RANDOM() * 360 - 180.
 	LOCAL landingTar IS LATLNG(randLat,randLng).
+	LOCAL startTime IS TIME:SECONDS + SHIP:ORBIT:PERIOD.
 	WAIT 0.
 
 	SET oldTime TO TIME:SECONDS.
-	RUN land_at_v5(landingTar).
+	RUN land_at_v6(landingTar,startTime).
 	LOCAL newDelta IS TIME:SECONDS - oldTime.
 	clear_all_nodes().
 
 	WAIT 0.
 	SET oldTime TO TIME:SECONDS.
-	RUN land_at(landingTar).
+	RUN land_at(landingTar,startTime).
 	LOCAL oldDelta IS TIME:SECONDS - oldTime.
 	LOCAL better IS 1.
 	IF newDelta > oldDelta { SET better TO 0. }

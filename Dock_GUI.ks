@@ -392,7 +392,7 @@ FUNCTION burn {
 		//PRINT "state: " + burnData["state"] AT(0,0).
 	}
 
-	SET burnData["steerVec"] TO (targetVelocityVec - relitaveVelocityVec).
+	SET burnData["steerVec"] TO (targetVelocityVec - relitaveVelocityVec + (targetVelocityVec:NORMALIZED / 10)).
 
 	IF burnState = 0 {
 		SAS OFF.

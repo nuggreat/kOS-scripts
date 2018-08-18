@@ -100,7 +100,7 @@ LOCAL FUNCTION contains_srt_list { //checks if the name of a thing contains the 
 }
 
 FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time(UTs) adjusting for planetary rotation over time
-	PARAMETER posTime,pos.
+	PARAMETER pos,posTime.
 	LOCAL localBody IS SHIP:BODY.
 	LOCAL rotationalDir IS VDOT(localBody:NORTH:FOREVECTOR,localBody:ANGULARVEL). //the number of radians the body will rotate in one second
 	LOCAL posLATLNG IS localBody:GEOPOSITIONOF(pos).

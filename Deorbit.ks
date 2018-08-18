@@ -6,7 +6,7 @@ LOCAL landingChord IS mis_types_to_geochordnate(landingTar)["chord"].
 
 IF landingChord:ISTYPE("geocoordinates") {
 //LOCAL thrustLimitBackup IS twr_restriction(7.5).
-
+ABORT OFF.
 RUN land_at(landingTar).
 IF NOT ABORT {
 	RUN node_burn.

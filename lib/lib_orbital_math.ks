@@ -47,23 +47,47 @@ FUNCTION alt_to_ta {//returns a list of the true anomalies of the 2 points where
 
 FUNCTION ta_to_time_from_pe {//converts a true anomaly to a time (seconds) after pe
 	PARAMETER orbitIn, taDeg. //orbit to predict for, true anomaly in degrees
-	LOCAL sma IS orbitIn:SEMIMAJORAXIS.
 	LOCAL ecc IS orbitIn:ECCENTRICITY.
+	LOCAL orbPer IS orbitIn:PERIOD.
+	
+	LOCAL maDeg IS ea_to_ma(ecc,ta_to_ea(ecc,taDeg)).
 
-	LOCAL eccentricAnomalyDeg IS ta_to_ea(ecc,taDeg).
-	LOCAL eccentricAnomalyRad IS eccentricAnomalyDeg * CONSTANT:DEGtoRAD.
-	LOCAL meanAnomalyRad IS eccentricAnomalyRad - ecc * SIN(eccentricAnomalyDeg).
+	LOCAL rawTime IS orbPer * (maDeg / 360).
 
-	LOCAL rawTime IS meanAnomalyRad / SQRT( orbitIn:BODY:MU / sma^3 ).
-
-	RETURN MOD(rawTime + orbitIn:PERIOD, orbitIn:PERIOD).
+	RETURN MOD(rawTime + orbPer, orbPer).
 }
 
-FUNCTION ta_to_ea { //converts a true anomaly to the eccentric anomaly (degrees) NOTE: only works for non hyperbolic orbits
-	PARAMETER ecc, taDeg.//orbit to predict for, true anomaly in degrees
-	LOCAL eccentricAnomalyDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
-	RETURN eccentricAnomalyDeg.
+FUNCTION time_betwene_two_ta {//returns the difference in time between 2 different true anomaly, traveling from taDeg1 to taDeg2
+	PARAMETER orbitIn,taDeg1,taDeg2.
+	LOCAL ecc IS orbitIn:ECCENTRICITY.
+	LOCAL orbPer IS orbitIn:PERIOD.
+	
+	LOCAL maDeg1 IS ta_to_ma(ecc,taDeg1).
+	LOCAL maDeg2 IS ta_to_ma(ecc,taDeg2).
+	
+	LOCAL timeDiff IS orbPer * ((maDeg2 - maDeg1) / 360).
+	
+	RETURN MOD(timeDiff + orbPer, orbPer).
 }
+
+FUNCTION ta_to_ma {//converts a true anomaly(degrees) to the mean anomaly (degrees) NOTE: only works for non hyperbolic orbits
+	PARAMETER ecc,taDeg.
+	LOCAL eaDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
+	LOCAL maDeg IS eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG).
+	RETURN MOD(maDeg + 360,360).
+}
+
+//FUNCTION ea_to_ma { //converts a eccentric anomaly(degrees) to the mean anomaly(degrees)
+//	PARAMETER ecc,eaDeg.
+//	LOCAL maDeg IS eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG).
+//	RETURN maDeg.
+//}
+//
+//FUNCTION ta_to_ea { //converts a true anomaly(degrees) to the eccentric anomaly (degrees) NOTE: only works for non hyperbolic orbits
+//	PARAMETER ecc,taDeg.//orbit to predict for, true anomaly in degrees
+//	LOCAL eaDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
+//	RETURN eaDeg.
+//}
 
 FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to the orbit of craft2 or equator of craft2 if craft1 is in orbit of craft2
 	PARAMETER craft1,craft2.

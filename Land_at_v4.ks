@@ -3,7 +3,8 @@ IF NOT EXISTS ("1/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilitie
 IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
 FOR lib IN LIST("lib_rocket_utilities","lib_mis_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 
-//LOCAl logPath IS PATH("0:/log_land_at_v6.txt").
+
+//LOCAl logPath IS PATH("0:/log_land_at.txt").
 //IF EXISTS(logPath) { DELETEPATH(logPath). }
 //IF NOT EXISTS(logPath) { LOG "Cycles,Time" TO logPath. }
 
@@ -25,21 +26,12 @@ LOCAL localBody IS SHIP:BODY.
 LOCAL orbitalSpeed IS SQRT(localBody:MU / SHIP:ORBIT:SEMIMAJORAXIS).
 LOCAL maxDv IS orbitalSpeed.
 LOCAL marginHeight IS margin + margin_error(orbitalSpeed).
-GLOBAL varConstants IS LEX(
-	"landingChord",landingChord,
-	"marginHeight",marginHeight,
-	"landingAlt",marginHeight + landingChord:TERRAINHEIGHT,
-	"initalStep",orbitalSpeed/10,
-	"peTarget",(localBody:RADIUS / -1.5),
-	"mode",0,
-	"manipList",LIST("eta","pro","nor","rad"),
-	"maxDv",maxDv
-).
+GLOBAL varConstants IS LEX("landingChord",landingChord,"marginHeight",marginHeight,"initalStep",orbitalSpeed/10,"peTarget",(localBody:RADIUS / -1.5),"mode",0,"manipList",LIST("eta","pro","nor","rad"),"maxDv",maxDv).
 LOCAL refineDeorbit IS SHIP:ORBIT:PERIAPSIS < 0.
 
 IF refineDeorbit {
 	SET varConstants["mode"] TO 1.
-	SET nodeStartTime TO (impact_ETA(ta_to_ma(SHIP:ORBIT:TRUEANOMALY),SHIP:ORBIT,varConstants["landingAlt"]) / 2 + TIME:SECONDS).
+	SET nodeStartTime TO (score(SHIP,TIME:SECONDS + (SHIP:ORBIT:PERIOD / 8))["posTime"] + TIME:SECONDS) / 2.
 	varConstants["manipList"]:REMOVE(0).
 } ELSE IF ETA:APOAPSIS < 600 {
 	SET nodeStartTime TO nodeStartTime + (SHIP:ORBIT:PERIOD / 4).
@@ -49,14 +41,14 @@ LOCAL baseNode IS NODE(nodeStartTime,0,0,0).
 ADD baseNode.
 IF varConstants["mode"] = 0 { periapsis_manipulaiton(NEXTNODE). }
 LOCAL scored IS score(NEXTNODE,(NEXTNODE:ETA + TIME:SECONDS + (NEXTNODE:ORBIT:PERIOD / 8))).
-LOCAL hillValues IS LEX("score",scored["score"],"stepVal",varConstants["initalStep"],"dist",scored["dist"]).
+LOCAL hillValues IS LEX("score",scored["score"],"posTime",scored["posTime"],"stepVal",varConstants["initalStep"],"dist",scored["dist"]).
 LOCAL shipISP IS isp_calc().
 LOCAL timeStart IS TIME:SECONDS.
 LOCAL count IS 0.
 LOCAL close IS FALSE.
 LOCAL done IS FALSE.
 delta_time().//first call of delta_time function to set initial start time
-UNTIL close{
+UNTIL close {
 	IF done AND (varConstants["mode"] = 0) {
 		SET done TO FALSE.
 		SET nodeStartTime TO nodeStartTime + (SHIP:ORBIT:PERIOD / 4).
@@ -64,23 +56,25 @@ UNTIL close{
 		clear_all_nodes().
 		ADD baseNode.
 		periapsis_manipulaiton(NEXTNODE).
-		LOCAL scored IS score(NEXTNODE).
+		LOCAL scored IS score(NEXTNODE,(NEXTNODE:ETA + TIME:SECONDS + (NEXTNODE:ORBIT:PERIOD / 4))).
 		SET hillValues["stepVal"] TO varConstants["initalStep"].
 		SET hillValues["score"] TO scored["score"].
+		SET hillValues["posTime"] TO scored["posTime"].
 	}
 	LOCAL stepMod IS 0.
 	UNTIL done {
 		LOCAL stepVal IS hillValues["stepVal"].
+		LOCAL posTime IS hillValues["posTime"].
 		LOCAL anyGood IS FALSE.
-		LOCAL bestNode IS LIST(hillValues["score"],"no",0,hillValues["dist"]).
+		LOCAL bestNode IS LIST(hillValues["score"],posTime,"no",0,hillValues["dist"]).
 		FOR manipType IN  varConstants["manipList"] {
 			FOR stepTmp IN LIST(stepVal,-stepVal) {
 
 				node_set(NEXTNODE,manipType,stepTmp).
-				LOCAL scoreNew IS score(NEXTNODE).
+				LOCAL scoreNew IS score(NEXTNODE,posTime).
 				LOCAL DVcheck IS NEXTNODE:DELTAV:MAG < varConstants["maxDv"].
 				node_set(NEXTNODE,manipType,-stepTmp).
-				LOCAL nodeTmp IS LIST(scoreNew["score"],manipType,stepTmp,scoreNew["dist"]).
+				LOCAL nodeTmp IS LIST(scoreNew["score"],scoreNew["posTime"],manipType,stepTmp,scoreNew["dist"]).
 
 				IF DVcheck AND bestNode[0] > nodeTmp[0] {
 					SET bestNode TO nodeTmp.
@@ -95,10 +89,12 @@ UNTIL close{
 			node_set(NEXTNODE,bestNode[2],bestNode[3]).
 			SET stepMod TO MAX(stepMod - 0.005,0).
 			SET hillValues["score"] TO bestNode[0].
+			SET hillValues["posTime"] TO bestNode[1].
 			SET hillValues["dist"] TO bestNode[4].
 			SET hillValues["stepVal"] TO varConstants["initalStep"] / (10^stepMod).
 			SET count TO count + 1.
 			CLEARSCREEN.
+			PRINT "old".
 			PRINT "Target Coordinates: (" + ROUND(varConstants["landingChord"]:LAT,2) + "," + ROUND(varConstants["landingChord"]:LNG,2) + ")".
 			PRINT "Score: " + ROUND(hillValues["score"]).
 			PRINT "Dist:  " + ROUND(hillValues["dist"]).
@@ -132,47 +128,70 @@ FUNCTION node_set { //manipulates the targetNode in one of 4 ways depending on m
 }
 
 FUNCTION score { //returns the score of the node
-	PARAMETER targetNode.
+	PARAMETER targetNode,posTime.
 	LOCAL peDiff IS ABS(targetNode:ORBIT:PERIAPSIS - varConstants["peTarget"]).
 	LOCAL PEweight IS 1 / 3.
 //	IF varConstants["mode"] = 1 { SET PEweight TO 1 / 2. }
 	IF (targetNode:ORBIT:PERIAPSIS < 0) AND (targetNode:ORBIT:TRANSITION <> "escape") {
-		LOCAL nodeUTs IS targetNode:ETA + TIME:SECONDS.
-		LOCAL nodeToImpact IS impact_ETA(targetNode:ORBIT:MEANANOMALYATEPOCH,targetNode:ORBIT,varConstants["landingAlt"]).
-		LOCAL impactTime IS nodeToImpact + nodeUTs.
+		LOCAL stepVal IS varConstants["initalStep"].
+		LOCAL localBody IS SHIP:BODY.
+		LOCAL scanTime IS posTime.
+		LOCAL resetDelay IS 2000 / CONFIG:IPU.
+		LOCAL resetTime IS TIME:SECONDS + resetDelay.
+		LOCAL resetCount IS 0.
+		LOCAL maxScanTime IS targetNode:ORBIT:PERIOD + posTime.
+		LOCAL targetAltitudeHi IS varConstants["marginHeight"] + varConstants["landingChord"]:TERRAINHEIGHT + 1.
+		LOCAL targetAltitudeLow IS varConstants["marginHeight"] + varConstants["landingChord"]:TERRAINHEIGHT - 1.
+		LOCAL altitudeAt IS localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
+		UNTIL (altitudeAt < targetAltitudeHi) AND (altitudeAt > targetAltitudeLow) {
+			IF altitudeAt > targetAltitudeHi {
+				SET scanTime TO scanTime + stepVal.
+				SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
+				IF altitudeAt < targetAltitudeLow {
+					SET scanTime TO scanTime - stepVal.
+					SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
+					SET stepVal TO stepVal / 10.
+				}
+			} ELSE IF altitudeAt < targetAltitudeLow {
+				SET scanTime TO scanTime - stepVal.
+				SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
+				IF altitudeAt > targetAltitudeHi {
+					SET scanTime TO scanTime + stepVal.
+					SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
+					SET stepVal TO stepVal / 10.
+				}
+			}
+			IF maxScanTime < scanTime {
+				SET scanTime TO posTime.
+				SET stepVal TO stepVal / 10.
+				SET resetTime TO TIME:SECONDS + resetDelay.
+			}
+			IF resetTime < TIME:SECONDS {
+				SET posTime TO posTime + 10.
+				SET scanTime TO posTime.
+				SET stepVal TO varConstants["initalStep"].
+				SET altitudeAt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,scanTime)).
+				SET resetCount TO resetCount + 1.
+				SET resetTime TO TIME:SECONDS + resetDelay.
+				IF resetCount >= 10 {
+					LOCAL dist IS SHIP:BODY:RADIUS * 2 * CONSTANT():PI.
+					LOCAL peDiff IS targetNode:ORBIT:PERIAPSIS - varConstants["peTarget"].
+					LOCAL scored IS dist + peDiff * PEweight.
+					RETURN LEX("score",scored,"posTime",posTime,"dist",dist).
+				}
+			}
+		}
 
-		LOCAL dist IS dist_betwene_coordinates(varConstants["landingChord"],ground_track(POSITIONAT(SHIP,impactTime),impactTime)).
+		LOCAL dist IS dist_betwene_coordinates(varConstants["landingChord"],ground_track(POSITIONAT(SHIP,scanTime),scanTime)).
 		LOCAL scored IS dist + peDiff * PEweight.
 		IF targetNode:ISTYPE("node") { SET scored TO scored + (targetNode:DELTAV:MAG * 6). }
-		RETURN LEX("score",scored,"dist",dist).
+		RETURN LEX("score",scored,"posTime",scanTime,"dist",dist).
 	} ELSE {
 		LOCAL dist IS SHIP:BODY:RADIUS * 2 * CONSTANT():PI.
 		//LOCAL peDiff IS targetNode:ORBIT:PERIAPSIS - varConstants["peTarget"].
 		LOCAL scored IS dist + peDiff * PEweight.
-		RETURN LEX("score",scored,"dist",dist).
+		RETURN LEX("score",scored,"posTime",posTime,"dist",dist).
 	}
-}
-
-FUNCTION impact_ETA {//returns the seconds between maDeg1 and terrain impact
-	PARAMETER maDeg1,orbitIn,impactAlt.
-	LOCAL ecc IS orbitIn:ECCENTRICITY.
-	LOCAL orbPer IS orbitIn:PERIOD.
-	LOCAL sma IS orbitIn:SEMIMAJORAXIS.
-	LOCAL rad IS varConstants["landingAlt"] + orbitIn:BODY:RADIUS.
-	LOCAL taOfAlt IS ARCCOS((-sma * ecc ^2 + sma - rad) / (ecc * rad)).
-	
-	LOCAL maDeg2 IS ta_to_ma(ecc,alt_to_ta(360 - taOfAlt).
-	
-	LOCAL timeDiff IS orbPer * ((maDeg2 - maDeg1) / 360).
-	
-	RETURN MOD(timeDiff + orbPer, orbPer).
-}
-
-FUNCTION ta_to_ma {//converts a true anomaly(degrees) to the mean anomaly (degrees), also found in lib_orbital_math, NOTE: only works for non hyperbolic orbits
-	PARAMETER ecc,taDeg.
-	LOCAL eaDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
-	LOCAL maDeg IS eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG).
-	RETURN MOD(maDeg + 360,360).
 }
 
 FUNCTION periapsis_manipulaiton {//manipulates the PE after node to be below the peTarget
