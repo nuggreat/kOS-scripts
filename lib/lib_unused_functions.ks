@@ -34,9 +34,22 @@ FUNCTION advanced_heading {//works just like HEADING but lets you set the roll
 	RETURN ANGLEAXIS(myRoll,returnDir:FOREVECTOR) * returnDir.
 }
 
+FUNCTION pitch_roll {//intended for use with aircraft, needs navBall2 lib
+	PARAMETER myPitch,myRoll.
+	LOCAL returnDir IS HEADING(heading_of_vector(SHIP:SRFPROGRADE:FOREVECTOR),myPitch).
+	RETURN ANGLEAXIS(myRoll,returnDir:FOREVECTOR) * returnDir.
+}
+
+FUNCTION pitch_roll {//intended for use with aircraft, needs navBall2 lib
+	PARAMETER myPitch,myRoll.
+	LOCAL returnDir IS SHIP:SRFPROGRADE.
+	SET returnDir TO ANGLEAXIS(pitch_of_vector(returnDir:FOREVECTOR) - myPitch, returnDir) * returnDir.
+	RETURN ANGLEAXIS(myRoll,returnDir:FOREVECTOR) * returnDir.
+}
+
 
 FUNCTION pseudo_throttle {
-	PARAMETER throt, tConfig.  //tConfig LIST(LIST(triger level for engine set, list of engines to cycle))
+	PARAMETER throt, tConfig.  //tConfig LIST(LIST(trigger level for engine set, list of engines to cycle))
 	FOR data IN tConfig {
 		IF throt > data[0] {
 			FOR eng IN data[1] { eng:ACTIVATE(). }
@@ -54,38 +67,6 @@ FUNCTION pseudo_throttle_config { //creates config file for pseudo_throttle
 		tConfig:ADD(LIST((i + 1) / numberPairs,SHIP:PARTSTAGGED(tagHeader + i))).
 	}
 	RETURN tConfig.
-}
-
-FUNCTION altitude_to_time { //returns the UT in seconds of when the orbit reaches the given altitude, returns -1 when target altitude is above/below orbit
-	PARAMETER targetAltitude.
-
-	LOCAL returnTime IS -1.
-	IF targetAltitude < SHIP:ORBIT:APOAPSIS AND targetAltitude > SHIP:ORBIT:PERIAPSIS {
-
-		LOCAL localBody IS SHIP:BODY.
-		LOCAL highPoint IS ETA:APOAPSIS + TIME:SECONDS.
-		LOCAL lowPoint IS ETA:PERIAPSIS + TIME:SECONDS.
-
-		IF SHIP:ALTITUDE < targetAltitude AND SHIP:VERTICALSPEED > 0 {
-			SET lowPoint TO TIME:SECONDS.
-		} ELSE IF SHIP:ALTITUDE > targetAltitude AND SHIP:VERTICALSPEED < 0 {
-			SET highPoint TO TIME:SECONDS.
-		}
-
-		LOCAL midPoint IS (lowPoint + highPoint) / 2.
-		LOCAL midPointAlt IS localBody:ALTITUDEOF(POSITIONAT(SHIP,midPoint)) - targetAltitude.
-		UNTIL ABS(midPointAlt) < 1 {
-			IF midPointAlt > 0 {
-				SET highPoint TO midPoint.
-			} ELSE {
-				SET lowPoint TO midPoint.
-			}
-			SET midPoint TO (lowPoint + highPoint) / 2.
-			SET midPointAlt TO localBody:ALTITUDEOF(POSITIONAT(SHIP,midPoint)) - targetAltitude.
-		}
-		SET returnTime TO midPoint.
-	}
-	RETURN returnTime.
 }
 
 FUNCTION burn_along_vector {//needs libs formating, rocker utilities
@@ -207,7 +188,7 @@ FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time
   RETURN LATLNG(posLATLNG:LAT,newLNG).
 }//function used but included for easy of reference for impact_eta function
 
-FUNCTION BURN_TIME_CALC{//need to reformat to remove uneeded *1000 elements as well as change var names to make sense to me
+FUNCTION BURN_TIME_CALC{//need to reformat to remove unneeded *1000 elements as well as change var names to make sense to me
     PARAMETER CMAS,					//Current Mass
 	EISP,							//Engine ISP
 	MAXT,							//Max Thrust
@@ -221,7 +202,7 @@ FUNCTION BURN_TIME_CALC{//need to reformat to remove uneeded *1000 elements as w
     RETURN (M/F)*(1-E^(-CVEL/I)).	// Burn time in seconds
 }
 
-FUNCTION BURN_DIST_CALC{//need to reformat to remove uneeded *1000 elements as well as change var names to make sense to me
+FUNCTION BURN_DIST_CALC{//need to reformat to remove unneeded *1000 elements as well as change var names to make sense to me
 	PARAMETER CMAS,										//Current Mass
 	EISP,												//Engine ISP
 	MAXT,												//Max Thrust
@@ -234,24 +215,6 @@ FUNCTION BURN_DIST_CALC{//need to reformat to remove uneeded *1000 elements as w
 	LOCAL F IS T/I.										// Fuel Flow in kg/s.
 	LOCAL DT IS BURN_TIME_CALC(CMAS,EISP,MAXT,CVEL).		// Burn time in seconds.
 	RETURN I*(DT-(M/F))*LN(1-(F*DT/M))-(I*DT)+(CVEL*DT).	// Braking distance, somehow.
-}
-
-FUNCTION wait_until_steering_aligned {//wait until steering is aligned with what it is locked to
-	PARAMETER careAboutRoll IS FALSE, steadyTime IS 10, maxError IS 1.
-	LOCAL resumeTime IS TIME:SECONDS + steadyTime.
-	LOCK steerError TO ABS(STEERINGMANAGER:ANGLEERROR).
-	IF careAboutRoll {
-		LOCK steerError TO ABS(STEERINGMANAGER:ANGLEERROR) + ABS(STEERINGMANAGER:ROLLERROR).
-	}
-	UNTIL resumeTime < TIME:SECONDS {
-		IF steerError > maxError {
-			SET resumeTime TO TIME:SECONDS + steadyTime.
-		}
-		WAIT 0.
-		CLEARSCREEN.
-		PRINT "error: " + ROUND(steerError,2).
-		PRINT "alignment done in: " + ROUND(resumeTime - TIME:SECONDS,2) + "s".
-	}
 }
 
 FUNCTION chute_deploy_all {
@@ -319,7 +282,7 @@ FUNCTION tag_docking_ports {//tags all docking ports found with a tree scan that
 		SET myPart:TAG TO nameTag.
 		IF scanUp {//scan down the tree once port highest up the tree has be found
 			FOR child IN myPart:CHILDREN {
-				tag_docking_ports(child,nameTag,FALSE).
+				RETURN tag_docking_ports(child,nameTag,FALSE).
 			}
 		}
 		RETURN TRUE.
@@ -339,7 +302,6 @@ FUNCTION tag_docking_ports {//tags all docking ports found with a tree scan that
 		}
 	}
 }
-
 
 FUNCTION docking_ports_near {//returns a list of docking ports found with a tree scan that stops looking farther along a branch once a port is found
 	PARAMETER myPart,//part to start scan from
@@ -373,6 +335,48 @@ FUNCTION docking_ports_near {//returns a list of docking ports found with a tree
 		}
 	}
 }
+//decoupler module is: ModuleDecouple
+//think about adding a blacklist of modules/part names
+FUNCTION parts_with_module_near {//returns a list of parts containing the named module found with a tree scan that stops looking farther along a branch once a port is found
+	PARAMETER myPart,//part to start scan from
+	myModule IS "moduleDecouple",//the module to scan for
+	scanUp IS TRUE.//direction of scan, for internal use by the function only
+	//returnList IS LIST().//the list that will have all found parts, for internal use by the function only 
+
+	IF myPart:HASMODULE(myModule) {
+		LOCAL returnList IS LIST(myPart).
+		//returnList:ADD(myPart).
+		IF scanUp {//scan down the tree once part highest up the tree has be found
+			FOR child IN myPart:CHILDREN {
+				//parts_with_module_near(child,myModule,FALSE,returnList).
+				FOR par IN parts_with_module_near(child,myModule,FALSE) {
+					returnList:ADD(par).
+				}
+			}
+		}
+		RETURN returnList.
+	} ELSE {
+		IF scanUp {
+			IF myPart:HASPARENT {//scan up tree until root part then reverse scan direction
+				//parts_with_module_near(myPart:PARENT,myModule,scanUp,returnList).
+				RETURN parts_with_module_near(myPart:PARENT,myModule,scanUp).
+			} ELSE {
+				//parts_with_module_near(myPart,myModule,FALSE,returnList).
+				RETURN parts_with_module_near(myPart,myModule,FALSE).
+			}
+		} ELSE {
+			LOCAL returnList IS LIST().
+			FOR child IN myPart:CHILDREN {
+				//parts_with_module_near(child,myModule,scanUp,returnList).
+				FOR par IN parts_with_module_near(child,myModule,scanUp) {
+					returnList:ADD(par).
+				}
+			}
+			RETURN returnList.
+		}
+	}
+	//RETURN returnList.
+}
 
 FUNCTION number_concatnation {
 	PARAMETER char,string.
@@ -388,7 +392,7 @@ FUNCTION number_concatnation {
 				RETURN char + returnString.
 			}
 		} ELSE IF char = "." {
-			IF returnString:CONTAINS(".")
+			IF returnString:CONTAINS(".") {
 				RETURN returnString.
 			} ELSE {
 				RETURN returnString + char.
@@ -414,4 +418,20 @@ FUNCTION print_delta {
 	} ELSE {
 		oldThings:ADD(key,LEX("thing",thing,"time",TIME:SECONDS)).
 	}
+}
+
+FUNCTION circularize_at_UT {
+  PARAMETER UTs.
+  LOCAL upVec IS POSITIONAT(SHIP,UTs) - SHIP:BODY:POSITION.
+  LOCAL vecNodePrograde IS VELOCITYAT(SHIP,UTs):ORBIT.
+  LOCAL vecNodeNormal IS VCRS(vecNodePrograde,upVec).
+  LOCAL vecNodeRadial IS VCRS(vecNodeNormal,vecNodePrograde).
+  
+  LOCAL velTarget IS SQRT(SHIP:BODY:MU / upVec:MAG).
+  LOCAL vecTarget IS (VXCL(upVec,vecNodePrograde):NORMALIZED * velTarget) - vecNodePrograde.
+  
+  LOCAL nodePrograde IS VDOT(vecTarget,vecNodePrograde:NORMALIZED).
+  LOCAL nodeRadial IS VDOT(vecTarget,vecNodeRadial:NORMALIZED).
+  
+  RETURN NODE(UTs,nodeRadial,0,nodePrograde).
 }

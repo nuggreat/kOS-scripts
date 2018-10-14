@@ -7,6 +7,8 @@ SET TERMINAL:WIDTH TO 60.
 SET TERMINAL:HEIGHT TO 20.
 WAIT UNTIL active_engine().
 LOCAL vertMargin IS lowist_part(SHIP) + 2.5.	//Sets the margin for the Sucide Burn and Final Decent
+SET retroMargin TO retroMargin + vertMargin.
+LOCAL retroMarginLow IS retroMargin - 100.
 LOCAL shipISP IS isp_calc().
 LOCAL timePre IS TIME:SECONDS.
 LOCAL tsMax IS 0.5.
@@ -47,15 +49,16 @@ IF haveTarget { LOCK STEERING TO adjusted_retorgrade(headingOffset,pitchOffset).
 SET NAVMODE TO "SURFACE".
 //LOCAL done IS FALSE.
 UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical speed is greater than -2
-	SET deltaTime TO (TIME:SECONDS - timePre + deltaTime) / 2.
-	SET timePre TO TIME:SECONDS.
+	LOCAL localTime IS TIME:SECONDS.
+	SET deltaTime TO (localTime - timePre + deltaTime) / 2.
+	SET timePre TO localTime.
 	LOCAL shipPosOld IS SHIP:POSITION - SHIP:BODY:POSITION.
 	LOCAL initalMass IS SHIP:MASS.
 	SET tsMax TO (tsMax + (simResults["seconds"] / 10)) / 2.
 	SET simResults TO sim_land_spot(SHIP,shipISP,MIN(deltaTime,tsMax),0).
 	LOCAL stopPos IS (SHIP:BODY:POSITION + shipPosOld) + simResults["pos"].
 	SET stopGap TO SHIP:BODY:ALTITUDEOF(stopPos) - SHIP:BODY:GEOPOSITIONOF(stopPos):TERRAINHEIGHT.
-	SET throt TO MIN(retroMargin / (MAX(stopGap,1)), 1).
+	SET throt TO MIN(100 / MAX((stopGap - retroMarginLow), 100),1).
 	CLEARSCREEN.
 	PRINT "Terrain Gap:    " + ROUND(stopGap).
 	PRINT "Dv Needed:      " + ROUND(shipISP*9.80665*LN(initalMass/simResults["mass"])).

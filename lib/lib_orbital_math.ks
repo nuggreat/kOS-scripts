@@ -50,7 +50,7 @@ FUNCTION ta_to_time_from_pe {//converts a true anomaly to a time (seconds) after
 	LOCAL ecc IS orbitIn:ECCENTRICITY.
 	LOCAL orbPer IS orbitIn:PERIOD.
 	
-	LOCAL maDeg IS ea_to_ma(ecc,ta_to_ea(ecc,taDeg)).
+	LOCAL maDeg IS ta_to_ma(ecc,taDeg).
 
 	LOCAL rawTime IS orbPer * (maDeg / 360).
 

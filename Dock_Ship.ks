@@ -10,11 +10,11 @@ LOCAL craftPortListRaw IS port_scan_of(SHIP).
 IF craftPortListRaw:LENGTH = 0 {SET craftPortListRaw TO port_scan_of(SHIP).}
 LOCAL buffer IS SHIP:MESSAGES.
 buffer:CLEAR().
-
+```
 //PID setup PIDLOOP(kP,kI,kD,min,max)
 SET forRCS_PID TO PIDLOOP(4,0.02,0,-1,1).
 SET topRCS_PID TO PIDLOOP(4,0.02,0,-1,1).
-SET starRCS_PID TO PIDLOOP(4,0.02,0,-1,1).
+SET starRCS_PID TO PIDLOOP(4,0.02,0,-1,1).```
 
 LOCAL done IS FALSE.
 UNTIL done {

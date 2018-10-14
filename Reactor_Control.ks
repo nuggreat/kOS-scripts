@@ -39,7 +39,7 @@ UNTIL FALSE {
 			LOCAL ecPrecentage IS ec:AMOUNT / ec:CAPACITY.
 			LOCAL settingChange IS reactorPID:UPDATE(TIME:SECONDS,ecPrecentage).
 			FOR reactor IN reactorModuleList {
-				LOCAL coreSetting IS MIN(MAX(reactor:GETFIELD("power setting") + settingChange,0),100).
+				LOCAL coreSetting IS MIN(MAX(reactor:GETFIELD("power setting") + settingChange,reactor:PART:TAG:TONUMBER(0)),100).
 				reactor:SETFIELD("power setting",coreSetting).
 			}
 			WAIT 0.

@@ -21,6 +21,8 @@ IF NOT ABORT {
 //twr_restore(thrustLimitBackup).
 
 PRINT "Distance: " + ROUND(landingChord:DISTANCE).
+} ELSE {
+	PRINT "no target found".
 }
 
 FUNCTION twr_restriction {

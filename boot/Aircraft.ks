@@ -8,6 +8,7 @@ COPYPATH("0:/lib/lib_file_util.ks","1:/lib/").
 //DELETEPATH("1:/boot/b_aircraft.ks").
 COPYPATH("0:/lib/lib_navball.ks","1:/lib/").
 COPYPATH("0:/lib/lib_navball2.ks","1:/lib/").
+COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/").
 //COPYPATH("0:/autoP_Mk2.ks","1:/").
 //COPYPATH("0:/autoP_Mk3.ks","1:/").
 //COPYPATH("0:/autoP_Mk4.ks","1:/").

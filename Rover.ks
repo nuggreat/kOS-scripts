@@ -45,7 +45,7 @@ SET speed_PID:SETPOINT TO speed_adv(dist).
 
 UNTIL roving {	//roving to mark
 
-	LOCAL forSpeed IS forward_speed().
+	LOCAL forSpeed IS signed_speed().
 	LOCAL timeStep IS TIME:SECONDS.
 	SET SHIP:CONTROL:WHEELTHROTTLE TO speed_PID:UPDATE(timeStep,forSpeed).
 	IF forSpeed > 0 {
@@ -74,7 +74,7 @@ WAIT 0.01.
 SET speed_PID:SETPOINT TO 0.
 UNTIL stopping {	//stopping once close to mark
 
-	LOCAL forSpeed IS forward_speed().
+	LOCAL forSpeed IS signed_speed().
 	LOCAL timeStep IS TIME:SECONDS.
 	SET SHIP:CONTROL:WHEELTHROTTLE TO speed_PID:UPDATE(timeStep,forSpeed).
 	SET SHIP:CONTROL:WHEELSTEER TO steer_PID:UPDATE(timeStep,mark:BEARING).
@@ -88,7 +88,7 @@ UNTIL stopping {	//stopping once close to mark
 	} ELSE {
 		SET count TO count + 1.
 	}
-	SET stopping TO 1 > forward_speed() OR ABORT.
+	SET stopping TO 1 > signed_speed() OR ABORT.
 	WAIT 0.01.
 }
 }
@@ -107,8 +107,13 @@ FUNCTION speed_adv {		//target speed reduced by how off targetBearing the rover 
 	RETURN MIN(MAX(speedTarget - (slope / 60 * speedTarget) - (offMark * speedTarget) , 1),dist).
 }
 
-FUNCTION forward_speed {		//the speed of the rover positave for forward movment negitave for reverse movment
-	RETURN VDOT( SHIP:VELOCITY:SURFACE,SHIP:FACING:FOREVECTOR).
+FUNCTION signed_speed {		//the speed of the rover positive for forward movement negative for reverse movement
+	LOCAL shipVel IS SHIP:VELOCITY:SURFACE.
+	IF VDOT(shipVel,SHIP:FACING:FOREVECTOR) > 0 {
+		RETURN shipVel:MAG.
+	} ELSE {
+		RETURN -shipVel:MAG.
+	}
 }
 
 FUNCTION screen_update {		//updates the terminal
@@ -166,7 +171,7 @@ FUNCTION brake_check {	//a check for over speed to turn on the brakes
 
 FUNCTION target_distance {
 	PARAMETER p1.
-	RETURN dist_betwene_coordinates(p1,SHIP:GEOPOSITION).
+	RETURN dist_between_coordinates(p1,SHIP:GEOPOSITION).
 }
 
 FUNCTION PID_minMax {	//resets the max/min for a given pid depending on the speed that gets passed in

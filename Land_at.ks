@@ -1,3 +1,4 @@
+//TODO: re-add in hillclimb solution for impact for when in hyperbolic orbits
 PARAMETER landingTar,margin IS 100.
 IF NOT EXISTS ("1/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/lib_mis_utilities.ks"). }
 IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
@@ -39,7 +40,7 @@ LOCAL refineDeorbit IS SHIP:ORBIT:PERIAPSIS < 0.
 
 IF refineDeorbit {
 	SET varConstants["mode"] TO 1.
-	SET nodeStartTime TO (impact_ETA(ta_to_ma(SHIP:ORBIT:TRUEANOMALY),SHIP:ORBIT,varConstants["landingAlt"]) / 2 + TIME:SECONDS).
+	SET nodeStartTime TO (impact_ETA(ta_to_ma(SHIP:ORBIT:ECCENTRICITY,SHIP:ORBIT:TRUEANOMALY),SHIP:ORBIT,varConstants["landingAlt"]) / 2 + TIME:SECONDS).
 	varConstants["manipList"]:REMOVE(0).
 } ELSE IF ETA:APOAPSIS < 600 {
 	SET nodeStartTime TO nodeStartTime + (SHIP:ORBIT:PERIOD / 4).
@@ -48,7 +49,7 @@ clear_all_nodes().
 LOCAL baseNode IS NODE(nodeStartTime,0,0,0).
 ADD baseNode.
 IF varConstants["mode"] = 0 { periapsis_manipulaiton(NEXTNODE). }
-LOCAL scored IS score(NEXTNODE,(NEXTNODE:ETA + TIME:SECONDS + (NEXTNODE:ORBIT:PERIOD / 8))).
+LOCAL scored IS score(NEXTNODE).
 LOCAL hillValues IS LEX("score",scored["score"],"stepVal",varConstants["initalStep"],"dist",scored["dist"]).
 LOCAL shipISP IS isp_calc().
 LOCAL timeStart IS TIME:SECONDS.
@@ -92,10 +93,10 @@ UNTIL close{
 		}
 
 		IF anyGood {
-			node_set(NEXTNODE,bestNode[2],bestNode[3]).
+			node_set(NEXTNODE,bestNode[1],bestNode[2]).
 			SET stepMod TO MAX(stepMod - 0.005,0).
 			SET hillValues["score"] TO bestNode[0].
-			SET hillValues["dist"] TO bestNode[4].
+			SET hillValues["dist"] TO bestNode[3].
 			SET hillValues["stepVal"] TO varConstants["initalStep"] / (10^stepMod).
 			SET count TO count + 1.
 			CLEARSCREEN.
@@ -141,7 +142,7 @@ FUNCTION score { //returns the score of the node
 		LOCAL nodeToImpact IS impact_ETA(targetNode:ORBIT:MEANANOMALYATEPOCH,targetNode:ORBIT,varConstants["landingAlt"]).
 		LOCAL impactTime IS nodeToImpact + nodeUTs.
 
-		LOCAL dist IS dist_betwene_coordinates(varConstants["landingChord"],ground_track(POSITIONAT(SHIP,impactTime),impactTime)).
+		LOCAL dist IS dist_between_coordinates(varConstants["landingChord"],ground_track(POSITIONAT(SHIP,impactTime),impactTime)).
 		LOCAL scored IS dist + peDiff * PEweight.
 		IF targetNode:ISTYPE("node") { SET scored TO scored + (targetNode:DELTAV:MAG * 6). }
 		RETURN LEX("score",scored,"dist",dist).
@@ -159,9 +160,9 @@ FUNCTION impact_ETA {//returns the seconds between maDeg1 and terrain impact
 	LOCAL orbPer IS orbitIn:PERIOD.
 	LOCAL sma IS orbitIn:SEMIMAJORAXIS.
 	LOCAL rad IS varConstants["landingAlt"] + orbitIn:BODY:RADIUS.
-	LOCAL taOfAlt IS ARCCOS((-sma * ecc ^2 + sma - rad) / (ecc * rad)).
+	LOCAL taOfAlt IS 360 - ARCCOS((-sma * ecc ^2 + sma - rad) / (ecc * rad)).
 	
-	LOCAL maDeg2 IS ta_to_ma(ecc,alt_to_ta(360 - taOfAlt).
+	LOCAL maDeg2 IS ta_to_ma(ecc,taOfAlt).
 	
 	LOCAL timeDiff IS orbPer * ((maDeg2 - maDeg1) / 360).
 	

@@ -150,12 +150,3 @@ FUNCTION steering_alinged_duration {//wait until steering is aligned with what i
 		//RETURN localTime - dataLex["alignedTime"].
 	}
 }
-
-FUNCTION burn_duration {	//from isp and dv using current mass of the ship returns the amount of time needed for the provided DV
-  PARAMETER ISPs, DV, wMass IS SHIP:MASS, sThrust IS SHIP:AVAILABLETHRUST.
-  LOCAL dMass IS wMass / (CONSTANT:E^ (DV / (ISPs * 9.80665))).
-  LOCAL flowRate IS sThrust / (ISPs * 9.80665).
-  RETURN (wMass - dMass) / flowRate.
-}
-
-

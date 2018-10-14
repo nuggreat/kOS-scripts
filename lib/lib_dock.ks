@@ -28,7 +28,6 @@ LOCAL lib_dock_lex IS LEX("sizeConversion",LEX(
 
 FUNCTION port_scan_of {
 	PARAMETER craft, canDeploy IS TRUE.	//-----the ship that is scanned for ports-----
-	LOCAL portList IS LIST().
 	LOCAL portLex IS LEX().
 	LOCAL sizeConversion IS lib_dock_lex["sizeConversion"].
 
@@ -36,8 +35,6 @@ FUNCTION port_scan_of {
 	FOR key IN sizeConversion:KEYS {
 		portLex:ADD(sizeConversion[key],LIST()).
 	}
-
-
 
 	FOR port IN craft:DOCKINGPORTS {
 		IF NOT sizeConversion:KEYS:CONTAINS(port:NODETYPE) {//check for unknown port sizes
@@ -81,8 +78,6 @@ FUNCTION port_open {
 		IF port:HASMODULE("ModuleAnimateGeneric") {
 			LOCAL portAminate IS port:GETMODULE("ModuleAnimateGeneric").
 			LOCAL portOpen IS portAminate:ALLEVENTNAMES[0].
-			RCS OFF.
-			WAIT UNTIL RCS.
 			portAminate:DOEVENT(portOpen).
 		}
 	}}
@@ -94,8 +89,6 @@ FUNCTION port_close {
 		IF port:HASMODULE("ModuleAnimateGeneric") {
 			LOCAL portAminate IS port:GETMODULE("ModuleAnimateGeneric").
 			LOCAL portClose IS portAminate:ALLEVENTNAMES[0].
-			RCS OFF.
-			WAIT UNTIL RCS.
 			portAminate:DOEVENT(portClose).
 		}
 	}}
@@ -198,11 +191,11 @@ FUNCTION message_wait {
 
 FUNCTION axis_speed {
 	PARAMETER craft,		//the craft to calculate the speed of (craft using RCS)
-	//craftPort,			//port that all speeds are relative to (craft using RCS)
 	station.				//the target the speed is relative  to
 	LOCAL localStation IS target_craft(station).
 	LOCAL localCraft IS target_craft(craft).
 	LOCAL craftFacing IS localCraft:FACING.
+	IF craftPort:ISTYPE("DOCKINGPORT") { SET craftFacing TO craftPort:PORTFACING. }
 	LOCAL relitaveSpeedVec IS localCraft:VELOCITY:ORBIT - localStation:VELOCITY:ORBIT.	//relitaveSpeedVec is the speed as reported by the navball in target mode as a vector along the target prograde direction
 	LOCAL speedFor IS VDOT(relitaveSpeedVec, craftFacing:FOREVECTOR).	//positive is moving forwards, negative is moving backwards
 	LOCAL speedTop IS VDOT(relitaveSpeedVec, craftFacing:TOPVECTOR).	//positive is moving up, negative is moving down

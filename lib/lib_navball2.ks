@@ -20,3 +20,15 @@ FUNCTION pitch_of_vector { // pitch_of_vector returns the pitch of the vector(nu
 
 	RETURN 90 - VANG(SHIP:UP:VECTOR, vecT).
 }
+
+FUNCTION bearing_between { // bearing_between returns the bearing of v2 relative to v1.
+	PARAMETER vec1,vec2.
+
+	LOCAL lNorth IS VXCL(SHIP:UP:VECTOR, vec1).
+	LOCAL east IS VCRS(SHIP:UP:VECTOR, lNorth).
+
+	LOCAL trig_x IS VDOT(lNorth, vec2).
+	LOCAL trig_y IS VDOT(east, vec2).
+
+	RETURN ARCTAN2(trig_y, trig_x).
+}

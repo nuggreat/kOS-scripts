@@ -65,8 +65,7 @@ FUNCTION ta_to_ma {//converts a true anomaly(degrees) to the mean anomaly (degre
 }
 
 FUNCTION ground_track {	//returns the geocoordinates of the position vector at a given time(UTs) adjusting for planetary rotation over time
-	PARAMETER pos,posTime.
-	LOCAL localBody IS SHIP:BODY.
+	PARAMETER pos,posTime,localBody IS SHIP:BODY.
 	LOCAL rotationalDir IS VDOT(localBody:NORTH:FOREVECTOR,localBody:ANGULARVEL). //the number of radians the body will rotate in one second
 	LOCAL posLATLNG IS localBody:GEOPOSITIONOF(pos).
 	LOCAL timeDif IS posTime - TIME:SECONDS.

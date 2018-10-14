@@ -22,7 +22,7 @@ LOCAL latOffset IS (cruseHeight / 3) + (cruseSpeed / 400).
 
 
 LOCAL goFlight IS TRUE.
-LOCAL doLanding IS FALSE
+LOCAL doLanding IS FALSE.
 LOCAL endDist IS 3000.
 LOCAL mark IS LATLNG(0,-74.5 + latOffset).
 LOCAL point IS dest.
@@ -114,9 +114,9 @@ LOCAL centerlineEast IS LATLNG(-0.0502,-74.4879).	//runway end for take off
 LOCAL runwayStart IS centerlineEast.
 LOCAL runwayEnd IS centerlineWest.
 LOCAL point IS "Start of Runway".
-LOCAL align IS FALSE.
+LOCAL isAligned IS FALSE.
 
-UNTIL align {	//-----alignging to runway-----
+UNTIL isAligned {	//-----aligning to runway-----
 	WAIT 0.01.
 	SET dist TO target_distance(runwayStart).
 	LOCAL vertSpeedTar IS 0 - ((ALTITUDE - 100) / ((dist - 100) / (GROUNDSPEED * 1.25))).
@@ -159,7 +159,7 @@ UNTIL align {	//-----alignging to runway-----
 	}	ELSE {
 		SET count TO count + 1.
 	}
-	SET align TO dist < 100.
+	SET isAligned TO dist < 100.
 }
 SET vSpeedCon_PID:SETPOINT TO -1.
 SET throttle_PID:SETPOINT TO landingSpeed.
@@ -230,7 +230,7 @@ SAS ON.
 //	centerpoint west: -0.0485,-74.7290
 
 //	soulth east: -0.0469,-74.4879
-//	notrh east:  -0.0535,-74.4879
+//	north east:  -0.0535,-74.4879
 //	centerpoint east: -0.0502,-74.4879
 
 //-----end of core logic start of functions-----
@@ -260,34 +260,9 @@ FUNCTION yaw_to {	//-----returns the value to set yaw controls to-----
 }
 
 FUNCTION target_distance {
-	PARAMETER p1
-	RETURN dist_betwene_coordinates(p1,SHIP:GEOPOSITION).
+	PARAMETER p1.
+	RETURN dist_between_coordinates(p1,SHIP:GEOPOSITION).
 }
-
-//FUNCTION target_distance {	//-----calculates distance to target using Law of Cosines-----
-//	PARAMETER distTar.
-//	LOCAL bodyRadius IS SHIP:BODY:RADIUS.
-//	LOCAL aVal IS (distTar:TERRAINHEIGHT + bodyRadius).
-//	LOCAL bVal IS (ALTITUDE + bodyRadius).
-//	LOCAL cVal IS (distTar:DISTANCE).
-//	LOCAL cosOfC IS (cVal ^ 2 - (aVal ^ 2 + bVal ^ 2)) / (-2 * aVal *bVal).
-//	RETURN (ARCCOS(cosOfC) / 360) * (CONSTANT():PI * bodyRadius * 2).
-//}
-//
-//FUNCTION target_eta {	//-----calculates ETA to target-----
-//	PARAMETER dist.
-//	IF NOT (DEFINED listETA) { GLOBAL listETA IS LIST(LIST(target_distance(mark),TIME:SECONDS,1)). WAIT 0.01. RETURN 0.}
-//	LOCAL deltaDist IS listETA[0][0] - dist.
-//	LOCAL deltaTime IS TIME:SECONDS - listETA[0][1].
-//	LOCAL stepETA IS dist / (deltaDist / deltaTime).
-//	LOCAL totalETA IS 0.
-//	listETA:ADD(LIST(dist,TIME:SECONDS,stepETA)).
-//	IF listETA:LENGTH > 10 {listETA:REMOVE(0).}
-//	FOR value IN listETA {
-//		SET totalETA TO totalETA + value[2].
-//	}
-//	RETURN totalETA / listETA:LENGTH.
-//}
 
 FUNCTION drop_tanks {
 	PARAMETER tankTag IS "dropTank".

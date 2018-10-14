@@ -79,17 +79,14 @@ FUNCTION node_from_vector {//only works if you are in the same SOI as the node
 	PARAMETER vecTarget,nodeTime,localBody IS SHIP:BODY.
 	LOCAL vecNodePrograde IS VELOCITYAT(SHIP,nodeTime):ORBIT.
 	LOCAL vecNodeNormal IS VCRS(vecNodePrograde,POSITIONAT(SHIP,nodeTime) - localBody:POSITION).
-//	IF SHIP:BODY <> localBody {//untested might not work for nodes outside of SOI
-//		SET vecNodeNormal IS VCRS(vecNodePrograde,POSITIONAT(SHIP,nodeTime) - POSITIONAT(localBody,nodeTime):NORMALIZED).
-//	}
-	LOCAL vecNodeRadial IS VCRS(vecNodePrograde,vecNodeNormal).
+	LOCAL vecNodeRadial IS VCRS(vecNodeNormal,vecNodePrograde).
 
 	LOCAL nodePrograde IS VDOT(vecTarget,vecNodePrograde:NORMALIZED).
 	LOCAL nodeNormal IS VDOT(vecTarget,vecNodeNormal:NORMALIZED).
 	LOCAL nodeRadial IS VDOT(vecTarget,vecNodeRadial:NORMALIZED).
-//	PRINT "pro: " + ROUND(nodePrograde,2).
-//	PRINT "nor: " + ROUND(nodeNormal,2).
-//	PRINT "rad: " + ROUND(nodeRadial,2).
+	//PRINT "pro: " + ROUND(nodePrograde,2).
+	//PRINT "nor: " + ROUND(nodeNormal,2).
+	//PRINT "rad: " + ROUND(nodeRadial,2).
 	RETURN NODE(nodeTime,nodeRadial,nodeNormal,nodePrograde).
 }
 
