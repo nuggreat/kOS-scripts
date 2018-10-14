@@ -49,13 +49,13 @@ FUNCTION adv_print {
 			SET printString TO printString + moment[0].
 			SET delayTime TO delayTime + moment[1].
 			IF (moment[0] = "|") {
-				terminalPrint(printString).
+				terminal_print(printString).
 				SET printString TO "".
 				IF doSound {	adv_wait(delayTime). }
 				SET delayTime TO 0.
 			}
 		}
-		terminalPrint("END").
+		terminal_print("END").
 	}
 }
 
@@ -96,7 +96,7 @@ LOCAL FUNCTION adv_wait {
 	WAIT UNTIL TIME:SECONDS >= markTime.
 }
 
-LOCAL FUNCTION terminalPrint {
+LOCAL FUNCTION terminal_print {
 	PARAMETER printString.
 	IF TERMINAL:WIDTH < (tCol + printString:LENGTH) {
 		SET tRow TO tRow + 1.

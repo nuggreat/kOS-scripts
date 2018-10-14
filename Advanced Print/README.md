@@ -20,7 +20,7 @@ lib_advanced_print is a library containing the functions needed to configure and
       defaulted to 440 Hz
     5) the volume of the sound used to convey the superior information format
       defaulted to 1, the loudest setting
-    
+
   no return value
 
 **Notes about function**
@@ -36,7 +36,7 @@ lib_advanced_print is a library containing the functions needed to configure and
   one required parameter
 
     1) a text string to be converted into the superior information format that then will be conveyed to the user
-    
+
   no return value
 
 **Notes about function**
@@ -68,11 +68,11 @@ lib_advanced_print is a library containing the functions needed to configure and
 
     1) the string to be converted
     2) a LEXICON with individual charters as keys and a string as the value
-    
+
   one optional parameter
 
     1) a list of charters to just pass through
-    
+
   returns a string
 
 **Notes about function**
@@ -95,7 +95,7 @@ lib_advanced_print is a library containing the functions needed to configure and
   one required parameters
 
     1) the string to be converted
-    
+
   returns a lexicon with "sound" and "text" as the keys
     "sound" contains the list of notes in the superior format
     "text"  contains list of lists with string and timing
@@ -114,7 +114,7 @@ lib_advanced_print is a library containing the functions needed to configure and
   one required parameters
 
     1) the amount of time to wait in seconds
-    
+
   returns nothing
 
 **Notes about function**
@@ -128,7 +128,42 @@ lib_advanced_print is a library containing the functions needed to configure and
     adv_wait(1).//will let the script resume exactly one second after the set markTime
     ...some more code...
     adv_wait(1).//will let the script resume exactly two second after the set markTime and thus 1 second after the the first call of adv_wait
-    
+
+
+### terminal_print
+
+  used to print the superior information format to the terminal keeping track of what charter the print is on as using new lines as needed
+
+**Parameter(s) and return value(s)**
+
+  one required parameters
+
+    1) a string
+
+  returns nothing
+
+**Notes about function**
+
+  will keep the passed in strings contiguous where a normal print will start on a new line with what ever charters overflowed the last line this function will use new lines to keep from braking up the passed in strings
+
+  example of use:
+
+    //function called several times with different strings
+    terminal_print("hello ").
+    terminal_print("world ").
+    terminal_print("this ").
+    terminal_print("is ").
+    terminal_print("an ")
+    terminal_print("example").
+
+    in below the // denote the border of a terminal that is 10 columns wide and 4 rows tall
+    //////////////
+    //hello     //
+    //world     //
+    //this is   //
+    //an example//
+    //////////////
+
 ### dot
 
   add fixed things to two passed in lists used by compose function to generate it's return
@@ -139,13 +174,13 @@ lib_advanced_print is a library containing the functions needed to configure and
 
     1) a list that should have notes added to it
     2) a list that should have a list consisting of a string and timing information
-    
+
   returns nothing
 
 **Notes about function**
 
   used to add the dot aspect of the superior information format
-      
+
 ### dash
 
   add fixed things to two passed in lists used by compose function to generate it's return
@@ -156,13 +191,13 @@ lib_advanced_print is a library containing the functions needed to configure and
 
     1) a list that should have notes added to it
     2) a list that should have a list consisting of a string and timing information
-    
+
   returns nothing
 
 **Notes about function**
 
   used to add the dash aspect of the superior information format
-      
+
 ### space_char
 
   add fixed things to two passed in lists used by compose function to generate it's return
@@ -173,13 +208,13 @@ lib_advanced_print is a library containing the functions needed to configure and
 
     1) a list that should have notes added to it
     2) a list that should have a list consisting of a string and timing information
-    
+
   returns nothing
 
 **Notes about function**
 
   used to add the space between charters of the superior information format
-      
+
 ### space_letter
 
   add fixed things to two passed in lists used by compose function to generate it's return
@@ -190,13 +225,13 @@ lib_advanced_print is a library containing the functions needed to configure and
 
     1) a list that should have notes added to it
     2) a list that should have a list consisting of a string and timing information
-    
+
   returns nothing
 
 **Notes about function**
 
   used to add the space between letters of the superior information format
-      
+
 ### space_word
 
   add fixed things to two passed in lists used by compose function to generate it's return
@@ -207,7 +242,7 @@ lib_advanced_print is a library containing the functions needed to configure and
 
     1) a list that should have notes added to it
     2) a list that should have a list consisting of a string and timing information
-    
+
   returns nothing
 
 **Notes about function**
