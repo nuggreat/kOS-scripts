@@ -1,13 +1,13 @@
 scripts for file handling in kOS and the lib needed to run them
 
 
-**The script file_util.ks has 12 functions controlled through a ingame GIU**
+**The script file_util.ks has 12 functions controlled through a in game GIU**
 
   The script requires the lib lib_file_util.ks and will need to have the RUNPATHONCE edited to point at the copy of the lib on the local volume or use the version called file_util_standalone.ks as that doesn't need the lib.
 
   the 12 functions are sorted into 2 categories 1st is called "File Tools" the 2nd is "Directory Tools" these categories are in the form of 2 buttons at the top of the GUI.  A dropdown menu below the tool buttons is where you select the exact function you want to use.
   
-  the burron labled "Done" will end the script
+  the button labeled "Done" will end the script
   
   NOTE: as the file_util script is so large it is recommended you make a compiled version to speed up load times on boot as it can take several seconds to start after having typed RUN
   
@@ -48,7 +48,7 @@ scripts for file handling in kOS and the lib needed to run them
       1st dropdown: a selection for volume with 2 options (defaults to local)
         Archive: is the folder in the KSP directory that kOS intends you to have your scripts saved so they can be read in game
         Local: is the volume used by the kOS core that ran the script used for local storage of scripts
-      2nd dropdown: a dropdown list of all directories in the volume slected by Destination dropdown 1
+      2nd dropdown: a dropdown list of all directories in the volume selected by Destination dropdown 1
         will display space remaining in selected volume
 
  
