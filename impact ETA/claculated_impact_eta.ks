@@ -42,7 +42,7 @@ FUNCTION impact_UTs {//returns the UTs of the ship's impact, NOTE: only works fo
 FUNCTION alt_to_ta {//returns a list of the true anomalies of the 2 points where the craft's orbit passes the given altitude
 	PARAMETER sma,ecc,bodyIn,altIn.
 	LOCAL rad IS altIn + bodyIn:RADIUS.
-	LOCAL taOfAlt IS ARCCOS((-sma * ecc ^2 + sma - rad) / (ecc * rad)).
+	LOCAL taOfAlt IS ARCCOS((-sma * ecc^2 + sma - rad) / (ecc * rad)).
 	RETURN LIST(taOfAlt,360-taOfAlt).//first true anomaly will be as orbit goes from PE to AP
 }
 
@@ -59,14 +59,13 @@ FUNCTION time_betwene_two_ta {//returns the difference in time between 2 true an
 
 FUNCTION ta_to_ma {//converts a true anomaly(degrees) to the mean anomaly (degrees) NOTE: only works for non hyperbolic orbits
 	PARAMETER ecc,taDeg.
-	LOCAL eaDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
+	LOCAL eaDeg IS ARCTAN2(SQRT(1-ecc^2) * SIN(taDeg), ecc + COS(taDeg)).
 	LOCAL maDeg IS eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG).
 	RETURN MOD(maDeg + 360,360).
 }
 
 FUNCTION ground_track {	//returns the geocoordinates of the position vector at a given time(UTs) adjusting for planetary rotation over time
-	PARAMETER pos,posTime.
-	LOCAL localBody IS SHIP:BODY.
+	PARAMETER pos,posTime,localBody IS SHIP:BODY.
 	LOCAL rotationalDir IS VDOT(localBody:NORTH:FOREVECTOR,localBody:ANGULARVEL). //the number of radians the body will rotate in one second
 	LOCAL posLATLNG IS localBody:GEOPOSITIONOF(pos).
 	LOCAL timeDif IS posTime - TIME:SECONDS.
