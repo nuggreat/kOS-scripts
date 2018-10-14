@@ -1,32 +1,5 @@
 lib_advanced_print is a library containing the functions needed to configure and use the new print function that is superior to the basic print that comes native to kOS
 
-## Functions
-
-### adv_print_config
-
-  used to set of the configure the various options about the adv_print function
-
-**Parameter(s) and return value(s)**
-
-  five optional parameter
-
-    1) the basic timing unit in seconds needed for the superior information delivery format that advanced print lib uses
-      defaulted to 0.1 seconds
-    2) a flag for if the adv_print function should display the superior information format on the terminal
-      defaulted to false, true will display on the terminal
-    3) a flag for if the adv_print function should convey the superior information format through sound
-      defaulted to true, true will play the sound
-    4) the frequency in Hz of the sound used to convey the superior information format
-      defaulted to 440 Hz
-    5) the volume of the sound used to convey the superior information format
-      defaulted to 1, the loudest setting
-
-  no return value
-
-**Notes about function**
-
-  this function is used to customize how the superior information format will be conveyed
-
 ### adv_print
 
   is the function used to convey the information passed into it
@@ -55,6 +28,33 @@ lib_advanced_print is a library containing the functions needed to configure and
     "." will become the string "point"
     "#" will become the string "supercalifragilisticexpialidocious"
     "%" will become the string "abcdefghijklmnopqrstuvwxyz0123456789"
+
+## Functions
+
+### adv_print_config
+
+  used to set of the configure the various options about the adv_print function
+
+**Parameter(s) and return value(s)**
+
+  five optional parameter
+
+    1) the basic timing unit in seconds needed for the superior information delivery format that advanced print lib uses
+      defaulted to 0.1 seconds
+    2) a flag for if the adv_print function should display the superior information format on the terminal
+      defaulted to false, true will display on the terminal
+    3) a flag for if the adv_print function should convey the superior information format through sound
+      defaulted to true, true will play the sound
+    4) the frequency in Hz of the sound used to convey the superior information format
+      defaulted to 440 Hz
+    5) the volume of the sound used to convey the superior information format
+      defaulted to 1, the loudest setting
+
+  no return value
+
+**Notes about function**
+
+  this function is used to customize how the superior information format will be conveyed
 
 ## Local Functions
 
