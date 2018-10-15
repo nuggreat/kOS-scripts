@@ -1,5 +1,7 @@
 lib_advanced_print is a library containing the functions needed to configure and use the new print function that is superior to the basic print that comes native to kOS
 
+## Functions
+
 ### adv_print
 
   is the function used to convey the information passed into it
@@ -28,8 +30,6 @@ lib_advanced_print is a library containing the functions needed to configure and
     "." will become the string "point"
     "#" will become the string "supercalifragilisticexpialidocious"
     "%" will become the string "abcdefghijklmnopqrstuvwxyz0123456789"
-
-## Functions
 
 ### adv_print_config
 
