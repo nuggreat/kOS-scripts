@@ -7,6 +7,10 @@ LOCAL unit IS 0.1.
 LOCAL unitLong IS 0.3.
 LOCAL doPrint IS FALSE.
 LOCAL doSound IS TRUE.
+LOCAL doHud IS FALSE.
+LOCAL hudLocation IS 2.
+LOCAL hudSize IS 40.
+LOCAL hudColor IS WHITE.
 LOCAL tRow IS 0.//row tracking for print
 LOCAL tCol IS 0.//column tracking for print
 
@@ -19,16 +23,22 @@ LOCAL beepNulLong IS NOTE(440,unitLong,unitLong,0).
 LOCAL markTime IS TIME:SECONDS.//var needed for adv_wait function
 
 FUNCTION adv_print_config {
-	PARAMETER unitIn IS 0.1,doPrintIn IS FALSE,doSoundIn IS TRUE,noteFreq IS 440,volumeIn IS 1.
+	PARAMETER unitIn IS 0.1,doPrintIn IS FALSE,doHudIn IS FALSE,doSoundIn IS TRUE,
+		noteFreqDot IS 440,noteFreqDash IS 440,volumeIn IS 1,
+		hudColorIn IS WHITE,hudSizeIn IS 40,hudLocationIn IS 2.
 	SET unit TO unitIn.
 	SET unitLong TO unitIn * 3.
 	SET doPrint TO doPrintIn.
+	SET doHud TO doHudIn.
 	SET doSound TO doSoundIn.
+	SET hudColor TO hudColorIn.
+	SET hudSize TO hudSizeIn.
+	SET hudLocation TO hudLocationIn.
 	SET beeper:VOLUME TO volumeIn.
-	SET beepDot TO NOTE(noteFreq,unit).
-	SET beepDash TO NOTE(noteFreq,unitLong).
-	SET beepNul TO NOTE(noteFreq,unit,unit,0).
-	SET beepNulLong TO NOTE(noteFreq,unitLong,unitLong,0).
+	SET beepDot TO NOTE(noteFreqDot,unit).
+	SET beepDash TO NOTE(noteFreqDash,unitLong).
+	SET beepNul TO NOTE(noteFreqDot,unit,unit,0).
+	SET beepNulLong TO NOTE(noteFreqDot,unitLong,unitLong,0).
 }
 
 FUNCTION adv_print {
@@ -39,23 +49,25 @@ FUNCTION adv_print {
 	IF doSound {
 		beeper:PLAY(compositions["sound"]).
 	}
-	IF doPrint {
+	IF doPrint OR doHud {
 		SET markTime TO TIME:SECONDS.
 		SET tRow TO 0.
 		SET tCol TO 0.
 		LOCAL printString IS "".
 		LOCAL delayTime IS 0.
+		CLEARSCREEN.
 		FOR moment IN compositions["text"] {
 			SET printString TO printString + moment[0].
 			SET delayTime TO delayTime + moment[1].
 			IF (moment[0] = "|") {
-				terminal_print(printString).
+				IF doPrint { terminal_print(printString). }
+				IF doHud { hud_print(printString,delayTime). }
 				SET printString TO "".
-				IF doSound {	adv_wait(delayTime). }
+				IF doSound OR doHud { adv_wait(delayTime). }
 				SET delayTime TO 0.
 			}
 		}
-		terminal_print("END").
+		IF doPrint { terminal_print("END"). }
 	}
 }
 
@@ -104,6 +116,12 @@ LOCAL FUNCTION terminal_print {
 	}
 	PRINT printString AT(tCol,tRow).
 	SET tCol TO tCol + printString:LENGTH.
+}
+
+FUNCTION hud_print {
+	PARAMETER printString,pause.
+	LOCAL localString IS printString:REMOVE(printString:LENGTH - 1,1).
+	HUDTEXT(localString,pause,hudLocation,hudSize,hudColor,FALSE).
 }
 
 LOCAL FUNCTION dot {

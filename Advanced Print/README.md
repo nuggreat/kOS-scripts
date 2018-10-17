@@ -14,6 +14,8 @@ lib_advanced_print is a library containing the functions needed to configure and
 
 **Notes about function**
 
+  most settings about this funciton are configured by the adv_print_config function
+
   this function recognizes the charters "a" through "z" the numbers 0 through 9
 
   there are also a few special charters that will be expanded into other strings said charters are:
@@ -37,19 +39,31 @@ lib_advanced_print is a library containing the functions needed to configure and
 
 **Parameter(s) and return value(s)**
 
-  five optional parameter
+  ten optional parameter
 
     1) the basic timing unit in seconds needed for the superior information delivery format that advanced print lib uses
       defaulted to 0.1 seconds
     2) a flag for if the adv_print function should display the superior information format on the terminal
       defaulted to false, true will display on the terminal
-    3) a flag for if the adv_print function should convey the superior information format through sound
+    3) a flag for if the adv_print function should display the superior information format on the KSP HUD
+      defaulted to false, true will display on the KSP HUD
+    4) a flag for if the adv_print function should convey the superior information format through sound
       defaulted to true, true will play the sound
-    4) the frequency in Hz of the sound used to convey the superior information format
+    5) the frequency in Hz of the sound used to convey the dot of the superior information format
       defaulted to 440 Hz
-    5) the volume of the sound used to convey the superior information format
+    6) the frequency in Hz of the sound used to convey the dash of the superior information format
+      defaulted to 440 Hz
+    7) the volume of the sound used to convey the superior information format
       defaulted to 1, the loudest setting
-
+    8) the color of the HUD text can be any RGB value
+      defaulted to WHITE
+    9) the size of the HUD text
+      defaulted to 40
+    10) the location the HUD text will appear in can be a number between 1 and 4
+      defaulted to 2, will place the HUD text just below the altimeter in the center of the screen
+    
+      more information on HUD text can be found [here](http://ksp-kos.github.io/KOS_DOC/commands/terminalgui.html#global:HUDTEXT)
+    
   no return value
 
 **Notes about function**
@@ -163,6 +177,23 @@ lib_advanced_print is a library containing the functions needed to configure and
     //this is   //
     //an example//
     //////////////
+    
+### hud_print
+
+**Parameter(s) and return value(s)**
+
+  displays the superior information format using KSP hud text
+
+  two required parameters
+
+    1) a string
+    2) the fade time on the displayed text
+
+  returns nothing
+
+**Notes about function**
+
+  has 3 settings configured by adv_print_config for placement, size, and color of the text
 
 ### dot
 
