@@ -2,7 +2,7 @@
 // All functions assume the vector originates from the vessel running the function for the sake of calculating the values
 @LAZYGLOBAL OFF.
 
-FUNCTION heading_of_vector { // heading_of_vector returns the heading of the vector (number range   0 to 360)
+FUNCTION heading_of_vector { // heading_of_vector returns the heading of the vector (number range 0 to 360)
 	PARAMETER vecT.
 
 	LOCAL east IS VCRS(SHIP:UP:VECTOR, SHIP:NORTH:VECTOR).
@@ -15,13 +15,13 @@ FUNCTION heading_of_vector { // heading_of_vector returns the heading of the vec
 	IF result < 0 {RETURN 360 + result.} ELSE {RETURN result.}
 }
 
-FUNCTION pitch_of_vector { // pitch_of_vector returns the pitch of the vector(number range -90 to  90)
+FUNCTION pitch_of_vector { // pitch_of_vector returns the pitch of the vector(number range -90 to 90)
 	PARAMETER vecT.
 
 	RETURN 90 - VANG(SHIP:UP:VECTOR, vecT).
 }
 
-FUNCTION bearing_between { // bearing_between returns the bearing of v2 relative to v1.
+FUNCTION bearing_between { // bearing_between returns the bearing of v2 relative to v1(number range -180 to 180).
 	PARAMETER vec1,vec2.
 
 	LOCAL lNorth IS VXCL(SHIP:UP:VECTOR, vec1).

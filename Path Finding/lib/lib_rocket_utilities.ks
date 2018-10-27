@@ -117,22 +117,17 @@ FUNCTION clear_all_nodes {
 	IF HASNODE { PRINT "havenode". UNTIL NOT HASNODE { REMOVE NEXTNODE. PRINT "removed node". WAIT 0. }}
 }
 
-lib_rocket_utilities_lex:ADD("steerData",LEX("maxError",1,"careAboutRoll",FALSE,"alignedTime",TIME:SECONDS)).
+lib_rocket_utilities_lex:ADD("steering_alinged_duration",LEX("maxError",1,"careAboutRoll",FALSE,"alignedTime",TIME:SECONDS)).
 FUNCTION steering_alinged_duration {//wait until steering is aligned with what it is locked to
-	LOCAL dataLex IS lib_rocket_utilities_lex["steerData"].
+	LOCAL dataLex IS lib_rocket_utilities_lex["steering_alinged_duration"].
 	PARAMETER configure IS FALSE,
-	maxError IS lib_rocket_utilities_lex["steerData"]["maxError"],
-	careAboutRoll IS lib_rocket_utilities_lex["steerData"]["careAboutRoll"].
-	//maxError IS dataLex["maxError"],
-	//careAboutRoll IS dataLex["careAboutRoll"].
+	maxError IS dataLex["maxError"],
+	careAboutRoll IS dataLex["careAboutRoll"].
 
 	IF configure {
-		SET lib_rocket_utilities_lex["steerData"]["maxError"] TO maxError.
-		SET lib_rocket_utilities_lex["steerData"]["careAboutRoll"] TO careAboutRoll.
-		SET lib_rocket_utilities_lex["steerData"]["alignedTime"] TO TIME:SECONDS.
-		//SET dataLex["maxError"] TO maxError.
-		//SET dataLex["careAboutRoll"] TO careAboutRoll.
-		//SET dataLex["alignedTime"] TO TIME:SECONDS.
+		SET dataLex["maxError"] TO maxError.
+		SET dataLex["careAboutRoll"] TO careAboutRoll.
+		SET dataLex["alignedTime"] TO TIME:SECONDS.
 		RETURN 0.
 	} ELSE {
 		LOCAL localTime IS TIME:SECONDS.
@@ -143,10 +138,8 @@ FUNCTION steering_alinged_duration {//wait until steering is aligned with what i
 		}
 
 		IF steerError > maxError {
-			SET lib_rocket_utilities_lex["steerData"]["alignedTime"] TO localTime.
-			//SET dataLex["alignedTime"] TO localTime.
+			SET dataLex["alignedTime"] TO localTime.
 		}
-		RETURN localTime - lib_rocket_utilities_lex["steerData"]["alignedTime"].
-		//RETURN localTime - dataLex["alignedTime"].
+		RETURN localTime - dataLex["alignedTime"].
 	}
 }

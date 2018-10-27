@@ -118,14 +118,14 @@ FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time
 	RETURN LATLNG(posLATLNG:LAT,newLNG).
 }
 
-FUNCTION dist_between_coordinates { //returns the dist between p1 and p2 on the localBody, assumes perfect sphere with radius of sea level height
-	PARAMETER p1,p2.
+FUNCTION dist_between_coordinates { //returns the dist between p1 and p2 on the localBody, assumes perfect sphere with radius of the body + what ever gets passed in to atAlt
+	PARAMETER p1,p2,atAlt IS 0.
 	LOCAL localBody IS p1:BODY.
-	LOCAL localBodyCirc IS CONSTANT:PI * localBody:RADIUS * 2.
+	LOCAL localBodyCirc IS CONSTANT:PI * (localBody:RADIUS + atAlt).//half the circumference of body
 	LOCAL bodyPos IS localBody:POSITION.
 	LOCAL bodyToP1Vec IS p1:POSITION - bodyPos.
 	LOCAL bodyToP2Vec IS p2:POSITION - bodyPos.
-	RETURN VANG(bodyToP1Vec,bodyToP2Vec) / 360 * localBodyCirc.
+	RETURN VANG(bodyToP1Vec,bodyToP2Vec) / 180 * localBodyCirc.
 }
 
 FUNCTION inital_heading { //returns the initial heading for shortest distance between p1 and p2 going from p1 to p2
@@ -152,7 +152,7 @@ FUNCTION distance_heading_to_latlng {//takes in a heading, distance, and start p
 
 FUNCTION slope_calculation {//returns the slope of p1 in degrees
 	PARAMETER p1.
-	LOCAL upVec IS (p1:POSITION - p1:ALTITUDEPOSITION(10000000)):NORMALIZED.
+	LOCAL upVec IS (p1:POSITION - p1:BODY:POSITION):NORMALIZED.
 	RETURN VANG(upVec,surface_normal(p1)).
 }
 
@@ -168,7 +168,7 @@ FUNCTION surface_normal {
 	LOCAL aPos IS localBody:GEOPOSITIONOF(basePos - northVec + sideVec):POSITION - basePos.
 	LOCAL bPos IS localBody:GEOPOSITIONOF(basePos - northVec - sideVec):POSITION - basePos.
 	LOCAL cPos IS localBody:GEOPOSITIONOF(basePos + northVec):POSITION - basePos.
-	RETURN VCRS((aPos - cPos),(bPos - cPos)).
+	RETURN VCRS((aPos - cPos),(bPos - cPos)):NORMALIZED.
 }
 
 FUNCTION grade_claculation {//returns the grade travleing from p1 to p2, positive is up hill, negative is down hill
