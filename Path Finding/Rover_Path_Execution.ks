@@ -1,5 +1,5 @@
 PARAMETER maxSpeed,minSpeed,stopDist,waypointList,waypointRadius,destName.
-SET maxSpeed TO MIN(20,maxSpeed).
+
 IF NOT EXISTS("1:/lib/lib_rocket_utilities.ks") COPYPATH("0:/lib/lib_rocket_utilities.ks","1:/lib/").
 FOR lib IN LIST("lib_geochordnate","lib_navball2","lib_formating","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 CLEARSCREEN.
@@ -7,7 +7,6 @@ PRINT "press V to show/hide vectors" AT(0,13).
 ABORT OFF.
 SAS OFF.
 SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
-//SET CONFIG:IPU TO 200.
 //PID setup PIDLOOP(kP,kI,kD,min,max)
 LOCAL throttlePID IS PIDLOOP(0.5,0.2,0.02,-1,1).
 LOCAL steeringPID IS PIDLOOP(0.5,0.02,0.1,-1,1).
@@ -50,7 +49,6 @@ UNTIL done {
 	LOCAL shipWayVec IS targetPos - SHIP:POSITION.
 	LOCAL distToWay IS shipWayVec:MAG.
 
-	//IF (distToWay < waypointRadius) AND (NOT stopping) {
 	IF ((distToWay < waypointRadius) OR (pointMag = 1)) AND (NOT stopping) AND (waypointIndex < wayListLength) {
 		SET waypointIndex TO MIN(waypointIndex + 1,wayListLength).
 		IF waypointIndex > wayListLength { SET stopping TO TRUE. SET waypointIndex TO waypointIndex - 1. } ELSE {
@@ -58,7 +56,6 @@ UNTIL done {
 			SET pathDist TO distList[waypointIndex].
 			SET newSlope TO slope_calculation(waypointList[waypointIndex]).
 			SET grade TO ABS(grade_claculation(waypointList[waypointIndex - 1],waypointList[waypointIndex])).
-			//SET slope_grade_error TO SIN(((oldSlope + newSlope) / 2 + grade) / 2).
 			SET slope_grade_error TO SIN(MIN(MAX(((oldSlope + newSlope)/2 + grade),0),90)).
 
 			SET targetPos TO waypointList[waypointIndex]:POSITION.
@@ -72,13 +69,9 @@ UNTIL done {
 	LOCAL preNextVec IS targetPos - origenPos.
 	LOCAL offPathVec IS VXCL(upVec,shipWayVec).
 	LOCAL pathVec IS VXCL(upVec,preNextVec).
-	//LOCAL offPathBy IS VANG(pathVec,offPathVec).
 	LOCAL offPathBy IS VXCL(pathVec,offPathVec):MAG.//number of meters off the pathVector
 
 	LOCAL percentTravled IS MAX(MIN(VDOT(pathVec - offPathVec,pathVec:NORMALIZED) / pathVec:MAG,1),-0.5).//distance of ship along pathVector in % 
-	//LOCAL percentError IS (1 - percentTravled) * offPathBy / 180.
-	//LOCAL percentError IS (1 - percentTravled) * COS(MIN(offPathBy*2,90)).
-	//LOCAL percentError IS COS(MIN(offPathBy * 2,90)).
 	LOCAL percentError IS offPathBy / waypointRadius.//converting offPathBy into a %, 0 is on path
 
 	//CLEARSCREEN.
