@@ -1,6 +1,6 @@
+PARAMETER endPoint,unitDist IS 200,maxSpeed IS MAX(25,5),minSpeed IS 5,closeToDist IS 450.
 FOR lib IN LIST("lib_geochordnate","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 LOCAL srfGrav IS SHIP:BODY:MU / SHIP:BODY:RADIUS^2.
-PARAMETER endPoint,unitDist IS 200,maxSpeed IS MAX(25,5),minSpeed IS 5,closeToDist IS 450.
 CLEARSCREEN.
 ABORT OFF.
 SET CONFIG:IPU TO 2000.
