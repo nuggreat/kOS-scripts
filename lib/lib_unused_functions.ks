@@ -43,8 +43,19 @@ FUNCTION pitch_roll {//intended for use with aircraft, needs navBall2 lib
 FUNCTION pitch_roll {//intended for use with aircraft, needs navBall2 lib
 	PARAMETER myPitch,myRoll.
 	LOCAL returnDir IS SHIP:SRFPROGRADE.
-	SET returnDir TO ANGLEAXIS(pitch_of_vector(returnDir:FOREVECTOR) - myPitch, returnDir) * returnDir.
+	SET returnDir TO ANGLEAXIS(pitch_of_vector(returnDir:FOREVECTOR) - myPitch, returnDir:STARVECTOR) * returnDir.
 	RETURN ANGLEAXIS(myRoll,returnDir:FOREVECTOR) * returnDir.
+}
+
+FUNCTION pitch_roll {//intended for use with aircraft
+	PARAMETER wantPitch,wantRoll.
+
+	LOCAL returnDir IS SHIP:SRFPROGRADE.
+	LOCAL pitchOffset IS 90 - VANG(SHIP:SRFPROGRADE:FOREVECTOR,SHIP:UP:VECTOR).
+
+	SET returnDir TO ANGLEAXIS(pitchOffset - wantPitch,returnDir:STARVECTOR) * returnDir.
+	SET returnDir TO ANGLEAXIS(wantRoll,returnDir:FOREVECTOR) * returnDir.
+	RETURN returnDir.
 }
 
 

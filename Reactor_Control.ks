@@ -3,14 +3,22 @@ SET CORE:PART:TAG TO "reactor_controler".
 WAIT 1.
 //PID setup PIDLOOP(kP,kI,kD,min,max)
 LOCAL reactorPID IS PIDLOOP(100,0,100,-100,100).
+
 SET reactorPID:SETPOINT TO 0.9.
 LOCAL reactorControlers IS SHIP:PARTSTAGGED("reactor_controler").
 LOCAL isControlCore IS am_control_core(reactorControlers).
 LOCAL reactorModuleList IS SHIP:MODULESNAMED("FissionReactor").
 LOCAL ec IS get_ec().
 
-LOCAL numberOfParts IS SHIP:PARTS:LENGTH.
-WHEN numberOfParts <> SHIP:PARTS:LENGTH THEN {//detection of docking events
+//LOCAL numberOfParts IS SHIP:PARTS:LENGTH.
+//WHEN numberOfParts <> SHIP:PARTS:LENGTH THEN {//detection of docking events
+//	SET ec TO get_ec().
+//	SET numberOfParts TO SHIP:PARTS:LENGTH.
+//	SET newScanTime TO TIME:SECONDS - 1.
+//	PRESERVE.
+//}
+
+ON SHIP:PARTS:LENGTH {//detection of docking events
 	SET ec TO get_ec().
 	SET numberOfParts TO SHIP:PARTS:LENGTH.
 	SET newScanTime TO TIME:SECONDS - 1.

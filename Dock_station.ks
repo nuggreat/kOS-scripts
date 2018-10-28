@@ -5,7 +5,6 @@ SAS OFF.
 RCS OFF.
 ABORT OFF.
 LOCAL stationPortListRaw IS port_scan_of(SHIP).
-LOCAL noFlyZone IS ROUND(no_fly_zone(SHIP) + 25).
 LOCAL buffer IS SHIP:MESSAGES.
 buffer:CLEAR().
 
@@ -19,24 +18,27 @@ buffer:CLEAR().
 cratConect:SENDMESSAGE("Handshake").		//handshake sent
 message_wait(buffer).
 buffer:CLEAR().
-cratConect:SENDMESSAGE("Ready").		//ready to reveve data
+cratConect:SENDMESSAGE("Ready").		//ready to receive data
 
 LOCAL craftPortListRaw IS port_scan_of(craft).
 message_wait(buffer).
 LOCAL signal IS buffer:POP().
-LOCAL stationMove IS signal:CONTENT.	//receved if station should move
+LOCAL stationMove IS signal:CONTENT.	//received if station should move
 cratConect:SENDMESSAGE(port_uid_filter(stationPortListRaw)).		//sending stationPortList in UID form
 
 message_wait(buffer).
 LOCAL signal IS buffer:POP().
-LOCAL portLock IS signal:CONTENT.		//receving the ports slected for use in UID form
+LOCAL portLock IS signal:CONTENT.		//receiving the ports selected for use in UID form
 IF portLock["match"] {
-LOCAL portLock IS port_lock_true(craftPortListRaw, stationPortListRaw, portLock).	//changing the ports slected for use from UID to TYPE:PART
-cratConect:SENDMESSAGE(noFlyZone).	//sending noFlyZone
-PRINT "Begining Docking Protocalls.".
+LOCAL portLock IS port_lock_true(craftPortListRaw, stationPortListRaw, portLock).	//changing the ports selected for use from UID to TYPE:PART
 
 GLOBAL stationPort IS portLock["stationPort"].
 GLOBAL craftPort IS portLock["craftPort"].
+
+LOCAL noFlyZone IS ROUND(no_fly_zone(SHIP,stationPort) + 50).
+cratConect:SENDMESSAGE(noFlyZone).	//sending noFlyZone
+PRINT "Beginning Docking Protocols.".
+
 
 stationPort:CONTROLFROM().
 

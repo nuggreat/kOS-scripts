@@ -10,11 +10,11 @@ LOCAL craftPortListRaw IS port_scan_of(SHIP).
 IF craftPortListRaw:LENGTH = 0 {SET craftPortListRaw TO port_scan_of(SHIP).}
 LOCAL buffer IS SHIP:MESSAGES.
 buffer:CLEAR().
-```
+
 //PID setup PIDLOOP(kP,kI,kD,min,max)
 SET forRCS_PID TO PIDLOOP(4,0.02,0,-1,1).
 SET topRCS_PID TO PIDLOOP(4,0.02,0,-1,1).
-SET starRCS_PID TO PIDLOOP(4,0.02,0,-1,1).```
+SET starRCS_PID TO PIDLOOP(4,0.02,0,-1,1).
 
 LOCAL done IS FALSE.
 UNTIL done {
@@ -49,16 +49,16 @@ PRINT "Docking Requested".
 
 message_wait(buffer).
 LOCAL signal IS buffer:POP().
-LOCAL stationPortListUid IS signal:CONTENT.	//receving stationPortList in UID form
+LOCAL stationPortListUid IS signal:CONTENT.	//receiving stationPortList in UID form
 LOCAL craftPortListUid IS port_uid_filter(craftPortListRaw).
 LOCAL portLock IS port_lock(craftPortListUid,stationPortListUid,"enabled","disabled").
-stationConect:SENDMESSAGE(portLock).			//sending the ports slected for use in UID form
+stationConect:SENDMESSAGE(portLock).			//sending the ports selected for use in UID form
 IF portLock["match"] {
-LOCAL portLock IS port_lock_true(craftPortListRaw,stationPortListRaw,portLock).	//changing the ports slected for use from UID to TYPE:PART
+LOCAL portLock IS port_lock_true(craftPortListRaw,stationPortListRaw,portLock).	//changing the ports selected for use from UID to TYPE:PART
 
 message_wait(buffer).
 LOCAL signal IS buffer:POP().
-LOCAL noFlyZone IS signal:CONTENT.	//receving noFlyZone size
+LOCAL noFlyZone IS signal:CONTENT.	//receiving noFlyZone size
 
 LOCAL stationPort IS portLock["stationPort"].
 LOCAL craftPort IS portLock["craftPort"].
@@ -224,18 +224,6 @@ FUNCTION translate {
 		PRINT " ".
 		PRINT "Port Size: " + portSize.
 		PRINT "Distance:  " + ROUND(distDif,1).
-		//PRINT " ".
-		//PRINT "      Dist: " + ROUND(axisDist[0],2).
-		//PRINT "     Speed: " + ROUND(axisSpeed[0]:MAG,2).
-		//PRINT " ".
-		//PRINT " For  Dist: " + ROUND(axisDist[1],2).
-		//PRINT " For Speed: " + ROUND(axisSpeed[1],2).
-		//PRINT " ".
-		//PRINT " Top  Dist: " + ROUND(axisDist[2],2).
-		//PRINT " Top Speed: " + ROUND(axisSpeed[2],2).
-		//PRINT " ".
-		//PRINT "Star  Dist: " + ROUND(axisDist[3],2).
-		//PRINT "Star Speed: " + ROUND(axisSpeed[3],2).
 
 		SET done TO (distDif < minDist) OR (stationPort:STATE = "Docked (docker)") OR (stationPort:STATE = "Docked (dockee)") OR (axisDist[0] < 1).
 	}
@@ -275,10 +263,10 @@ FUNCTION port_lock {
 	IF matchingPort["match"] {
 		RETURN matchingPort.
 	} ELSE IF use <> -99999 {
-		PRINT "Overiding Port Priority Tag".
+		PRINT "Overriding Port Priority Tag".
 		RETURN port_lock(craftPortLex,stationPortLex,-99999,ignore).
 	} ELSE IF ignore <> -99999{
-		PRINT "Overiding Port Disable Tag".
+		PRINT "Overriding Port Disable Tag".
 		RETURN port_lock(craftPortLex,stationPortLex,-99999,-99999).
 	} ELSE {
 		RETURN LEX("match",FALSE).

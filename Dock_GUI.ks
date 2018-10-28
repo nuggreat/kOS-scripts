@@ -3,6 +3,8 @@
 //TODO: 3) check that distance loading works for COM targeting
 //TODO: 4) settings should not disapear on translation targeting type change
 //TODO: 5) add to translation settings a toggle for if tumble compinsation should be on or not
+//TODO: 6) add PID to throttle control for burn mode
+//TODO: 7) relitave speed should be 0 or not displayed when burn mode kill rel is used
 
 CLEARGUIS().
 CLEARSCREEN.
@@ -120,37 +122,22 @@ LOCAL interface IS GUI(500).
 	 LOCAL itmntl0GetDist IS itmntLayout0:ADDBUTTON("load Current Distance").
 	LOCAL itmntLayout1 IS itmnTarget:ADDHLAYOUT.
 	 LOCAL itmntl1Speed IS itmntLayout1:ADDBUTTON("Speed").
-	  //SET itmntl1Speed:EXCLUSIVE TO TRUE.
-	  //SET itmntl1Speed:TOGGLE TO TRUE.
 	 LOCAL itmntl1Dist IS itmntLayout1:ADDBUTTON("Distance").
 	  i_speed_dist_formating(itmntl1Speed,itmntl1Dist).
-	  //SET itmntl1Dist:PRESSED TO TRUE.
-	  //SET itmntl1Dist:EXCLUSIVE TO TRUE.
-	  //SET itmntl1Dist:TOGGLE TO TRUE.
 	 LOCAL itmntl1Label IS itmntLayout1:ADDLABEL("Fore/Back (+/-): ").
 	 LOCAL itmntl1Fore IS itmntLayout1:ADDTEXTFIELD("0").
  	  i_width_to(itmntl1Fore,240).
 	LOCAL itmntLayout2 IS itmnTarget:ADDHLAYOUT.
 	 LOCAL itmntl2Speed IS itmntLayout2:ADDBUTTON("Speed").
-	  //SET itmntl2Speed:EXCLUSIVE TO TRUE.
-	  //SET itmntl2Speed:TOGGLE TO TRUE.
 	 LOCAL itmntl2Dist IS itmntLayout2:ADDBUTTON("Distance").
 	  i_speed_dist_formating(itmntl2Speed,itmntl2Dist).
-	  //SET itmntl2Dist:PRESSED TO TRUE.
-	  //SET itmntl2Dist:EXCLUSIVE TO TRUE.
-	  //SET itmntl2Dist:TOGGLE TO TRUE.
 	 LOCAL itmntl2Label IS itmntLayout2:ADDLABEL("Up/Down (+/-): ").
 	 LOCAL itmntl2Top IS itmntLayout2:ADDTEXTFIELD("0").
 	  i_width_to(itmntl2Top,240).
 	LOCAL itmntLayout3 IS itmnTarget:ADDHLAYOUT.
 	 LOCAL itmntl3Speed IS itmntLayout3:ADDBUTTON("Speed").
-	  //SET itmntl3Speed:EXCLUSIVE TO TRUE.
-	  //SET itmntl3Speed:TOGGLE TO TRUE.
 	 LOCAL itmntl3Dist IS itmntLayout3:ADDBUTTON("Distance").
 	  i_speed_dist_formating(itmntl3Speed,itmntl3Dist).
-	  //SET itmntl3Dist:PRESSED TO TRUE.
-	  //SET itmntl3Dist:EXCLUSIVE TO TRUE.
-	  //SET itmntl3Dist:TOGGLE TO TRUE.
 	 LOCAL itmntl3Label IS itmntLayout3:ADDLABEL("Left/Right (+/-): ").
 	 LOCAL itmntl3Star IS itmntLayout3:ADDTEXTFIELD("0").
 	  i_width_to(itmntl3Star,240).
@@ -199,10 +186,8 @@ LOCAL interface IS GUI(500).
    LOCAL isdl04Text0 IS isdLayout04:ADDLABEL(" ").
    LOCAL isdl04Text1 IS isdLayout04:ADDLABEL(" ").
   LOCAL isdLayout05_1 IS iStatusDisp:ADDHLAYOUT.
-   //LOCAL isdl051Layout0 IS isdLayout05_1:ADDHLAYOUT.
     LOCAL isdl051l0Text0 IS isdLayout05_1:ADDLABEL(" ").
     LOCAL isdl051l0Text1 IS isdLayout05_1:ADDLABEL(" ").
-   //LOCAL isdl051Layout1 IS isdLayout05_1:ADDHLAYOUT.
     LOCAL isdl051l1Text0 IS isdLayout05_1:ADDLABEL(" ").
     LOCAL isdl051l1Text1 IS isdLayout05_1:ADDLABEL(" ").
   LOCAL isdLayout05_2 IS iStatusDisp:ADDHLAYOUT.
@@ -535,12 +520,19 @@ FUNCTION burn {
 		}
 	} ELSE IF burnState = 2 {
 		//LOCAL maxThrot IS MAX(1 - LOG10(MAX(ABS(STEERINGMANAGER:ANGLEERROR) * 100,1))/3.35,0).
-		LOCAL maxThrot IS MIN(MAX(1.1 + (STEERINGMANAGER:ANGLEERROR / 5),0),1).
+		LOCAL maxThrot IS MIN(MAX(1.1 - (ABS(STEERINGMANAGER:ANGLEERROR) / 5),0),1).
 		//LOCAL maxThrot IS MAX(1 - ABS(STEERINGMANAGER:ANGLEERROR),0).
 		//LOCAL maxThrot IS 1.
 		//LOCAL speedCoeficent IS COS(MIN(ABS(STEERINGMANAGER:ANGLEERROR*10),90)).
 		//PRINT "speedCoeficent: " + ROUND(speedCoeficent,2)  + "   " AT(0,0).
 		SET burnData["throttle"] TO MAX(MIN((relitaveSpeed / shipAcceleration) * throtCoeficent,maxThrot),0).
+		CLEARSCREEN.
+		PRINT "something is off with the throttle math".
+		PRINT "relSpeed: " + relitaveSpeed.
+		PRINT "shipACC: " + shipAcceleration.
+		PRINT "throtCoeficent: " + throtCoeficent.
+		PRINT "maxThrot: " + maxThrot.
+		PRINT "Throt: " + throt.
 
 		IF done {
 			taskList:ADD(burn@:BIND((burnState + 1),localTarget,targetSpeed,targetDist)).
@@ -1315,4 +1307,37 @@ FUNCTION i_clear_status {
 		SET localItem:TEXT TO " ".
 		localItem:SHOW.
 	}
+}
+
+FUNCTION i_show_status {
+	PARAMETER localItem IS iStatusDisp.
+	IF localItem:ISTYPE("box") {
+		FOR layout IN localItem:WIDGETS {
+			IF i_show_status(layout) {
+				layout:SHOW.
+				BREAK.
+			}
+		}
+		RETURN FALSE.
+	} ELSE {
+		RETURN localItem:TEXT <> " ".
+	}
+}
+
+FUNCTION i_status_visability {
+	PARAMETER doClear IS TRUE, localItem IS iStatusDisp.
+	IF localItem:ISTYPE("box") {
+		FOR layout IN localItem:WIDGETS {
+			IF i_show_status(layout) {
+				layout:SHOW.
+				BREAK.
+			} ELSE {
+				layout:HIDE.
+			}
+		}
+		RETURN FALSE.
+	} ELSE {
+		RETURN localItem:TEXT <> " ".
+	}
+	
 }

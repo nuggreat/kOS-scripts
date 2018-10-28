@@ -146,43 +146,43 @@ FUNCTION port_size_matching {
 	RETURN returnList.
 }
 
-//FUNCTION no_fly_zone {
-//	PARAMETER craft,stationPort.
-//	LOCAL bigestDist IS 0.
-//	FOR p IN craft:PARTS {
-//		LOCAL dist IS (p:POSITION - stationPort:POSITION):MAG.
-//		IF dist > bigestDist {
-//			SET bigestDist TO dist.
-//		}
-//	}
-//	RETURN bigestDist.
-//}
-
 FUNCTION no_fly_zone {
-	PARAMETER craft.	//-----the ship used for the calculation
-	LOCAL partList IS craft:PARTS.
-	LOCAL forDist IS dist_along_vec(partList,craft:FACING:FOREVECTOR).
-	LOCAL upDist IS dist_along_vec(partList,craft:FACING:TOPVECTOR).
-	LOCAL starDist IS dist_along_vec(partList,craft:FACING:STARVECTOR).
-	RETURN sqrt(forDist^2+upDist^2+starDist^2).
-}
-
-FUNCTION dist_along_vec {
-	PARAMETER partList,	//-----list of things to calculate the dist of-----
-	compVec.				//-----the vector along which the dist is calculated-----
-	LOCAL compVecLocal IS compVec:NORMALIZED.
-	LOCAL posDist IS 0.
-	LOCAL negDist IS 0.
-	FOR p IN partList {
-		LOCAL dist IS VDOT(p:POSITION, compVecLocal).
-		IF dist > posDist {
-			SET  posDist TO dist.
-		} ELSE IF dist < negDist {
-			SET negDist TO dist.
+	PARAMETER station,stationPort.
+	LOCAL bigestDist IS 0.
+	FOR p IN station:PARTS {
+		LOCAL dist IS (p:POSITION - stationPort:POSITION):MAG.
+		IF dist > bigestDist {
+			SET bigestDist TO dist.
 		}
 	}
-	RETURN (posDist - negDist).
+	RETURN bigestDist.
 }
+
+//FUNCTION no_fly_zone {
+//	PARAMETER craft.	//-----the ship used for the calculation
+//	LOCAL partList IS craft:PARTS.
+//	LOCAL forDist IS dist_along_vec(partList,craft:FACING:FOREVECTOR).
+//	LOCAL upDist IS dist_along_vec(partList,craft:FACING:TOPVECTOR).
+//	LOCAL starDist IS dist_along_vec(partList,craft:FACING:STARVECTOR).
+//	RETURN sqrt(forDist^2+upDist^2+starDist^2).
+//}
+//
+//FUNCTION dist_along_vec {
+//	PARAMETER partList,	//-----list of things to calculate the dist of-----
+//	compVec.				//-----the vector along which the dist is calculated-----
+//	LOCAL compVecLocal IS compVec:NORMALIZED.
+//	LOCAL posDist IS 0.
+//	LOCAL negDist IS 0.
+//	FOR p IN partList {
+//		LOCAL dist IS VDOT(p:POSITION, compVecLocal).
+//		IF dist > posDist {
+//			SET  posDist TO dist.
+//		} ELSE IF dist < negDist {
+//			SET negDist TO dist.
+//		}
+//	}
+//	RETURN (posDist - negDist).
+//}
 
 FUNCTION message_wait {
 	PARAMETER buffer.
@@ -195,7 +195,7 @@ FUNCTION axis_speed {
 	LOCAL localStation IS target_craft(station).
 	LOCAL localCraft IS target_craft(craft).
 	LOCAL craftFacing IS localCraft:FACING.
-	IF craftPort:ISTYPE("DOCKINGPORT") { SET craftFacing TO craftPort:PORTFACING. }
+	//IF craftPort:ISTYPE("DOCKINGPORT") { SET craftFacing TO craftPort:PORTFACING. }
 	LOCAL relitaveSpeedVec IS localCraft:VELOCITY:ORBIT - localStation:VELOCITY:ORBIT.	//relitaveSpeedVec is the speed as reported by the navball in target mode as a vector along the target prograde direction
 	LOCAL speedFor IS VDOT(relitaveSpeedVec, craftFacing:FOREVECTOR).	//positive is moving forwards, negative is moving backwards
 	LOCAL speedTop IS VDOT(relitaveSpeedVec, craftFacing:TOPVECTOR).	//positive is moving up, negative is moving down
@@ -206,8 +206,8 @@ FUNCTION axis_speed {
 FUNCTION axis_distance {
 	PARAMETER craftPort,	//port that all distances are relative to (craft using RCS)
 	stationPort.			//port you want to dock to
-	LOCAL craftFacing IS craftPort:FACING.
-	IF craftPort:ISTYPE("DOCKINGPORT") { SET craftFacing TO craftPort:PORTFACING. }
+	LOCAL craftFacing IS target_craft(craftPort):FACING.
+	//IF craftPort:ISTYPE("DOCKINGPORT") { SET craftFacing TO craftPort:PORTFACING. }
 	LOCAL distVec IS stationPort:POSITION - craftPort:POSITION.//vector pointing at the station port from the craft port
 	LOCAL dist IS distVec:MAG.
 	LOCAL distFor IS VDOT(distVec, craftFacing:FOREVECTOR).	//if positive then stationPort is ahead of craftPort, if negative than stationPort is behind of craftPort
