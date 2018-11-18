@@ -39,7 +39,7 @@ FUNCTION port_scan_of {
 	FOR port IN craft:DOCKINGPORTS {
 		IF NOT sizeConversion:KEYS:CONTAINS(port:NODETYPE) {//check for unknown port sizes
 			sizeConversion:ADD(port:NODETYPE,port:NODETYPE).
-			portLex:ADD(sizeConversion[key],LIST()).
+			portLex:ADD(sizeConversion[port:NODETYPE],LIST()).
 		}
 
 		IF port:STATE = "Ready" {
