@@ -31,7 +31,9 @@ FUNCTION impact_UTs {//returns the UTs of the ship's impact, NOTE: only works fo
 	LOCAL ecc IS craftOrbit:ECCENTRICITY.
 	LOCAL craftTA IS craftOrbit:TRUEANOMALY.
 	LOCAL orbitPeriod IS craftOrbit:PERIOD.
-	LOCAL impactUTs IS time_betwene_two_ta(ecc,orbitPeriod,craftTA,alt_to_ta(sma,ecc,SHIP:BODY,impact_UTs_impactHeight)[1]) + startTime.
+	LOCAL ap IS craftOrbit:APOAPSIS.
+	LOCAL pe IS craftOrbit:PERIAPSIS.
+	LOCAL impactUTs IS time_betwene_two_ta(ecc,orbitPeriod,craftTA,alt_to_ta(sma,ecc,SHIP:BODY,MAX(MIN(impact_UTs_impactHeight,ap),pe)[1]) + startTime.
 	LOCAL newImpactHeight IS ground_track(POSITIONAT(SHIP,impactUTs),impactUTs):TERRAINHEIGHT.
 	SET impact_UTs_impactHeight TO (impact_UTs_impactHeight + newImpactHeight) / 2.
 	RETURN LEX("time",impactUTs,//the UTs of the ship's impact
