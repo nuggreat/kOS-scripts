@@ -1,6 +1,11 @@
+//TODO: 1) add edge cases to status display (function ended/not started)
+//TODO: 2) add vecDraws with toggle in status panel
+//TODO: 3) status display doesn't display the corect end of function message for burn mode
+
 CLEARGUIS().
 CLEARVECDRAWS().
 CLEARSCREEN.
+//IF NOT EXISTS ("1:/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/lib_mis_utilities.ks"). }
 FOR lib IN LIST("lib_dock","lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 LOCAL varConstants IS LEX("numList",LIST("0","1","2","3","4","5","6","7","8","9"),"translationPIDs",LIST("Fore","Star","Top")).
 
@@ -168,9 +173,9 @@ LOCAL interface IS GUI(500).
     LOCAL itmsl2Button IS itmsLayout2:ADDRADIOBUTTON("Tumble Compensation",FALSE).
 	 SET itmsl2Button:TOGGLE TO TRUE.
 	 SET itmsl2Button:EXCLUSIVE TO FALSE.
-   
+
    LOCAL itmsUpdate IS itmSettings:ADDBUTTON("Apply Changes").
-   
+
  LOCAL iStatusDisp IS interface:ADDVBOX.
   LOCAL isdLayoutError IS iStatusDisp:ADDHLAYOUT.
    LOCAL isdleText IS isdLayoutError:ADDLABEL(" ").
@@ -247,6 +252,10 @@ SET itmcStart:ONCLICK TO run_translate@.
 SET itmcStop:ONCLICK TO translation_abort@.
 SET itmcUpdate:ONCLICK TO update_translate@.
 SET itmntl0GetDist:ONCLICK TO load_distance@.
+
+//SET itmntLayout1:ONRADIOCHANGE TO change_translate_type@.
+//SET itmntLayout2:ONRADIOCHANGE TO change_translate_type@.
+//SET itmntLayout3:ONRADIOCHANGE TO change_translate_type@.
 
 RCS OFF.
 SAS OFF.
@@ -464,15 +473,18 @@ FUNCTION burn {
 
 	IF targetDist >= 0 {
 		SET tarSpeed TO ABS(tarSpeed).
+		//LOCAL deccelCoeficent IS MAX(60 / MIN(tarSpeed / shipAcceleration,1),1).
 		LOCAL deccelCoeficent IS MIN(tarSpeed / 30, (shipAcceleration / 2)) / (shipAcceleration * 2).
 		LOCAL distToTarget IS (vecToTarget):MAG - targetDist.
 		SET tarSpeed TO accel_dist_to_speed(shipAcceleration * deccelCoeficent,distToTarget,tarSpeed).
 
 		SET vecMod TO 0.1.
 		SET targetVelocityVec TO vecToTarget:NORMALIZED * tarSpeed.
-		
+		//SET burnDV TO (targetVelocityVec - (relitaveVelocityVec + (targetVelocityVec:NORMALIZED * vecMod))):MAG.
+
 		SET burnVec TO targetVelocityVec - relitaveVelocityVec.
 		SET burnDV TO burnVec:MAG.
+		//SET burnDV TO (targetVelocityVec - relitaveVelocityVec):MAG.
 		SET done TO FALSE.
 		IF (ABS(distToTarget) < 10) AND (burnDV < 1) {
 			taskList:ADD(burn@:BIND(0,localTarget,0)).
@@ -496,7 +508,7 @@ FUNCTION burn {
 		SET statusData["data"][5] TO burnDV.
 		SET statusData["data"][6] TO vecToTarget:MAG.
 		SET statusData["data"][7] TO ABS(STEERINGMANAGER:ANGLEERROR).
-		
+
 	}
 	IF statusData["showVectors"] {
 		vec_draw_add(vecDrawLex,SHIP:POSITION,burnData["steerVec"],GREEN,"steerVec",1,TRUE,0.2).
@@ -509,7 +521,7 @@ FUNCTION burn {
 		RCS OFF.
 		//SET burnData["steerVec"] TO SHIP:FACING:FOREVECTOR.
 		SET burnData["throttle"] TO 0.
-		LOCK STEERING TO burnData["steerVec"].
+		LOCK STEERING TO LOOKDIRUP(burnData["steerVec"],SHIP:FACING:TOPVECTOR).
 		LOCK THROTTLE TO burnData["throttle"].
 		steering_alinged_duration(TRUE,1,FALSE).
 		taskList:ADD(burn@:BIND((burnState + 1),localTarget,targetSpeed,targetDist)).
@@ -524,9 +536,22 @@ FUNCTION burn {
 			RETURN FALSE.
 		}
 	} ELSE IF burnState = 2 {
-		LOCAL maxThrot IS MIN(MAX(1.1 - (ABS(STEERINGMANAGER:ANGLEERROR) / 5),0),1).
+		//LOCAL maxThrot IS MAX(1 - LOG10(MAX(ABS(STEERINGMANAGER:ANGLEERROR) * 100,1))/3.35,0).
+		LOCAL maxThrot IS MIN(MAX(1.1 - (VANG(SHIP:FACING:FOREVECTOR,burnVec) / 5),0),1).
+		//LOCAL maxThrot IS MAX(1 - ABS(STEERINGMANAGER:ANGLEERROR),0).
+		//LOCAL maxThrot IS 1.
+		//LOCAL speedCoeficent IS COS(MIN(ABS(STEERINGMANAGER:ANGLEERROR*10),90)).
+		//PRINT "speedCoeficent: " + ROUND(speedCoeficent,2)  + "   " AT(0,0).
+		//SET burnData["throttle"] TO MAX(MIN((burnDV / shipAcceleration),maxThrot),0).
 		SET PID["eng"]:MAXOUTPUT TO maxThrot.
 		SET burnData["throttle"] TO PID["eng"]:UPDATE(TIME:SECONDS,(VDOT(-SHIP:FACING:FOREVECTOR,burnVec) / shipAcceleration)).
+		//CLEARSCREEN.
+		//PRINT "something is off with the throttle math".
+		//PRINT "relSpeed: " + burnDV.
+		//PRINT "shipACC: " + shipAcceleration.
+		//PRINT "throtCoeficent: " + throtCoeficent.
+		//PRINT "maxThrot: " + maxThrot.
+		//PRINT "Throt: " + burnData["throttle"].
 
 		IF done {
 			taskList:ADD(burn@:BIND((burnState + 1),localTarget,targetSpeed,targetDist)).
@@ -812,7 +837,7 @@ FUNCTION update_translate { IF have_valid_target() {
 			SET portData["changedTarget"] TO TRUE.
 			PRINT "update flagged change in ship point".
 			SET translateData["oldTarget"][0] TO shipPoint.
-		}// ELSE 
+		}// ELSE
 		IF  translateData["oldTarget"][1] <> targetPoint {
 			SET portData["changedTarget"] TO TRUE.
 			PRINT "update flagged change in target point".
@@ -1025,6 +1050,9 @@ FUNCTION translation_control {
 	SET SHIP:CONTROL:FORE TO PID["Fore"]:UPDATE(TIME:SECONDS,axisSpeed[1]).
 	SET SHIP:CONTROL:TOP TO PID["Top"]:UPDATE(TIME:SECONDS,axisSpeed[2]).
 	SET SHIP:CONTROL:STARBOARD TO PID["Star"]:UPDATE(TIME:SECONDS,axisSpeed[3]).
+	//pid_debug(PID["Fore"]).
+	//pid_debug(PID["Top"]).
+	//pid_debug(PID["Star"]).
 }
 
 FUNCTION translation_new_target {
@@ -1058,7 +1086,7 @@ FUNCTION tangent_velocity_vector {//returns a vector pointing in direction of mo
 	LOCAL targetCraft IS target_craft(targetPoint).
 	LOCAL angleVec IS SHIP:POSITION - targetCraft:POSITION.
 	LOCAL angularVelVecNormal IS targetCraft:ANGULARVEL.//in radians
-	
+
 	RETURN VCRS(angularVelVecNormal,angleVec).
 }
 
@@ -1204,9 +1232,9 @@ FUNCTION update_status {
 			taskList:ADD(update_status@:BIND(0)).
 			i_clear_status(iStatusDisp).
 			RETURN TRUE.
-		} 
+		}
 	}
-	
+
 }
 
 FUNCTION get_number {
