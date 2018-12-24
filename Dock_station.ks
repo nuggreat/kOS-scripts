@@ -77,8 +77,7 @@ IF stationMove {
 	}
 }
 
-
-PRINT "Alined and Waiting for Docking.".
+PRINT "Aliened and Waiting for Docking.".
 cratConect:SENDMESSAGE(noFlyZone).
 WAIT 10.
 LOCAL done IS FALSE.

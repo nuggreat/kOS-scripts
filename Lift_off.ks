@@ -61,13 +61,13 @@ WHEN timePast < TIME:SECONDS THEN{
 LOCAL etaSet IS 60.
 LOCAL vertSpeed IS 50.
 PID_config(throttlePID,etaSet,0.25).
-LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS).
+LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 LOCAL twr IS (SHIP:AVAILABLETHRUST / SHIP:MASS) / (SHIP:BODY:MU / SHIP:BODY:RADIUS^2).
 LOCAL maxPitch IS MAX(MIN(twr * 10,45),22.5).
 IF bodyAtmosphere:EXISTS {
 	SET vertSpeed TO 100.
 	PID_config(throttlePID,etaSet,1).
-//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS).
+//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 	SET maxPitch TO MAX(MIN(twr * 10,10),5).
 }
 LOCAL pitchTo IS 90.
@@ -77,13 +77,13 @@ UNTIL SHIP:AVAILABLETHRUST > 0 {
 	WAIT 0.01.
 }
 PRINT "Beginning Roll and Pitch Program".
-UNTIL SHIP:VERTICALSPEED > vertSpeed OR (ETA:APOAPSIS > (etaSet - 0.1) AND SHIP:VERTICALSPEED > 10) {
+UNTIL SHIP:VERTICALSPEED > vertSpeed OR (signed_eta_ap() > (etaSet - 0.1) AND SHIP:VERTICALSPEED > 10) {
 	SET pitchTo TO 90 - MIN(SHIP:VERTICALSPEED / vertSpeed * maxPitch,maxPitch).
 }
 WAIT 1.
 IF bodyAtmosphere:EXISTS {	//liftoff
 	PID_config(throttlePID,etaSet,0.25).
-//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS).
+//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 	UNTIL pitchTo > pitch_target(SHIP:VELOCITY:SURFACE,etaSet,5,-5,20) OR SHIP:ORBIT:APOAPSIS > targetAP {
 		SET pitchTo TO 90 - min(SHIP:VERTICALSPEED / vertSpeed * maxPitch,maxPitch).
 		stage_check().
@@ -91,7 +91,7 @@ IF bodyAtmosphere:EXISTS {	//liftoff
 	}
 } ELSE {
 	PID_config(throttlePID,etaSet,0.15).
-//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS).
+//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 	UNTIL pitchTo > pitch_target(SHIP:VELOCITY:ORBIT,etaSet,5,0,20) OR SHIP:ORBIT:APOAPSIS > targetAP {
 		SET pitchTo TO 90 - MIN(SHIP:VERTICALSPEED / vertSpeed * maxPitch,maxPitch).
 		stage_check().
@@ -110,7 +110,7 @@ IF bodyAtmosphere:EXISTS {
 	LOCK STEERING TO HEADING(headingTar,pitchTar).
 //	PID_config(throttlePID,etaSet,0.25).
 	PID_config(throttlePID,etaSet,0.5).
-//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS).
+//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 
 	UNTIL SHIP:ORBIT:APOAPSIS > targetAP	{
 		SET gradeVec TO SHIP:VELOCITY:SURFACE.
@@ -126,7 +126,7 @@ IF bodyAtmosphere:EXISTS {
 	LOCAL pitchTar IS pitch_target(gradeVec,etaSet,5,0,20).
 	LOCK STEERING TO HEADING(headingTar,pitchTar).
 	PID_config(throttlePID,etaSet,0.10).
-//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS).
+//	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 
 	UNTIL SHIP:ORBIT:APOAPSIS > targetAP	{
 		SET gradeVec TO SHIP:VELOCITY:ORBIT.
@@ -148,7 +148,7 @@ LOCAL minThrottle IS 0.
 IF bodyAtmosphere:EXISTS AND SHIP:ALTITUDE < bodyAtmosphere:HEIGHT {
 	PRINT "Coasting to Edge of Atmosphere".
 	LOCAL engActive IS TRUE.
-	UNTIL ETA:APOAPSIS < 151 OR SHIP:ALTITUDE > bodyAtmosphere:HEIGHT {
+	UNTIL signed_eta_ap() < 151 OR SHIP:ALTITUDE > bodyAtmosphere:HEIGHT {
 		IF SHIP:ORBIT:APOAPSIS < targetAP {
 			SET minThrottle TO MAX((targetAP - SHIP:ORBIT:APOAPSIS) / 1000,0.001).
 			PID_config(throttlePID,etaSet,minThrottle).
@@ -166,20 +166,20 @@ IF bodyAtmosphere:EXISTS AND SHIP:ALTITUDE < bodyAtmosphere:HEIGHT {
 }
 LOCK THROTTLE TO 0.
 
-IF ETA:APOAPSIS > 151 {
+IF signed_eta_ap() > 151 {
 	PRINT "Warping to 150 Seconds Before Ap".
 	SET minThrottle TO 0.
-	UNTIL ETA:APOAPSIS < 151 OR NOT not_warping() {
+	UNTIL signed_eta_ap() < 151 OR NOT not_warping() {
 		WAIT 0.01.
 		IF SHIP:ALTITUDE > bodyAtmosphere:HEIGHT + 100. {
 			SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
-			KUNIVERSE:TIMEWARP:WARPTO(TIME:SECONDS + (ETA:APOAPSIS - 150)).
+			KUNIVERSE:TIMEWARP:WARPTO(TIME:SECONDS + (signed_eta_ap() - 150)).
 		}
 	}
 }
 
-UNTIL ETA:APOAPSIS < 90 {
-	IF (ETA:APOAPSIS < 120) AND (KUNIVERSE:TIMEWARP:WARP > 0) { KUNIVERSE:TIMEWARP:CANCELWARP. PRINT "Canceling Warp". }
+UNTIL signed_eta_ap() < 90 {
+	IF (signed_eta_ap() < 120) AND (KUNIVERSE:TIMEWARP:WARP > 0) { KUNIVERSE:TIMEWARP:CANCELWARP. PRINT "Canceling Warp". }
 	WAIT 0.01.
 }
 
@@ -198,14 +198,14 @@ UNTIL SHIP:ORBIT:PERIAPSIS > (targetAP * 0.99) {
 		IF beforeAp {
 		//	LOCK THROTTLE TO PID_config(throttlePID,etaTar,0.001).
 			PID_config(throttlePID,etaTar,0.001).
-			LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS).
+			LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 			SET beforeAp TO FALSE.
 		}
 	} ELSE {
 		SET etaTar TO MAX(MIN((SHIP:ALTITUDE - SHIP:ORBIT:PERIAPSIS) / 5000,60),30).
 		SET pitchTo TO 0 - circulisePID:UPDATE(TIME:SECONDS, SHIP:ORBIT:APOAPSIS).
 		IF NOT beforeAp {
-			LOCK THROTTLE TO (SHIP:ORBIT:PERIOD - ETA:APOAPSIS)/etaTar/2.5 .
+			LOCK THROTTLE TO (SHIP:ORBIT:PERIOD - signed_eta_ap())/etaTar/2.5 .
 			SET beforeAp TO TRUE.
 		}
 	}
@@ -234,7 +234,7 @@ FUNCTION PID_config {	//throttle PID for assent and circularization
 	SET PID:MAXOUTPUT TO maxSet.
 	SET PID:MINOUTPUT TO minSet.
 	SET PID:SETPOINT TO setTarget.
-	//RETURN throttlePID:UPDATE(TIME:SECONDS,ETA:APOAPSIS).
+	//RETURN throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 }
 
 //FUNCTION twr_limit {
@@ -247,6 +247,14 @@ FUNCTION pitch_target {	//decreases pitch if craft is close to etatarget
 	PARAMETER gradeVec,etaTarget,deviationPos,deviationNeg,etaStart.	//the etaStart number of sec before AP the pitch down will start
 	LOCAL gradent IS etaStart / deviationPos.
 	LOCAL vecPitch IS pitch_of_vector(gradeVec).
-	LOCAL downPitch IS MAX((ETA:APOAPSIS + (deviationPos * gradent)) - etaTarget, deviationNeg) / gradent.
+	LOCAL downPitch IS MAX((signed_eta_ap() + (deviationPos * gradent)) - etaTarget, deviationNeg) / gradent.
 	RETURN MIN(MAX(vecPitch - downPitch,0),80).
+}
+
+FUNCTION signed_eta_ap {
+	IF ETA:APOAPSIS <= ETA:PERIAPSIS {
+		RETURN ETA:APOAPSIS.
+	} ELSE {
+		RETURN ETA:APOAPSIS - SHIP:ORBIT:PERIOD.
+	}
 }

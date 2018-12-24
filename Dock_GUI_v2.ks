@@ -1,15 +1,17 @@
 //TODO: 1) add edge cases to status display (function ended/not started)
-//TODO: 2) add vecDraws with toggle in status panel
-//TODO: 3) status display doesn't display the corect end of function message for burn mode
+//TODO: 2) fix distance load to respect current pressed buttons
+//TODO: 3) check that distance loading works for COM targeting
+//TODO: 4) settings should not disapear on translation targeting type change
+//TODO: 5) add to translation settings a toggle for if tumble compinsation should be on or not
+//TODO: 6) add PID to throttle control for burn mode
+//TODO: 7) relitave speed should be 0 or not displayed when burn mode kill rel is used
+//TODO: 8) live update on target speed when in close with mode
 
 CLEARGUIS().
-CLEARVECDRAWS().
 CLEARSCREEN.
 //IF NOT EXISTS ("1:/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/lib_mis_utilities.ks"). }
 FOR lib IN LIST("lib_dock","lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 LOCAL varConstants IS LEX("numList",LIST("0","1","2","3","4","5","6","7","8","9"),"translationPIDs",LIST("Fore","Star","Top")).
-
-LOCAL vecDrawLex IS LEX().
 
 LOCAL scriptData IS LEX("done",FALSE).
 LOCAL burnData IS LEX("stop",FALSE,"steerVec",SHIP:FACING:FOREVECTOR,"throttle",0).//lexicon for burn function
@@ -20,17 +22,15 @@ LOCAL portData IS LEX("matchingSize",LIST(),"shipList",LIST(),"targetList",LIST(
 LOCAL translateData IS LEX("steerVec",SHIP:FACING:FOREVECTOR,//lexicon of needed to run translation function
 "foreVal",0,"topVal",0,"starVal",0,
 "pitch",0,"yaw",0,"roll",0,"topSpeed",5,"accel",0.05,
-"stop",FALSE,"targetIsType",TRUE,"targetPorts",FALSE,"oldTarget",LIST(TRUE,TRUE)
-,"doTranslation",TRUE,"distControl",LEX("for",TRUE,"top",TRUE,"star",TRUE),"doTumbleComp",FALSE).
+"stop",FALSE,"targetIsType",TRUE,"targetPorts",FALSE,"oldTarget",LIST(-1,-1)
+,"doTranslation",TRUE,"distControl",LEX("for",TRUE,"top",TRUE,"star",TRUE)).
 
-LOCAL statusData IS LEX("dispType",0,"data",LIST(0,0,0,0,0,0,0,0,0),"dispOn",FALSE,"showVectors",FALSE).
+LOCAL statusData IS LEX("dispType",0,"data",LIST(0,0,0,0,0,0,0,0,0),"dispOn",FALSE).
 
 //		   PID setup PIDLOOP(kP,kI,kD,min,max)
 LOCAL PID IS LEX(	"Fore",PIDLOOP(4,0.1,0.01,-1,1),
 					"Star",PIDLOOP(4,0.1,0.01,-1,1),
-					 "Top",PIDLOOP(4,0.1,0.01,-1,1),
-					 "eng",PIDLOOP(1,0.02,0.05,0,1)).
-SET PID["eng"]:SETPOINT TO 0.01.
+					 "Top",PIDLOOP(4,0.1,0.01,-1,1)).
 
 LOCAL interface IS GUI(500).
  LOCAL iModeSelect IS interface:ADDHBOX.
@@ -163,22 +163,14 @@ LOCAL interface IS GUI(500).
 	LOCAL itmsl0Label IS itmsLayout0:ADDLABEL("Top Speed Limit: ").
 	LOCAL itmsl0Speed IS itmsLayout0:ADDTEXTFIELD("5").
 	 i_width_to(itmsl0Speed,330).
-   LOCAL itmsLable1 IS itmSettings:ADDLABEL("Acceleration Limit Only Applies to Distance Mode").
+   LOCAL itmsLable2 IS itmSettings:ADDLABEL("Acceleration Limit Only Applies to Distance Mode").
    LOCAL itmsLayout1 IS itmSettings:ADDHLAYOUT.
 	LOCAL itmsl1Label IS itmsLayout1:ADDLABEL("Acceleration Limit: ").
 	LOCAL itmsl1Accel IS itmsLayout1:ADDTEXTFIELD("0.05").
 	 i_width_to(itmsl1Accel,330).
-   LOCAL itmsLable2 IS itmSettings:ADDLABEL("Tumble Compensation Only Applies to Full Translation").
-   LOCAL itmsLayout2 IS itmSettings:ADDHLAYOUT.
-    LOCAL itmsl2Button IS itmsLayout2:ADDRADIOBUTTON("Tumble Compensation",FALSE).
-	 SET itmsl2Button:TOGGLE TO TRUE.
-	 SET itmsl2Button:EXCLUSIVE TO FALSE.
-
    LOCAL itmsUpdate IS itmSettings:ADDBUTTON("Apply Changes").
-
+   
  LOCAL iStatusDisp IS interface:ADDVBOX.
-  LOCAL isdLayoutError IS iStatusDisp:ADDHLAYOUT.
-   LOCAL isdleText IS isdLayoutError:ADDLABEL(" ").
   LOCAL isdLayout00 IS iStatusDisp:ADDHLAYOUT.
    LOCAL isdl00Text0 IS isdLayout00:ADDLABEL(" ").
    LOCAL isdl00Text1 IS isdLayout00:ADDLABEL(" ").
@@ -226,8 +218,8 @@ LOCAL interface IS GUI(500).
 
 change_menu(imsBurn).
 SET iModeSelect:ONRADIOCHANGE TO change_menu@.
-i_status_style(iStatusDisp).
-i_clear_status(iStatusDisp).
+i_status_style().
+i_clear_status().
 
 change_mode_burn(ibbmRetro).
 SET ibBurnMode:ONRADIOCHANGE TO change_mode_burn@.
@@ -253,9 +245,9 @@ SET itmcStop:ONCLICK TO translation_abort@.
 SET itmcUpdate:ONCLICK TO update_translate@.
 SET itmntl0GetDist:ONCLICK TO load_distance@.
 
-//SET itmntLayout1:ONRADIOCHANGE TO change_translate_type@.
-//SET itmntLayout2:ONRADIOCHANGE TO change_translate_type@.
-//SET itmntLayout3:ONRADIOCHANGE TO change_translate_type@.
+SET itmntLayout1:ONRADIOCHANGE TO change_translate_type@.
+SET itmntLayout2:ONRADIOCHANGE TO change_translate_type@.
+SET itmntLayout3:ONRADIOCHANGE TO change_translate_type@.
 
 RCS OFF.
 SAS OFF.
@@ -274,12 +266,12 @@ UNTIL scriptData["done"] {
 			}
 		}
 	}
-	WAIT 0.
+	WAIT 0.01.
 	IF ABORT { shutdown_stack(). }
 }
 interface:DISPOSE.
 enable_disable_highlight(FALSE).
-CLEARVECDRAWS().
+SAS ON.
 
 FUNCTION field_cycle {
 	PARAMETER fieldList,fieldInex IS 0.
@@ -343,7 +335,6 @@ FUNCTION change_mode_translate_facing {
 
 	IF selectedMode = itmmatPort {
 		IF (portData["targetPorts"]:LENGTH > 0) AND NOT portData["isKlaw"] {
-			itmnFacing:SHOW.
 			itmnfLayout0:HIDE.
 			itmnfLayout1:HIDE.
 			SET itmnfLabel0:TEXT TO "Port Relative Adjustment".
@@ -354,13 +345,19 @@ FUNCTION change_mode_translate_facing {
 		}
 	}
 	IF selectedMode = itmmatTar {
-		itmnFacing:SHOW.
+		itmNavigation:SHOW.
+		itmControl:SHOW.
+		itmSettings:HIDE.
 		itmnfLayout0:SHOW.
 		itmnfLayout1:SHOW.
 		SET itmnfLabel0:TEXT TO "Target Relative Adjustments".
 	}
 	IF selectedMode = itmmatFace {
-		itmnFacing:HIDE.
+		itmNavigation:SHOW.
+		itmControl:SHOW.
+		itmSettings:HIDE.
+		itmnfLayout0:HIDE.
+		itmnfLayout1:HIDE.
 		SET itmnfLabel0:TEXT TO "Ship Relative Adjustments".
 		dist_speed_restrict(selectedMode).
 	}
@@ -385,7 +382,6 @@ FUNCTION dist_speed_restrict {
 
 FUNCTION change_translate_type {
 	PARAMETER selectedType.
-	//PRINT selectedType:TEXT.
 	IF selectedType = itmmmtRot {
 		itmNavigation:SHOW.
 		itmControl:SHOW.
@@ -405,6 +401,7 @@ FUNCTION change_translate_type {
 		itmControl:HIDE.
 		itmSettings:SHOW.
 	}
+
 }
 
 FUNCTION run_Burn { IF have_valid_target() {
@@ -412,7 +409,6 @@ FUNCTION run_Burn { IF have_valid_target() {
 	WAIT UNTIL active_engine(FALSE).
 	ibStop:SHOW.
 	hide_start_buttons(TRUE).
-	PID["eng"]:RESET().
 	LOCAL localTarget IS target_craft(TARGET).
 	SET statusData["dispType"] TO 1.
 
@@ -425,10 +421,9 @@ FUNCTION run_Burn { IF have_valid_target() {
 		LOCAL speedLimit IS (localTarget:POSITION - SHIP:POSITION):MAG / 90.
 
 		IF ibbmTarget:PRESSED {
-			taskList:ADD(burn@:BIND(0,localTarget,targetSpeed)).
+			taskList:ADD(burn@:BIND(0,localTarget,targetSpeed,speedLimit)).
 			PRINT "running burn_at_target".
 			SET statusData["data"][0] TO 1.
-			SET statusData["data"][2] TO targetSpeed.
 		} ELSE IF ibbmClose:PRESSED {
 			LOCAL targetDist IS get_number(ibdlField,100).
 			SET targetSpeed TO MIN(targetSpeed,speedLimit).
@@ -437,6 +432,7 @@ FUNCTION run_Burn { IF have_valid_target() {
 			SET statusData["data"][0] TO 2.
 			SET statusData["data"][3] TO targetDist.
 		}
+		SET statusData["data"][2] TO targetSpeed.
 	}
 }}
 
@@ -465,28 +461,24 @@ FUNCTION burn {
 	LOCAL relitaveVelocityVec IS SHIP:VELOCITY:ORBIT - localTarget:VELOCITY:ORBIT.
 	LOCAL shipAcceleration IS SHIP:AVAILABLETHRUST / SHIP:MASS.
 	LOCAL targetVelocityVec IS vecToTarget:NORMALIZED * tarSpeed.
-	LOCAL burnVec IS targetVelocityVec - relitaveVelocityVec.
-	LOCAL burnDV IS burnVec:MAG.
+	LOCAL relitaveSpeed IS (targetVelocityVec - relitaveVelocityVec):MAG.
 	LOCAL vecMod IS 0.
+	LOCAL throtCoeficent IS 1.
 
-	LOCAL done IS burnDV < 0.05.
+	LOCAL done IS relitaveSpeed < 0.05.
 
-	IF targetDist >= 0 {
+	IF targetDist <> -1 {
 		SET tarSpeed TO ABS(tarSpeed).
 		//LOCAL deccelCoeficent IS MAX(60 / MIN(tarSpeed / shipAcceleration,1),1).
-		LOCAL deccelCoeficent IS MIN(tarSpeed / 30, (shipAcceleration / 2)) / (shipAcceleration * 2).
+		LOCAL deccelCoeficent IS MIN(tarSpeed / 60, shipAcceleration) / (shipAcceleration * 2).
 		LOCAL distToTarget IS (vecToTarget):MAG - targetDist.
 		SET tarSpeed TO accel_dist_to_speed(shipAcceleration * deccelCoeficent,distToTarget,tarSpeed).
-
-		SET vecMod TO 0.1.
 		SET targetVelocityVec TO vecToTarget:NORMALIZED * tarSpeed.
-		//SET burnDV TO (targetVelocityVec - (relitaveVelocityVec + (targetVelocityVec:NORMALIZED * vecMod))):MAG.
-
-		SET burnVec TO targetVelocityVec - relitaveVelocityVec.
-		SET burnDV TO burnVec:MAG.
-		//SET burnDV TO (targetVelocityVec - relitaveVelocityVec):MAG.
+		SET relitaveSpeed TO (targetVelocityVec - relitaveVelocityVec):MAG.
+		SET throtCoeficent TO 0.5.
+		SET vecMod TO 0.
 		SET done TO FALSE.
-		IF (ABS(distToTarget) < 10) AND (burnDV < 1) {
+		IF (ABS(distToTarget) < 10) AND (relitaveSpeed < 1) {
 			taskList:ADD(burn@:BIND(0,localTarget,0)).
 			PRINT "calling all stop".
 			RETURN TRUE.
@@ -500,20 +492,13 @@ FUNCTION burn {
 		//PRINT "state: " + burnData["state"] AT(0,0).
 	}
 
-	SET burnData["steerVec"] TO burnVec - (targetVelocityVec:NORMALIZED * vecMod).
+	SET burnData["steerVec"] TO (targetVelocityVec - (relitaveVelocityVec + (targetVelocityVec:NORMALIZED * vecMod))).
 	IF statusData["dispOn"] {
 		SET statusData["data"][1] TO burnState.
-		SET statusData["data"][2] TO tarSpeed.
 		SET statusData["data"][4] TO relitaveVelocityVec:MAG.
-		SET statusData["data"][5] TO burnDV.
+		SET statusData["data"][5] TO burnData["steerVec"]:MAG.
 		SET statusData["data"][6] TO vecToTarget:MAG.
 		SET statusData["data"][7] TO ABS(STEERINGMANAGER:ANGLEERROR).
-
-	}
-	IF statusData["showVectors"] {
-		vec_draw_add(vecDrawLex,SHIP:POSITION,burnData["steerVec"],GREEN,"steerVec",1,TRUE,0.2).
-		vec_draw_add(vecDrawLex,SHIP:POSITION,targetVelocityVec,YELLOW,"targetVel",1,TRUE,0.2).
-		vec_draw_add(vecDrawLex,SHIP:POSITION,relitaveVelocityVec,RED,"relitveVel",1,TRUE,0.2).
 	}
 
 	IF burnState = 0 {
@@ -521,7 +506,7 @@ FUNCTION burn {
 		RCS OFF.
 		//SET burnData["steerVec"] TO SHIP:FACING:FOREVECTOR.
 		SET burnData["throttle"] TO 0.
-		LOCK STEERING TO LOOKDIRUP(burnData["steerVec"],SHIP:FACING:TOPVECTOR).
+		LOCK STEERING TO burnData["steerVec"].
 		LOCK THROTTLE TO burnData["throttle"].
 		steering_alinged_duration(TRUE,1,FALSE).
 		taskList:ADD(burn@:BIND((burnState + 1),localTarget,targetSpeed,targetDist)).
@@ -537,17 +522,15 @@ FUNCTION burn {
 		}
 	} ELSE IF burnState = 2 {
 		//LOCAL maxThrot IS MAX(1 - LOG10(MAX(ABS(STEERINGMANAGER:ANGLEERROR) * 100,1))/3.35,0).
-		LOCAL maxThrot IS MIN(MAX(1.1 - (VANG(SHIP:FACING:FOREVECTOR,burnVec) / 5),0),1).
+		LOCAL maxThrot IS MIN(MAX(1.1 - (ABS(STEERINGMANAGER:ANGLEERROR) / 5),0),1).
 		//LOCAL maxThrot IS MAX(1 - ABS(STEERINGMANAGER:ANGLEERROR),0).
 		//LOCAL maxThrot IS 1.
 		//LOCAL speedCoeficent IS COS(MIN(ABS(STEERINGMANAGER:ANGLEERROR*10),90)).
 		//PRINT "speedCoeficent: " + ROUND(speedCoeficent,2)  + "   " AT(0,0).
-		//SET burnData["throttle"] TO MAX(MIN((burnDV / shipAcceleration),maxThrot),0).
-		SET PID["eng"]:MAXOUTPUT TO maxThrot.
-		SET burnData["throttle"] TO PID["eng"]:UPDATE(TIME:SECONDS,(VDOT(-SHIP:FACING:FOREVECTOR,burnVec) / shipAcceleration)).
+		SET burnData["throttle"] TO MAX(MIN((relitaveSpeed / shipAcceleration) * throtCoeficent,maxThrot),0).
 		//CLEARSCREEN.
 		//PRINT "something is off with the throttle math".
-		//PRINT "relSpeed: " + burnDV.
+		//PRINT "relSpeed: " + relitaveSpeed.
 		//PRINT "shipACC: " + shipAcceleration.
 		//PRINT "throtCoeficent: " + throtCoeficent.
 		//PRINT "maxThrot: " + maxThrot.
@@ -560,7 +543,6 @@ FUNCTION burn {
 			RETURN FALSE.
 		}
 	} ELSE IF burnState = 3 {
-		SET statusData["dispType"] TO 0.
 		UNLOCK STEERING.
 		UNLOCK THROTTLE.
 		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
@@ -745,7 +727,6 @@ FUNCTION settings_update {
 	PRINT "Updated Translate Settings".
 	SET translateData["topSpeed"] TO ABS(get_number(itmsl0Speed,1)).
 	SET translateData["accel"] TO get_number(itmsl1Accel,0.05).
-	SET translateData["doTumbleComp"] TO itmsl2Button:PRESSED.
 }
 
 FUNCTION run_translate { IF have_valid_target() {
@@ -781,6 +762,7 @@ FUNCTION update_translate { IF have_valid_target() {
 		SET translateData["pitch"] TO MOD(get_number(itmnfl0Pitch,0),360).
 		SET translateData["Yaw"] TO MOD(get_number(itmnfl1Yaw,0),360).
 		SET translateData["targetPorts"] TO FALSE.
+		SET translateData["targetIsType"] TO TRUE.
 		SET translateData["targetIsType"] TO "craft".
 		IF portData["isKlaw"] {
 			SET shipPoint TO portData["targetPorts"][0].
@@ -828,51 +810,44 @@ FUNCTION update_translate { IF have_valid_target() {
 		SET translateData["distControl"]["star"] TO TRUE.
 	}
 
-	//LOCAL targetData IS LIST(shipPoint,targetPoint).
-	IF translateData["oldTarget"][0]:ISTYPE("boolean")  {
-		SET translateData["oldTarget"][0] TO shipPoint.
-		SET translateData["oldTarget"][1] TO targetPoint.
-	} ELSE {
-		IF translateData["oldTarget"][0] <> shipPoint {
-			SET portData["changedTarget"] TO TRUE.
-			PRINT "update flagged change in ship point".
-			SET translateData["oldTarget"][0] TO shipPoint.
-		}// ELSE
-		IF  translateData["oldTarget"][1] <> targetPoint {
-			SET portData["changedTarget"] TO TRUE.
-			PRINT "update flagged change in target point".
-			SET translateData["oldTarget"][1] TO targetPoint.
-		}
+	LOCAL targetData IS LIST(shipPoint,targetPoint).
+	IF translateData["oldTarget"] = LIST(-1,-1) {
+		SET translateData["oldTarget"][0] TO targetData[0].
+		SET translateData["oldTarget"][1] TO targetData[1].
+	} ELSE IF translateData["oldTarget"][0] <> targetData[0] {
+		SET portData["changedTarget"] TO TRUE.
+		PRINT "update flagged change in ship point".
+		SET translateData["oldTarget"][0] TO targetData[0].
+	} ELSE IF  translateData["oldTarget"][1] <> targetData[1] {
+		SET portData["changedTarget"] TO TRUE.
+		PRINT "update flagged change in target point".
+		SET translateData["oldTarget"][1] TO targetData[1].
 	}
 }}
 
 FUNCTION load_distance { IF have_valid_target() {
 	LOCAL targetPoint IS target_craft(TARGET).
 	LOCAL shipPoint IS SHIP.
-	IF itmmatFace:PRESSED {//com targeting
-		IF portData["isKlaw"] {
-			SET shipPoint TO portData["targetPorts"][0].
+	IF translateData["targetIsType"] = "port" {
+		SET shipPoint TO portData["targetPorts"][0].
+		IF NOT portData["isKlaw"] {
+			SET targetPoint TO portData["targetPorts"][1].
 		}
-		IF itmntl1Dist:PRESSED {
-			SET itmntl1Fore:TEXT TO ROUND((targetPoint:POSITION - shipPoint:POSITION):MAG,2):TOSTRING.
+	}
+	IF translateData["targetIsType"] = "com" {
+		IF NOT portData["isKlaw"] {
+			SET targetPoint TO portData["targetPorts"][1].
 		}
-	} ELSE {
-		IF itmmatPort:PRESSED {//port targeting
-			SET shipPoint TO portData["targetPorts"][0].
-			IF NOT portData["isKlaw"] {
-				SET targetPoint TO portData["targetPorts"][1].
-			}
-		}
-		LOCAL distTemp IS axis_distance(targetPoint,shipPoint).
-		IF itmntl1Dist:PRESSED {
-			SET itmntl1Fore:TEXT TO ROUND(distTemp[1],2):TOSTRING.
-		}
-		IF itmntl2Dist:PRESSED {
-			SET itmntl2Top:TEXT TO ROUND(distTemp[2],2):TOSTRING.
-		}
-		IF itmntl3Dist:PRESSED {
-			SET itmntl3Star:TEXT TO ROUND(-distTemp[3],2):TOSTRING.
-		}
+	}
+	LOCAL distTemp IS axis_distance(targetPoint,shipPoint).
+	IF itmntl1Dist:PRESSED {
+		SET itmntl1Fore:TEXT TO ROUND(distTemp[1],2):TOSTRING.
+	}
+	IF itmntl2Dist:PRESSED {
+		SET itmntl2Top:TEXT TO ROUND(distTemp[2],2):TOSTRING.
+	}
+	IF itmntl3Dist:PRESSED {
+		SET itmntl3Star:TEXT TO ROUND(-distTemp[3],2):TOSTRING.
 	}
 }}
 
@@ -920,16 +895,17 @@ FUNCTION translate {
 		RETURN TRUE.
 	}
 	IF translateState = 0 {
-		SET statusData["data"][5] TO V(0,0,0).
 		SAS OFF.
 		LOCK STEERING TO translateData["steerVec"].
-		steering_alinged_duration(TRUE,5,TRUE).
+		steering_alinged_duration(TRUE,1,TRUE).
 		LOCK THROTTLE TO 0.
+		//SET translateData["state"] TO 1.
 		FOR key IN varConstants["translationPIDs"] { PID[key]:RESET(). }
 		taskList:ADD(translate@:BIND((translateState + 1),shipPoint,targetPoint,isKlaw)).
 		RETURN TRUE.
 	} ELSE IF translateState = 1 {
 		IF steering_alinged_duration() > 1 {
+			//SET translateData["state"] TO 2.
 			PRINT "Starting Translation".
 			taskList:ADD(translate@:BIND((translateState + 1),shipPoint,targetPoint,isKlaw)).
 			RETURN TRUE.
@@ -950,7 +926,7 @@ FUNCTION translate {
 					SET targetPosition TO shipPoint:POSITION.
 				}
 				SET desiredVelocityVec TO desiredVelocityVec + (shipPoint:FACING:TOPVECTOR * translateData["topVal"]).
-				SET desiredVelocityVec TO desiredVelocityVec + (shipPoint:FACING:STARVECTOR * -translateData["starVal"]).
+				SET desiredVelocityVec TO desiredVelocityVec + (shipPoint:FACING:STARVECTOR * translateData["starVal"]).
 			} ELSE {
 				//PRINT translateData["distControl"].
 				IF translateData["distControl"]["For"] {
@@ -987,23 +963,15 @@ FUNCTION translate {
 				SET desiredVelocityVec TO desiredVelocityVec:NORMALIZED * translateData["topSpeed"].
 			}
 
-			IF translateData["doTumbleComp"] AND (translateData["distControl"]["For"] OR translateData["distControl"]["top"] OR translateData["distControl"]["star"]) {
-				LOCAL tangentVel IS tangent_velocity_vector(targetPoint).
-				SET statusData["data"][5] TO tangentVel.
-				SET desiredVelocityVec TO desiredVelocityVec + tangentVel.
-			} ELSE {
-				SET statusData["data"][5] TO V(0,0,0).
+			IF translateData["distControl"]["For"] OR translateData["distControl"]["top"] OR translateData["distControl"]["star"] {
+				SET desiredVelocityVec TO desiredVelocityVec + angular_velocity_vector(targetPoint).
 			}
 
 			//PRINT "distError: " + ROUND(vecToTarget:MAG,2).
 			//CLEARSCREEN.
 			//PRINT "name: " + shipPoint:NAME.
-			//LOCAL targetSpinVector IS tangent_velocity_vector(targetPoint).
+			//LOCAL targetSpinVector IS angular_velocity_vector(target_craft(targetPoint),targetPosition).
 			//PRINT "angularVelMag: " + ROUND(targetSpinVector:MAG,2).
-			IF statusData["showVectors"] {
-				vec_draw_add(vecDrawLex,SHIP:POSITION,desiredVelocityVec,GREEN,"targetVel",1,TRUE,0.2).
-				vec_draw_add(vecDrawLex,SHIP:POSITION,statusData["data"][4],RED,"relitveVel",1,TRUE,0.2).
-			}
 			translation_control(desiredVelocityVec,targetPoint,shipPoint).
 			RETURN FALSE.
 		} ELSE {
@@ -1013,9 +981,7 @@ FUNCTION translate {
 			RETURN FALSE.
 		}
 	} ELSE IF translateState = 3 {
-		SET statusData["dispType"] TO 0.
-		SET translateData["oldTarget"][0] TO TRUE.
-		SET translateData["oldTarget"][1] TO TRUE.
+		//SET translateData["state"] TO 0.
 		RCS OFF.
 		UNLOCK STEERING.
 		UNLOCK THROTTLE.
@@ -1039,7 +1005,6 @@ FUNCTION translation_abort {
 FUNCTION translation_control {
 	PARAMETER desiredVelocityVec,tar,craft.
 	RCS ON.
-	WAIT 0.
 	LOCAL shipFacing IS SHIP:FACING.
 	LOCAL axisSpeed IS axis_speed(craft,tar).
 	//PRINT "velocityError: " + ROUND((desiredVelocityVec - axisSpeed[0]):MAG,2).
@@ -1081,7 +1046,7 @@ FUNCTION translation_new_target {
 	}
 }
 
-FUNCTION tangent_velocity_vector {//returns a vector pointing in direction of motion with MAG of m/s of motion
+FUNCTION angular_velocity_vector {//returns a vector pointing in direction of motion with MAG of m/s of motion
 	PARAMETER targetPoint.
 	LOCAL targetCraft IS target_craft(targetPoint).
 	LOCAL angleVec IS SHIP:POSITION - targetCraft:POSITION.
@@ -1162,22 +1127,22 @@ FUNCTION update_status {
 			isdLayout11:SHOW.
 			isdLayout12:SHOW.
 		} ELSE {
-			SET isdleText:TEXT TO "Burn or Translation Mode are Not running".
-			isdLayoutError:SHOW.
-			taskList:ADD(update_status@:BIND(3)).
-			RETURN TRUE.
+			//hide all visible fields
+			//print error
 		}
 		taskList:ADD(update_status@:BIND(2)).
 		RETURN TRUE.
 	}
 	IF statusState = 2 {
 		IF NOT imsUpdateStatus:PRESSED {
-			taskList:ADD(update_status@:BIND(3)).
+			//hide all fields
+			SET statusData["dispOn"] TO FALSE.
+			taskList:ADD(update_status@:BIND(0)).
+			i_clear_status().
 			RETURN TRUE.
 		}
 		IF statusData["dispType"] = 1 {
 			SET isdl00Text1:TEXT TO "State: " + statusData["data"][1].
-			SET isdl01Text0:TEXT TO "Speed Target: " + si_formating(statusData["data"][2],"m/s").
 			SET isdl02Text1:TEXT TO si_formating(statusData["data"][4],"m/s").//relitave speed
 			SET isdl03Text1:TEXT TO si_formating(statusData["data"][5],"m/s").//DV on burn
 			SET isdl04Text1:TEXT TO si_formating(statusData["data"][6], "m").//dist to target
@@ -1190,20 +1155,18 @@ FUNCTION update_status {
 			}
 			SET isdl051l0Text1:TEXT TO padding(statusData["data"][7],3,1).//steer error
 		} ELSE IF statusData["dispType"] = 2 {
-			LOCAL forVecInverter IS 1.
 			IF statusData["data"][0] = 0 {
 				SET isdl00Text0:TEXT TO "Matching Port, ".
 			} ELSE IF statusData["data"][0] = 1{
 				SET isdl00Text0:TEXT TO "Matching Target, ".
 			} ELSE {
 				SET isdl00Text0:TEXT TO "COM targeted, ".
-				SET forVecInverter TO -1.
 			}
-			LOCAL forVec IS statusData["data"][2]:FOREVECTOR * forVecInverter.
+			LOCAL forVec IS statusData["data"][2]:FOREVECTOR.
 			LOCAL topVec IS statusData["data"][2]:TOPVECTOR.
-			LOCAL starVec IS -statusData["data"][2]:STARVECTOR.
+			LOCAL starVec IS statusData["data"][2]:STARVECTOR.
 			LOCAL distVec IS statusData["data"][3].
-			LOCAL speedVec IS statusData["data"][4] - statusData["data"][5].
+			LOCAL speedVec IS statusData["data"][4].
 			SET isdl00Text1:TEXT TO "State: " + statusData["data"][1].
 			SET isdl02Text1:TEXT TO si_formating(distVec:MAG,"m").//dist
 			SET isdl03Text1:TEXT TO si_formating(speedVec:MAG,"m/s").//speed
@@ -1214,27 +1177,11 @@ FUNCTION update_status {
 			SET isdl11Text1:TEXT TO si_formating(VDOT(distVec,starVec),"m").//Star Dist
 			SET isdl12Text1:TEXT TO si_formating(VDOT(speedVec,starVec),"m/s").//Star Speed: ".
 		} ELSE {
-			LOCAL typeString IS "Burn".
-			IF isdl051l1Text0 <> " " { SET typeString TO "Translation". }
-			i_clear_status(iStatusDisp).
-			SET isdleText:TEXT TO typeString + " Mode is Done".
-			isdLayoutError:SHOW.
-			taskList:ADD(update_status@:BIND(3)).
-			RETURN TRUE.
+			//hide all but 1 field 
+			//print some done message
 		}
 		RETURN FALSE.
 	}
-	IF statusState = 3 {
-		IF imsUpdateStatus:PRESSED {
-			RETURN FALSE.
-		} ELSE {
-			SET statusData["dispOn"] TO FALSE.
-			taskList:ADD(update_status@:BIND(0)).
-			i_clear_status(iStatusDisp).
-			RETURN TRUE.
-		}
-	}
-
 }
 
 FUNCTION get_number {
@@ -1324,6 +1271,12 @@ FUNCTION i_width_to {
 	SET i:STYLE:WIDTH TO w.
 }
 
+//FUNCTION i_status_style {
+//	PARAMETER text0,text1.
+//
+//	SET text0:STYLE:ALIGN TO "right".
+//	SET text1:STYLE:ALIGN TO "left".
+//}
 FUNCTION i_status_style {
 	PARAMETER localItem IS iStatusDisp.
 	LOCAL didRight IS FALSE.
@@ -1358,19 +1311,35 @@ FUNCTION i_clear_status {
 	}
 }
 
-FUNCTION vec_draw_add { // Draw the vector or update it.
-	PARAMETER vecDrawLex,vecStart,vecTarget,localColour,localLabel,localScale,showVectors,localWidth.
-
-	IF vecDrawLex:KEYS:CONTAINS(localLabel) {
-		IF showVectors {
-			SET vecDrawLex[localLabel]:START TO vecStart.
-			SET vecDrawLex[localLabel]:VEC TO vecTarget.
-			SET vecDrawLex[localLabel]:COLOUR TO localColour.
-			SET vecDrawLex[localLabel]:SCALE TO localScale.
-			SET vecDrawLex[localLabel]:WIDTH TO localWidth.
+FUNCTION i_show_status {
+	PARAMETER localItem IS iStatusDisp.
+	IF localItem:ISTYPE("box") {
+		FOR layout IN localItem:WIDGETS {
+			IF i_show_status(layout) {
+				layout:SHOW.
+				BREAK.
+			}
 		}
-		SET vecDrawLex[localLabel]:SHOW TO showVectors.
+		RETURN FALSE.
 	} ELSE {
-		vecDrawLex:ADD(localLabel,VECDRAW(vecStart,vecTarget,localColour,localLabel,localScale,showVectors,localWidth)).
+		RETURN localItem:TEXT <> " ".
 	}
+}
+
+FUNCTION i_status_visability {
+	PARAMETER doClear IS TRUE, localItem IS iStatusDisp.
+	IF localItem:ISTYPE("box") {
+		FOR layout IN localItem:WIDGETS {
+			IF i_show_status(layout) {
+				layout:SHOW.
+				BREAK.
+			} ELSE {
+				layout:HIDE.
+			}
+		}
+		RETURN FALSE.
+	} ELSE {
+		RETURN localItem:TEXT <> " ".
+	}
+	
 }

@@ -25,7 +25,7 @@ LOCAL nodeStartTime IS TIME:SECONDS + (SHIP:ORBIT:PERIOD / 8).
 LOCAL localBody IS SHIP:BODY.
 LOCAL orbitalSpeed IS SQRT(localBody:MU / SHIP:ORBIT:SEMIMAJORAXIS).
 LOCAL maxDv IS orbitalSpeed.
-LOCAL marginHeight IS margin + margin_error(orbitalSpeed).
+LOCAL marginHeight IS margin.// + margin_error(orbitalSpeed).
 GLOBAL varConstants IS LEX(
 	"landingChord",landingChord,
 	"marginHeight",marginHeight,
@@ -134,12 +134,13 @@ FUNCTION node_set { //manipulates the targetNode in one of 4 ways depending on m
 
 FUNCTION score { //returns the score of the node
 	PARAMETER targetNode.
-	LOCAL peDiff IS ABS(targetNode:ORBIT:PERIAPSIS - varConstants["peTarget"]).
+	LOCAL nodeOrbit IS targetNode:ORBIT.
+	LOCAL peDiff IS ABS(nodeOrbit:PERIAPSIS - varConstants["peTarget"]).
 	LOCAL PEweight IS 1 / 3.
 //	IF varConstants["mode"] = 1 { SET PEweight TO 1 / 2. }
-	IF (targetNode:ORBIT:PERIAPSIS < 0) AND (targetNode:ORBIT:TRANSITION <> "escape") {
+	IF (nodeOrbit:PERIAPSIS < 0) AND (nodeOrbit:TRANSITION <> "escape") {
 		LOCAL nodeUTs IS targetNode:ETA + TIME:SECONDS.
-		LOCAL nodeToImpact IS impact_ETA(targetNode:ORBIT:MEANANOMALYATEPOCH,targetNode:ORBIT,varConstants["landingAlt"]).
+		LOCAL nodeToImpact IS impact_ETA(nodeOrbit:MEANANOMALYATEPOCH,nodeOrbit,varConstants["landingAlt"]).
 		LOCAL impactTime IS nodeToImpact + nodeUTs.
 
 		LOCAL dist IS dist_between_coordinates(varConstants["landingChord"],ground_track(POSITIONAT(SHIP,impactTime),impactTime)).
@@ -204,7 +205,7 @@ FUNCTION periapsis_manipulaiton {//manipulates the PE after node to be below the
 
 FUNCTION margin_error { //approximates vertical drop needed for the craft to stop
 	PARAMETER orbitalSpeed.
-	LOCAL velSpeed IS ((orbitalSpeed^2)/2)^0.5.
+	//LOCAL velSpeed IS ((orbitalSpeed^2)/2)^0.5.
 	//LOCAL srfGrav IS ((SHIP:BODY:MU / (SHIP:BODY:RADIUS ^ 2)) + (SHIP:BODY:MU / (SHIP:ORBIT:SEMIMAJORAXIS ^ 2))) / 2.
 	LOCAL srfGrav IS SHIP:BODY:MU / (SHIP:BODY:RADIUS ^ 2).
 //	LOCAL orbGrav IS SHIP:BODY:MU / (SHIP:ORBIT:SEMIMAJORAXIS ^ 2).

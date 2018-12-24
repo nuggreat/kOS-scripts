@@ -3,7 +3,7 @@ FOR lib IN LIST("lib_file_util") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCE
 IF HOMECONNECTION:ISCONNECTED {
 
 LOCAL archiveRoot IS PATH("0:/").
-LOCAL localRoot IS PATH(CORE:CURRENTVOLUME).
+LOCAL localRoot IS PATH(CORE:VOLUME).
 //LOCAL localRoot IS CORE:CURRENTVOLUME.
 
 LOCAL localDirs IS dir_scan(localRoot,FALSE).

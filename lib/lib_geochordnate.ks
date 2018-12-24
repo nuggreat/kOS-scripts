@@ -142,7 +142,7 @@ FUNCTION distance_heading_to_latlng {//takes in a heading, distance, and start p
 	LOCAL sinP1lat IS SIN(p1:LAT).
 	LOCAL sinDegTcosP1lat IS SIN(degTravle)*COS(p1:LAT).
 	LOCAL newLat IS ARCSIN(sinP1lat*COS(degTravle) + sinDegTcosP1lat*COS(head)).
-	IF newLat <> 90 {
+	IF ABS(newLat) <> 90 {
 		LOCAL newLng IS p1:LNG + ARCTAN2(SIN(head)*sinDegTcosP1lat,COS(degTravle)-sinP1lat*SIN(newLat)).
 		RETURN LATLNG(newLat,newLng).
 	} ELSE {
@@ -171,11 +171,11 @@ FUNCTION surface_normal {
 	RETURN VCRS((aPos - cPos),(bPos - cPos)):NORMALIZED.
 }
 
-FUNCTION grade_claculation {//returns the grade travleing from p1 to p2, positive is up hill, negative is down hill
+FUNCTION grade_claculation {//returns the grade traveling from p1 to p2, positive is up hill, negative is down hill
 	PARAMETER p1,p2.
 	LOCAL dist IS dist_between_coordinates(p1,p2).
 	IF dist <> 0 {
-		RETURN ARCTAN((p1:TERRAINHEIGHT - p2:TERRAINHEIGHT) / dist_between_coordinates(p1,p2)).
+		RETURN ARCTAN((p1:TERRAINHEIGHT - p2:TERRAINHEIGHT) / dist).
 	} ELSE {
 		RETURN 0.
 	}

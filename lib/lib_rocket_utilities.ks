@@ -41,6 +41,8 @@ FUNCTION stage_check {	//a check for if the rocket needs to stage
 			SET lib_rocket_utilities_lex["nextStageTime"] TO TIME:SECONDS + stageDelay.
 			PRINT "Staged".
 		}
+	} ELSE {
+		SET needStage TO TRUE.
 	}
 	RETURN needStage.
 }

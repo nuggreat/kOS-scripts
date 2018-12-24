@@ -107,7 +107,7 @@ FUNCTION speed_adv {		//target speed reduced by how off targetBearing the rover 
 	RETURN MIN(MAX(speedTarget - (slope / 60 * speedTarget) - (offMark * speedTarget) , 1),dist).
 }
 
-FUNCTION signed_speed {		//the speed of the rover positive for forward movement negative for reverse movement
+FUNCTION signed_speed {//the speed of the rover positive for forward movement negative for reverse movement
 	LOCAL shipVel IS SHIP:VELOCITY:SURFACE.
 	IF VDOT(shipVel,SHIP:FACING:FOREVECTOR) > 0 {
 		RETURN shipVel:MAG.

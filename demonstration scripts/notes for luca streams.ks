@@ -58,5 +58,5 @@ fairing[0].
 
 
 /me GLOBAL rgb_gen IS { PARAMETER maxVal,val. LOCAL result IS MOD(val,maxVal) / maxVal * 3. LOCAL re IS MAX(MIN(1 - result,1),0). LOCAL gr IS 0. LOCAL bl IS MAX(MIN(result,1),0). IF result > 1 { SET bl TO MAX(MIN(2 - result,1),0). SET gr TO MAX(MIN(result - 1,1),0). IF result > 2 { SET gr TO MAX(MIN(3 - result,1),0). SET re TO MAX(MIN(result - 2,1),0). } } RETURN RGBA(re,gr,bl,2). }.
-GLOBAL colorCount IS 0. GLOBAL hlIndex IS 0. GLOBAL nugHLlist IS LIST(). FOR par IN SHIP:PARTS { nugHLlist:ADD(HIGHLIGHT(par,rgb_gen:CALL(768,0))).} FOR hl IN nugHLlist {SET hl:ENABLED TO TRUE.} GLOBAL nugLive IS TRUE.
-WHEN TRUE THEN { SET colorCount TO MOD(colorCount + 1,768). SET hlIndex TO MOD(hlIndex + 1,nugHLlist:LENGTH). SET nugHLlist[hlIndex]:COLOR TO rgb_gen:CALL(768,colorCount). IF nugLive {PRESERVE.} ELSE { FOR hl IN nugHLlist {SET hl:ENABLED TO FALSE. }}}
+GLOBAL colorCount IS 0. GLOBAL hlIndex IS 0. GLOBAL nugHLlist IS LIST(). FOR par IN SHIP:PARTS { nugHLlist:ADD(HIGHLIGHT(par,rgb_gen:CALL(768,0))).} FOR hl IN nugHLlist {SET hl:ENABLED TO TRUE.}
+GLOBAL nugLive IS TRUE. WHEN TRUE THEN { SET colorCount TO MOD(colorCount + 1,768). SET hlIndex TO MOD(hlIndex + 1,nugHLlist:LENGTH). SET nugHLlist[hlIndex]:COLOR TO rgb_gen:CALL(768,colorCount). IF nugLive {PRESERVE.} ELSE { FOR hl IN nugHLlist {SET hl:ENABLED TO FALSE. }}}

@@ -19,10 +19,12 @@ LOCAL pitchOffset IS 0.
 LOCAL headingOffset IS 0.
 LOCAL throt IS 1.
 LOCAL landingChord IS FALSE.
+LOCAL engineOn IS FALSE.
+SET simDelay TO 1.
 
 //PID setup PIDLOOP(kP,kI,kD,min,max)
 GLOBAL landing_PID IS PIDLOOP(0.5,0.1,0.01,0,1).
-GLOBAL pitch_PID IS PIDLOOP(0.04,0.0005,0.075,-5,25).
+GLOBAL pitch_PID IS PIDLOOP(0.04,0.0005,0.075,-5,15).
 GLOBAL heading_pid IS PIDLOOP(0.04,0.0005,0.075,-10,10).
 
 //start of core logic
@@ -39,6 +41,8 @@ IF NOT landingTar:ISTYPE("boolean") {
 
 WHEN when_triger(simResults["pos"],retroMargin) THEN {
 	LOCK THROTTLE TO throt.
+	SET engineOn TO TRUE.
+	SET simDelay TO 0.
 	GEAR ON.
 	LIGHTS ON.
 	WAIT 0.
@@ -55,7 +59,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 	LOCAL shipPosOld IS SHIP:POSITION - SHIP:BODY:POSITION.
 	LOCAL initalMass IS SHIP:MASS.
 	SET tsMax TO (tsMax + (simResults["seconds"] / 10)) / 2.
-	SET simResults TO sim_land_spot(SHIP,shipISP,MIN(deltaTime,tsMax),0).
+	SET simResults TO sim_land_vac(SHIP,shipISP,MIN(deltaTime,tsMax),deltaTime * simDelay).
 	LOCAL stopPos IS (SHIP:BODY:POSITION + shipPosOld) + simResults["pos"].
 	SET stopGap TO SHIP:BODY:ALTITUDEOF(stopPos) - SHIP:BODY:GEOPOSITIONOF(stopPos):TERRAINHEIGHT.
 	SET throt TO MIN(100 / MAX((stopGap - retroMarginLow), 100),1).
@@ -72,7 +76,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 	} ELSE IF KUNIVERSE:TIMEWARP:WARP > 1 AND ABS(stopGap / VERTICALSPEED) < 60 {
 		SET KUNIVERSE:TIMEWARP:WARP TO 0.
 	}
-	IF haveTarget AND THROTTLE = throt {
+	IF haveTarget AND engineOn {
 		PRINT " ".
 		LOCAL distVec IS  stopPos - landingChord:ALTITUDEPOSITION(retroMargin).
 		LOCAL positionUpVec IS (stopPos - SHIP:BODY:POSITION):NORMALIZED.
@@ -168,15 +172,14 @@ FUNCTION decent_math {	// the math needed for suicide burn and final decent
 
 FUNCTION lowist_part {	//returns the largest dist from the root part for a part in the retrograde direction
 	PARAMETER craft.
-	LOCAL smallest IS 0.
-	LOCAL rootPosition IS craft:ROOTPART:POSITION.
+	LOCAL largest IS 0.
 	FOR p IN craft:PARTS {
-		LOCAL aft_dist IS VDOT(p:POSITION - craft:ROOTPART:POSITION, craft:FACING:FOREVECTOR)..
-		IF aft_dist < smallest {
+		LOCAL aft_dist IS VDOT(craft:ROOTPART:POSITION - p:POSITION, craft:FACING:FOREVECTOR).
+		IF aft_dist < largest {
 			SET  smallest TO aft_dist.
 		}
 	}
-	RETURN -smallest.
+	RETURN largest.
 }
 
 FUNCTION adjusted_retorgrade {

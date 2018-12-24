@@ -1,5 +1,5 @@
-//TODO: 1) add steering limit due to speed value as parameter
-PARAMETER maxSpeed,minSpeed,stopDist,waypointList,waypointRadius,destName,wheelAccel IS 0.025.
+PARAMETER maxSpeed,minSpeed,stopDist,waypointList,waypointRadius,destName.
+LOCAL wheelAccel IS 0.025.
 IF NOT EXISTS("1:/lib/lib_rocket_utilities.ks") COPYPATH("0:/lib/lib_rocket_utilities.ks","1:/lib/").
 FOR lib IN LIST("lib_geochordnate","lib_navball2","lib_formating","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 CLEARSCREEN.
@@ -15,28 +15,18 @@ control_point("roverControl").
 PRINT "Rover Starting up.".
 LOCAL waypointIndex IS 0.
 LOCAL wayListLength IS waypointList:LENGTH - 1.
-LOCAL offLimit IS waypointRadius * 2.
-
-//LOCAL distList IS generate_dist_list(waypointList).//calculate distance along path between waypoints
-LOCAL limitLex IS LEX("state",-3,"index",0).//,"maxIndex",wayListLength,"speedRange",(maxSpeed - minSpeed),"minSpeed",minSpeed).
+LOCAL distList IS generate_dist_list(waypointList).//calculate distance along path between waypoints
+LOCAL limitLex IS LEX("state",-1,"index",0,"maxIndex",wayListLength,"speedRange",(maxSpeed - minSpeed),"minSpeed",minSpeed).
 LOCAL speedListDynamic IS LIST().
-LOCAL etaListDynamic IS LIST().
-LOCAL distList IS LIST().
-LOCAL limitFunctionLex IS speed_limit_states(limitLex,waypointList,distList,speedListDynamic,etaListDynamic,wayListLength,maxSpeed,minSpeed).
-UNTIL speed_limit_recalc(limitFunctionLex,limitLex,0) {
-	PRINT " " + padding(percent_state_calc(limitLex,wayListLength) * 100,2,2) + "%" AT(0,1).
-}
+LOCAL limitFunctionLex IS speed_limit_recalc_function_lex(limitLex,waypointList,distList,speedListDynamic).
+//UNTIL speed_limit_recalc(limitFunctionLex,limitLex,waypointList,distList,speedListDynamic).
+UNTIL speed_limit_recalc(limitFunctionLex,limitLex).
 LOCAL speedListStatic IS speedListDynamic:COPY().
-LOCAL etaListStatic IS etaListDynamic:COPY().
 //PRINT speedListDynamic.
-//RCS OFF.
-//WAIT UNTIL RCS.
+//LOCAL speedListDynamic IS generate_speed_limmits(waypointList,maxSpeed,minSpeed,wheelAccel).//calculate speed limits for waypoints
 LOCAL pathDist IS distList[waypointIndex].
-LOCAL pathETAstring IS time_formating(etaListStatic[waypointIndex],5).
 LOCAL oldSlope IS 0.
 LOCAL newSlope IS slope_calculation(waypointList[waypointIndex]).
-LOCAL oldSpeed IS minSpeed.
-LOCAL newSpeed IS speedListStatic[waypointIndex].
 LOCAL forSpeed IS 0.
 LOCAL speedDif IS 0.
 LOCAL pointBearing IS 0.
@@ -58,14 +48,12 @@ average_eta(pathDist - stopDist,360,TRUE).
 LOCAL srfNormal IS surface_normal(SHIP:GEOPOSITION).
 LOCK steerDir TO LOOKDIRUP(VXCL(srfNormal,SHIP:SRFPROGRADE:FOREVECTOR),srfNormal).
 
-LOCAL done IS FALSE.
-//LOCAL done IS TRUE.
-LOCAL oldTime IS TIME:SECONDS.
+LOCAL done IS TRUE.
 LOCAL stopping IS FALSE.
 LOCAL steerNotLocked IS TRUE.
-BRAKES OFF.
+//BRAKES OFF.
 UNTIL done {
-	//WAIT 0.
+	WAIT 0.
 	LOCAL upVec IS SHIP:UP:VECTOR.
 	LOCAL targetPos IS waypointList[waypointIndex]:POSITION.
 	LOCAL origenPos IS SHIP:POSITION.
@@ -78,17 +66,14 @@ UNTIL done {
 		IF waypointIndex > wayListLength { SET stopping TO TRUE. SET waypointIndex TO waypointIndex - 1. } ELSE {
 			SET oldSlope TO newSlope.
 			SET pathDist TO distList[waypointIndex].
-			SET pathETAstring TO time_formating(etaListStatic[waypointIndex],5).
-			SET oldSpeed TO newSpeed.
-			SET newSpeed TO speedListStatic[waypointIndex].
+			SET newSlope TO slope_calculation(waypointList[waypointIndex]).
+			SET grade TO ABS(grade_claculation(waypointList[waypointIndex - 1],waypointList[waypointIndex])).
+			//SET slope_grade_error TO SIN(((oldSlope + newSlope) / 2 + grade) / 2).
+			SET slope_grade_error TO SIN(MIN(MAX(((oldSlope + newSlope)/2 + grade),0),90)).
 
 			SET targetPos TO waypointList[waypointIndex]:POSITION.
 			SET shipWayVec TO targetPos - SHIP:POSITION.
 			SET distToWay TO shipWayVec:MAG.
-			LOCAL localTime IS TIME:SECONDS.
-			PRINT "deltaT: " + ROUND(localTime - oldTime,2) + "   " AT(0,15).
-			PRINT "deltaE: " + ROUND(etaListStatic[MAX(waypointIndex - 2,0)] - etaListStatic[MAX(waypointIndex - 1,0)],2) + "   " AT(0,16).
-			SET oldTime TO localTime.
 		}
 	}
 	IF waypointIndex <> 0 {
@@ -104,15 +89,14 @@ UNTIL done {
 	//LOCAL percentError IS (1 - percentTravled) * offPathBy / 180.
 	//LOCAL percentError IS (1 - percentTravled) * COS(MIN(offPathBy*2,90)).
 	//LOCAL percentError IS COS(MIN(offPathBy * 2,90)).
-	LOCAL percentError IS offPathBy / offLimit.//converting offPathBy into a %, 0 is on path
+	LOCAL percentError IS offPathBy / waypointRadius.//converting offPathBy into a %, 0 is on path
 
 	//CLEARSCREEN.
 	//PRINT "error: " + percentError.
 	//PRINT "%remain: " + percentTravled.
-	SET pointMag TO MAX(MIN(percentTravled + MAX(1 - percentError,0) * 0.5,1),0).//% along preNextVec vec the target point is
-	LOCAL speedRestrict IS pointMag * newSpeed + (1 - pointMag) * oldSpeed.
+	SET pointMag TO MAX(MIN(percentTravled + MAX(1 - percentError,0) * 0.5,1),0).
 	LOCAL pointPos IS preNextVec * pointMag + origenPos.//calculating the target position along the path vec
-	LOCAL shipPoinVec IS pointPos - SHIP:POSITION.
+	LOCAL shipPoinVec IS pointPos - origenPos.
 
 	LOCAL tarDist IS pathDist + distToWay.
 	LOCAL tarGeoDist IS pathDist + dist_between_coordinates(waypointList[waypointIndex],SHIP:GEOPOSITION).
@@ -132,7 +116,7 @@ UNTIL done {
 	} ELSE {
 		IF (tarDist < stopDist) OR ABORT { SET stopping TO TRUE. ABORT OFF. }
 		LOCAL accelLimit IS accel_dist_to_speed(wheelAccel,tarGeoDist - stopDist,speedRange,0).
-		SET throttlePID:SETPOINT TO MIN(MIN(MAX(MIN(1 - (ABS(steerError * 2) + percentError / 2),1),0) * speedRange,accelLimit) + minSpeed,speedRestrict).
+		SET throttlePID:SETPOINT TO MIN(MAX(MIN(1 - (slope_grade_error + ABS(steerError * 2) + percentError / 2),1),0) * speedRange,accelLimit) + minSpeed.
 		//PRINT (slope_grade_error) AT(0,15).
 		//PRINT ABS(steerError * 2) AT(0,16).
 		//PRINT (1 - percentError) AT (0,17).
@@ -170,19 +154,14 @@ UNTIL done {
 	}
 	SET srfNormal TO surface_normal(SHIP:GEOPOSITION).
 	LOCAL upError IS VANG(SHIP:FACING:TOPVECTOR,srfNormal).
-	screen_update(tarGeoDist,pathETAstring,pointBearing,forSpeed,speedDif,speedRestrict).
-	IF steerNotLocked AND ((upError > 5) OR (SHIP:STATUS <> "LANDED")) {
+	screen_update(tarGeoDist,pointBearing,forSpeed,speedDif,steerPIDrange).
+	IF steerNotLocked AND ((upError > 10) OR (SHIP:STATUS <> "LANDED")) {
 		LOCK STEERING TO steerDir.
 		SET steerNotLocked TO FALSE.
-		steering_alinged_duration(TRUE,2.5,TRUE).
-	} ELSE IF (NOT steerNotLocked) AND (SHIP:STATUS = "LANDED") AND (steering_alinged_duration() > 2) {
+	} ELSE IF (NOT steerNotLocked) AND ((ABS(STEERINGMANAGER:ANGLEERROR) + ABS(STEERINGMANAGER:ROLLERROR)) < 5) AND (SHIP:STATUS = "LANDED") {
 		UNLOCK STEERING.
 		steeringPID:RESET.
 		SET steerNotLocked TO TRUE.
-	}
-	IF speed_limit_recalc(limitFunctionLex,limitLex,waypointIndex) {
-		SET speedListStatic TO speedListDynamic:COPY().
-		SET etaListStatic TO etaListDynamic:COPY().
 	}
 }
 ABORT OFF.
@@ -197,23 +176,20 @@ CLEARVECDRAWS().
 
 
 FUNCTION screen_update {
-	PARAMETER tarDist,etaStr,pointBearing,forSpeed,speedDif,speedRestrict.
+	PARAMETER tarDist,pointBearing,forSpeed,speedDif,upError.
 	LOCAL printList IS LIST().
 	printList:ADD(" ").
 	printList:ADD("Roving To: " + destName).
 	printList:ADD("Distance : " + si_formating(tarDist,"m")).
-	//printList:ADD("ETA      : " + time_formating(average_eta(tarDist - stopDist),5)).
-	printList:ADD("ETA      : " + etaStr).
+	printList:ADD("ETA      : " + time_formating(average_eta(tarDist - stopDist),5)).
 	printList:ADD(" ").
-	printList:ADD("Slope Limit     :" + padding(speedRestrict,2,2) + "m/s").
-	printList:ADD("Current Speed   :" + padding(forSpeed,2,2) + "m/s").
-	printList:ADD(" Target Speed   :" + padding(throttlePID:SETPOINT,2,2) + "m/s").
+	printList:ADD("Curent Speed    :" + padding(forSpeed,2,2) + "m/s").
+	printList:ADD("Target Speed    :" + padding(throttlePID:SETPOINT,2,2) + "m/s").
 	printList:ADD("Speed Difference:" + padding(speedDif,2,2) + "m/s").
 	printList:ADD("  Wheel Throttle: " + padding(SHIP:CONTROL:WHEELTHROTTLE,1,2)).
 	printList:ADD(" ").
 	printList:ADD(" Bearing to Point:" + padding(pointBearing,2,3)).
 	printList:ADD("Wheel Steering Is: " + padding(SHIP:CONTROL:WHEELSTEER,1,3)).
-	
 //	printList:ADD(" Input: " + ROUND(steeringPID:INPUT,3) + "    ").
 //	printList:ADD("     P: " + ROUND(steeringPID:PTERM,3) + "    ").
 //	printList:ADD("     I: " + ROUND(steeringPID:ITERM,3) + "    ").
@@ -222,7 +198,7 @@ FUNCTION screen_update {
 //	printList:ADD(" ").
 //	printList:ADD("upError: " + ROUND(upError,2) + "    ").
 
-	FROM { LOCAL i IS printList:LENGTH - 1. } UNTIL 0 > i STEP { SET i TO i - 1. } DO {
+	FROM { LOCAL i IS printList:LENGTH + 1. } UNTIL 0 > i STEP { SET i TO i - 1. } DO {
 		PRINT printList[i] + " " AT(0,i).
 	}
 }
@@ -247,87 +223,94 @@ FUNCTION generate_dist_list {
 	RETURN returnList.
 }
 
-//LOCAL dataLex IS LEX("state",-1,"index",0,"maxIndex",(waypointList:LENGTH - 1),"speedRange",(maxSpeed - minSpeed),"minSpeed",minSpeed).
-FUNCTION speed_limit_recalc {//runs the speed limit state machine
-	//PARAMETER functionLex,dataLex,waypointList,distList,speedList.
-	PARAMETER functionLex,dataLex,curentIndex.
-	//PRINT "state: " + dataLex["state"] + "  " AT(0,0).
-	//PRINT "index: " + dataLex["index"] + "  " AT(0,1).
-	//WAIT 1.
-	RETURN functionLex[dataLex["state"]]:CALL(curentIndex).
+FUNCTION generate_speed_limmits {
+	PARAMETER waypointList,distList,maxSpeed,minSpeed,wheelAccel.
+	LOCAL speedRange IS maxSpeed - minSpeed.
+	LOCAL returnList IS LIST(minSpeed).//adding inital point
+	LOCAL listLenght IS waypointList:LENGTH - 1.
+	FROM { LOCAL i IS 1. } UNTIL i >= listLenght STEP { SET i TO i + 1. } DO {
+		LOCAL prePoint IS waypointList[i - 1].
+		LOCAL point IS waypointList[i].
+		LOCAL nextPoint IS waypointList[i + 1].
+		
+		LOCAL slope IS MIN(slope_calculation(point),90).
+		LOCAL turnAngle IS ABS(bearing_between((prePoint:POSITION - point:POSITION),(nextPoint:POSITION - point:POSITION)) / 2).
+		LOCAL gradeDiff IS MIN(ABS(grade_claculation(prePoint,point) - grade_claculation(point,newPoint)) * 2,90).
+
+		LOCAL slopeLimit IS COS(slope).
+		LOCAL turnLimit IS SIN(turnAngle).
+		LOCAL gradeLimit IS COS(gradeDiff).
+		
+		LOCAL speedLimit IS MIN(MIN(slopeLimit,turnLimit),gradeLimit) * speedRange + minSpeed.
+		returnList:ADD(speedLimit).
+	}
+	LOCAL slope IS slope_calculation(waypointList[listLenght]).
+	returnList:ADD(minSpeed).//adding final point
+	
+	FROM { LOCAL i IS 1. } UNTIL i >= listLenght STEP { SET i TO i + 1. } DO {//smoothing speed changes based on accel forward along list
+		LOCAL distToNext IS distList[i - 1] - distList[i - 1].
+		LOCAL deltaSpeed IS accel_dist_to_speed(wheelAccel,distToNext,maxSpeed).
+		SET returnList[i] TO MIN(returnList[i],returnList[i - 1] + deltaSpeed).
+	}
+	
+	FROM { LOCAL i IS listLenght - 1. } UNTIL i < 0 STEP { SET i TO i - 1. } DO {//smoothing speed changes based on accel backwards along list
+		LOCAL distToNext IS dist_between_coordinates(waypointList[i],waypointList[i + 1]).
+		LOCAL deltaSpeed IS accel_dist_to_speed(wheelAccel,distToNext,maxSpeed).
+		SET returnList[i] TO MIN(returnList[i],returnList[i + 1] + deltaSpeed).
+	}
+	
+	RETURN returnList.
 }
 
-FUNCTION speed_limit_states {//sets up the various states of the speed limit calculation state machine 
-	PARAMETER dataLex,pointList,distList,speedList,etaList,maxIndex,maxSpeed,minSpeed.
-	LOCAL speedRange IS maxSpeed - minSpeed.
-	LOCAL maxIndex IS pointList:LENGTH - 1.
+//LOCAL dataLex IS LEX("state",-1,"index",0,"maxIndex",(waypointList:LENGTH - 1),"speedRange",(maxSpeed - minSpeed),"minSpeed",minSpeed).
+FUNCTION speed_limit_recalc {
+	//PARAMETER functionLex,dataLex,waypointList,distList,speedList.
+	PARAMETER functionLex,dataLex.
+	PRINT "state: " + dataLex["state"] + "  " AT(0,0).
+	PRINT "index: " + dataLex["index"] + "  " AT(0,1).
+	//RETURN functionLex[dataLex["state"]]:CALL(dataLex,waypointList,distList,speedList).
+	RETURN functionLex[dataLex["state"]]:CALL().
+}
+
+FUNCTION speed_limit_recalc_function_lex {
+	PARAMETER dataLex,waypointList,distList,speedList.
 	LOCAL returnLex IS LEX().
-	returnLex:ADD(-3,{//initializing speedList
-		PARAMETER curentIndex.
-		speedList:ADD(0).
-		SET dataLex["index"] TO dataLex["index"] + 1.
-		IF dataLex["index"] > maxIndex {
-			SET dataLex["index"] TO 0.
-			SET dataLex["state"] TO -2.
-		}
-		RETURN FALSE.
-	}).
-	returnLex:ADD(-2,{//initializing  etaList
-		PARAMETER curentIndex.
-		etaList:ADD(0).
-		SET dataLex["index"] TO dataLex["index"] + 1.
-		IF dataLex["index"] > maxIndex {
-			SET dataLex["index"] TO 0.
-			SET dataLex["state"] TO -1.
-		}
-		RETURN FALSE.
-	}).
-	returnLex:ADD(-1,{//calculating 
-		PARAMETER curentIndex.
-		LOCAL i IS maxIndex - dataLex["index"] - 1.
-		IF dataLex["index"] = 0 { distList:ADD(0). }
-		LOCAL pointDist IS dist_between_coordinates(waypointList[i],waypointList[i + 1]).
-		distList:INSERT(0,distList[0] + pointDist).
-		SET dataLex["index"] TO dataLex["index"] + 1.
-		IF dataLex["index"] >= maxIndex {
-			SET dataLex["index"] TO 0.
-			SET dataLex["state"] TO 0.
-		}
+	returnLex:ADD(-1,{
+		//PARAMETER dataLex,waypointList,distList,speedList.
+		UNTIL speedList:LENGTH >= waypointList:LENGTH { speedList:ADD(0). }
+		SET dataLex["state"] TO 0.
 		RETURN FALSE.
 	}).
 	returnLex:ADD(0,{//add in slope value
-		PARAMETER curentIndex.
+		//PARAMETER dataLex,waypointList,distList,speedList.
 		LOCAL i IS dataLex["index"].
-		IF i = 0 OR i = maxIndex {
-			SET speedList[i] TO minSpeed.
+		IF i = 0 OR i = dataLex["maxIndex"] {
+			SET speedList[i] TO dataLex["minSpeed"].
 			SET dataLex["state"] TO 2.
 			RETURN FALSE.
 		} ELSE {
-			SET speedList[i] TO COS(MIN(slope_calculation(pointList[i]),90)).
-			//PRINT speedList[i] AT(0,2).
+			SET speedList[i] TO COS(MIN(slope_calculation(waypointList[i]),90)).
 			SET dataLex["state"] TO 1.
 			RETURN FALSE.
 		}
 	}).
 	returnLex:ADD(1,{//add in turn value
-		PARAMETER curentIndex.
+		//PARAMETER dataLex,waypointList,distList,speedList.
 		LOCAL i IS dataLex["index"].
-		//SET speedList[i] TO MIN(speedList[i],SIN(ABS(bearing_between((pointList[i - 1]:POSITION - pointList[i]:POSITION),(pointList[i + 1]:POSITION - pointList[i]:POSITION)) / 2))).
-		SET speedList[i] TO speedList[i] - COS(ABS(bearing_between((pointList[i - 1]:POSITION - pointList[i]:POSITION),(pointList[i + 1]:POSITION - pointList[i]:POSITION)) / 2)).
-		//PRINT speedList[i] AT(0,2).
+		//SET speedList[i] TO MIN(speedList[i],SIN(ABS(bearing_between((waypointList[i - 1]:POSITION - waypointList[i]:POSITION),(waypointList[i + 1]:POSITION - waypointList[i]:POSITION)) / 2))).
+		SET speedList[i] TO speedList[i] - COS(ABS(bearing_between((waypointList[i - 1]:POSITION - waypointList[i]:POSITION),(waypointList[i + 1]:POSITION - waypointList[i]:POSITION)) / 2)).
 		SET dataLex["state"] TO 2.
 		RETURN FALSE.
 	}).
 	returnLex:ADD(2,{//adding grade value
-		PARAMETER curentIndex.
+		//PARAMETER dataLex,waypointList,distList,speedList.
 		LOCAL i IS dataLex["index"].
-		IF i <> 0 AND i <> maxIndex {
-			//SET speedList[i] TO MIN(speedList[i],COS(MIN(ABS(grade_claculation(pointList[i - 1],pointList[i]) - grade_claculation(pointList[i],pointList[i + 1])) * 2,90))) * dataLex["speedRange"] + dataLex["minSpeed"].
-			SET speedList[i] TO MAX(MIN(speedList[i] - SIN(MIN(ABS(grade_claculation(pointList[i - 1],pointList[i]) - grade_claculation(pointList[i],pointList[i + 1])) * 2,90)),1),0) * speedRange + minSpeed.
-			//PRINT speedList[i] AT(0,2).
+		IF i <> 0 AND i <> dataLex["maxIndex"] {
+			//SET speedList[i] TO MIN(speedList[i],COS(MIN(ABS(grade_claculation(waypointList[i - 1],waypointList[i]) - grade_claculation(waypointList[i],waypointList[i + 1])) * 2,90))) * dataLex["speedRange"] + dataLex["minSpeed"].
+			SET speedList[i] TO MIN(speedList[i] - SIN(MIN(ABS(grade_claculation(waypointList[i - 1],waypointList[i]) - grade_claculation(waypointList[i],waypointList[i + 1])) * 2,90)),0) * dataLex["speedRange"] + dataLex["minSpeed"].
 		}
 		SET dataLex["index"] TO i + 1.
-		IF dataLex["index"] > maxIndex {
+		IF dataLex["index"] > dataLex["maxIndex"] {
 			SET dataLex["state"] TO 3.
 			SET dataLex["index"] TO 1.
 		} ELSE {
@@ -336,63 +319,35 @@ FUNCTION speed_limit_states {//sets up the various states of the speed limit cal
 		RETURN FALSE.
 	}).
 	returnLex:ADD(3,{//limiting speed forward based on accel limit
-		PARAMETER curentIndex.
+		//PARAMETER dataLex,waypointList,distList,speedList.
 		LOCAL i IS dataLex["index"].
 		LOCAL distToNext IS distList[i - 1] - distList[i].
-		LOCAL speedLimit IS SQRT(2 * wheelAccel * distToNext + speedList[i - 1]^2).//calculates new speed from acc dist change and previous speed
-		SET speedList[i] TO MIN(speedList[i],speedLimit).
+		LOCAL deltaSpeed IS accel_dist_to_speed(wheelAccel,distToNext,maxSpeed).
+		SET speedList[i] TO MIN(speedList[i],speedList[i - 1] + deltaSpeed).
 		SET dataLex["index"] TO i + 1.
-		IF dataLex["index"] > maxIndex {
+		IF dataLex["index"] > dataLex["maxIndex"] {
 			SET dataLex["state"] TO 4.
-			SET dataLex["index"] TO maxIndex - 1.
+			SET dataLex["index"] TO dataLex["maxIndex"] - 1.
 		}
 		RETURN FALSE.
 		
 	}).
 	returnLex:ADD(4,{//limiting speed backwards based on accel limit
-		PARAMETER curentIndex.
+		//PARAMETER dataLex,waypointList,distList,speedList.
 		LOCAL i IS dataLex["index"].
 		LOCAL distToNext IS distList[i] - distList[i + 1].
-		LOCAL speedLimit IS SQRT(2 * wheelAccel * distToNext + speedList[i + 1]^2).//calculates new speed from acc dist change and previous speed
-		SET speedList[i] TO MIN(speedList[i],speedLimit).
+		LOCAL deltaSpeed IS accel_dist_to_speed(wheelAccel,distToNext,maxSpeed).
+		SET speedList[i] TO MIN(speedList[i],speedList[i + 1] + deltaSpeed).
 		SET dataLex["index"] TO i - 1.
-		IF dataLex["index"] < curentIndex {
-			SET dataLex["state"] TO 5.
-			SET dataLex["index"] TO maxIndex - 1.
-		}
-		RETURN FALSE.
-	}).
-	returnLex:ADD(5,{//ETA calc
-		PARAMETER curentIndex.
-		LOCAL i IS dataLex["index"].
-		LOCAL distToNext IS distList[i] - distList[i + 1].
-		LOCAL avrSpeed IS (speedList[i] + speedList[i + 1]) / 2.
-		
-		SET etaList[i] TO etaList[i + 1] + distToNext / avrSpeed.
-		SET dataLex["index"] TO i - 1.
-		IF dataLex["index"] < curentIndex {
+		IF dataLex["index"] < 0 {
 			SET dataLex["state"] TO 0.
-			SET dataLex["index"] TO curentIndex.
+			SET dataLex["index"] TO 0.
 			RETURN TRUE.
 		} ELSE {
 			RETURN FALSE.
 		}
 	}).
 	RETURN returnLex.
-}
-
-FUNCTION percent_state_calc {
-	PARAMETER dataLex,maxIndex.
-	LOCAL stateVal IS dataLex["state"].
-	IF stateVal < 0 {
-		RETURN ((maxIndex - dataLex["index"]) / maxIndex) / -3 + ((stateVal + 1) / 3).
-	} ELSE IF stateVal < 3 {
-		RETURN (((dataLex["index"] + stateVal / 3) / maxIndex) / 2).
-	} ELSE IF stateVal = 3 {
-		RETURN ((dataLex["index"]/maxIndex) / 6 + 0.5).
-	} ELSE {//stateVal >= 0 {
-		RETURN (((maxIndex - dataLex["index"]) / maxIndex) / 6 + (stateVal / 6)).
-	}
 }
 
 FUNCTION accel_dist_to_speed {

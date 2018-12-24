@@ -37,9 +37,9 @@ IF SHIP:MASS > 200 {
 		SET steerCoeficent TO 10.
 	}
 	SET STEERINGMANAGER:MAXSTOPPINGTIME TO oldSteeringSettings["maxStoppingTime"] * steerCoeficent.
-	SET STEERINGMANAGER:PITCHTS TO oldSteeringSettings["pitchTS"] / steerCoeficent.
-	SET STEERINGMANAGER:YAWTS TO oldSteeringSettings["yawTS"] / steerCoeficent.
-	SET STEERINGMANAGER:ROLLTS TO oldSteeringSettings["rollTS"] / steerCoeficent.
+	//SET STEERINGMANAGER:PITCHTS TO oldSteeringSettings["pitchTS"] / steerCoeficent.
+	//SET STEERINGMANAGER:YAWTS TO oldSteeringSettings["yawTS"] / steerCoeficent.
+	//SET STEERINGMANAGER:ROLLTS TO oldSteeringSettings["rollTS"] / steerCoeficent.
 }
 
 UNTIL done {	//waiting for a node to exist or be locked in

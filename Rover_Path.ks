@@ -1,8 +1,10 @@
+PARAMETER endPoint,maxSpeed IS 25,minSpeed IS 5,closeToDist IS 450,roverAccel IS 0.025,unitDist IS 200.
 FOR lib IN LIST("lib_geochordnate","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 LOCAL srfGrav IS SHIP:BODY:MU / SHIP:BODY:RADIUS^2.
-PARAMETER endPoint,unitDist IS 200,maxSpeed IS MAX(25,5),minSpeed IS 5,closeToDist IS 450.
+SET unitDist TO MIN(unitDist,closeToDist).
 CLEARSCREEN.
 ABORT OFF.
+RCS OFF.
 SET CONFIG:IPU TO 2000.
 LOCAL varConstants IS LEX().
 LOCAL nodeTree IS LEX().
@@ -58,6 +60,7 @@ IF MAPVIEW { SET vecWidth TO 0.5. }
 LOCAL bestVec IS VECDRAW(SHIP:POSITION,SHIP:UP:VECTOR * 2000, GREEN,"",1,TRUE,vecWidth).
 LOCAL nodeVec IS VECDRAW(SHIP:POSITION,SHIP:UP:VECTOR * 2000, YELLOW,"",1,TRUE,vecWidth).
 LOCAL endVecDraw IS VECDRAW(dest:POSITION,(dest:POSITION - SHIP:BODY:POSITION):NORMALIZED * 2000,RED,"",1,TRUE,vecWidth).
+
 LOCAL done IS FALSE.
 LOCAL startTime IS TIME:SECONDS.
 
@@ -125,8 +128,8 @@ IF NOT ABORT {
 	render_points(waypointList,vecDrawList).
 //	path_scroll(endID).
 	
-	RCS OFF.
-	WAIT UNTIL RCS.
+//	RCS OFF.
+//	WAIT UNTIL RCS.
 
 	SET waypointList TO smooth_points(waypointList).
 	render_points(waypointList,vecDrawList).
@@ -138,7 +141,7 @@ IF NOT ABORT {
 	render_points(waypointList,vecDrawList).
 	
 
-	RCS OFF.
+	//RCS OFF.
 	//SAS OFF.
 	WAIT UNTIL RCS.
 	SET done TO TRUE.
@@ -146,8 +149,8 @@ IF NOT ABORT {
 
 	SET CONFIG:IPU TO 200.
 	IF NOT SAS {
-		COPYPATH("0:/Rover_Path_execution.ks","1:/").
-		RUNPATH("1:/Rover_Path_execution",maxSpeed,minSpeed,closeToDist,waypointList,unitDist / 4,destName).
+		//COPYPATH("0:/Rover_Path_execution.ks","1:/").
+		RUNPATH("1:/Rover_Path_execution",maxSpeed,minSpeed,closeToDist,waypointList,unitDist / 4,destName,roverAccel).
 	}
 }}
 ABORT OFF.
@@ -484,7 +487,7 @@ FUNCTION node_score_slope {
 	PARAMETER oldGrade,newGrade,localSlope,localCurvature,preDist.
 	LOCAL score IS SIN(MIN(ABS(oldGrade - newGrade),90)) * preDist * 20.//was 20
 	//LOCAL score IS SIN((ABS(oldGrade - newGrade)/2)) * preDist * 40.
-	SET score TO score + SIN(localSlope) * preDist * 25.//was 25
+	SET score TO score + SIN(localSlope) * preDist * 30.//was 25
 	SET score TO score + SIN(localCurvature) * preDist * 15.//was 15
 	RETURN score.//didn't have preSlope
 }

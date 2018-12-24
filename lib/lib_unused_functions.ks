@@ -115,21 +115,21 @@ FUNCTION burn_along_vector {//needs libs formating, rocker utilities
 		IF stage_check(doStage) { SET shipISP TO isp_calc(). }//if i stage recalculate the ISP
 	}
 }
-
+```
 FUNCTION pid_debug {
 	PARAMETER pidToDebug.
-	CLEARSCREEN.
-	PRINT "Setpoint: " + ROUND(pidToDebug:SETPOINT,2).
-	PRINT "   Error: " + ROUND(pidToDebug:ERROR,2).
-	PRINT "       P: " + ROUND(pidToDebug:PTERM,3).
-	PRINT "       I: " + ROUND(pidToDebug:ITERM,3).
-	PRINT "       D: " + ROUND(pidToDebug:DTERM,3).
-	PRINT "     Max: " + ROUND(pidToDebug:MAXOUTPUT,2).
-	PRINT "  Output: " + ROUND(pidToDebug:OUTPUT,2).
-	PRINT "     min: " + ROUND(pidToDebug:MINOUTPUT,2).
+	//CLEARSCREEN.
+	PRINT "Setpoint: " + ROUND(pidToDebug:SETPOINT,2) + "     " AT(0,0).
+	PRINT "   Error: " + ROUND(pidToDebug:ERROR,2) + "     " AT(0,1).
+	PRINT "       P: " + ROUND(pidToDebug:PTERM,3) + "      " AT(0,2).
+	PRINT "       I: " + ROUND(pidToDebug:ITERM,3) + "      " AT(0,3).
+	PRINT "       D: " + ROUND(pidToDebug:DTERM,3) + "      " AT(0,4).
+	PRINT "     Max: " + ROUND(pidToDebug:MAXOUTPUT,2) + "     " AT(0,5).
+	PRINT "  Output: " + ROUND(pidToDebug:OUTPUT,2) + "     " AT(0,6).
+	PRINT "     min: " + ROUND(pidToDebug:MINOUTPUT,2) + "     " AT(0,7).
 //	LOG (pidToDebug:SETPOINT + "," + pidToDebug:ERROR + "," + pidToDebug:PTERM + "," + pidToDebug:ITERM + "," + pidToDebug:DTERM + "," + pidToDebug:MAXOUTPUT + "," + pidToDebug:OUTPUT +  "," + pidToDebug:MINOUTPUT) TO PATH("0:/pidLog.txt").
 }
-
+```
 FUNCTION impact_eta { //returns the impact time in UT from after the next node, note only works on airless bodies
   PARAMETER posTime IS TIME:SECONDS. //posTime must be in UT seconds (TIME:SECONDS)
   LOCAL stepVal IS 100.
@@ -446,3 +446,42 @@ FUNCTION circularize_at_UT {
   
   RETURN NODE(UTs,nodeRadial,0,nodePrograde).
 }
+
+FUNCTION remove_by_vlaue {
+	PARAMETER listA, listB.
+	FROM { LOCAL i IS listA:LENGTH - 1. } UNTIL i < 0 STEP { SET i TO i - 1. } DO {
+		IF listB:CONTAINS(listA[i]) {
+			listA:REMOVE(i).
+		}
+	}
+}
+
+FUNCTION remove_by_vlaue {
+	PARAMETER listA, listB.
+	LOCAL returnList IS LIST().
+	FOR item IN listA {
+		IF NOT listB:CONTAINS(item) {
+			returnList:ADD(item).
+		}
+	}
+	RETURN returnList.
+}
+
+FUNCTION kill {
+	SET SHIP:CONTROL:TRANSLATION to v(0,0,0).
+	SET SHIP:CONTROL:ROTATION to v(0,0,0).
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE to 0.
+	LOCK THROTTLE to 0.
+	LOCK STEERING to "kill".
+	UNLOCK THROTTLE.
+	UNLOCK STEERING.
+	UNLOCK ALL.
+	SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
+	CLEARVECDRAWS().
+	CLEARGUIS().
+}
+
+//"I am the Bone of my Research Knowledge is my Body and Grants are my Blood.
+//I have written over a Thousand Papers, Unknown to Emeritus, Nor known to Tenure.
+//Have withstood Peer Review to create many Publications Yet those Methods will never prove Anything.
+//So, as I Pray-- Unlimited Science Works"

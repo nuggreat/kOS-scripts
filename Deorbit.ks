@@ -1,3 +1,4 @@
+//LOCAL defautlTar IS LATLNG().
 PARAMETER landingTar.
 IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
 FOR lib IN LIST("lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
@@ -15,6 +16,11 @@ IF NOT ABORT {
 	REMOVE NEXTNODE.
 	IF NOT ABORT {
 		RUN landing_vac(TRUE,landingTar).
+		//IF landingTar = defautlTar {
+		//	DEPLOYDRILLS ON.
+		//	WAIT 10.
+		//	DRILLS ON.
+		//}
 	}
 }
 

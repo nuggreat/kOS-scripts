@@ -110,18 +110,18 @@ FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to
 	RETURN MOD(relitiveAnomaly + craft1:ORBIT:TRUEANOMALY,360).
 }
 
-FUNCTION normal_of_orbit {//returns the normal of a crafts orbit, will point north if orbiting clockwise on equator
+FUNCTION normal_of_orbit {//returns the normal of a crafts/bodies orbit, will point north if orbiting clockwise on equator
 	PARAMETER craft.
 	RETURN VCRS(craft:VELOCITY:ORBIT, craft:BODY:POSITION - craft:POSITION):NORMALIZED.
 }
 
 FUNCTION phase_angle {
-	PARAMETER object1,object2.
-	LOCAL localBody IS object1:BODY.
-	LOCAL vecBodyToC1 IS object1:POSITION - localBody:POSITION.
-	LOCAL vecBodyToC2 IS object2:POSITION - localBody:POSITION.
+	PARAMETER object1,object2.//measures the phase of object2 as seen from object 1
+	LOCAL localBodyPos IS object1:BODY:POSITION.
+	LOCAL vecBodyToC1 IS object1:POSITION - localBodyPos.
+	LOCAL vecBodyToC2 IS VXCL(normal_of_orbit(object1),(object2:POSITION - localBodyPos)).
 	LOCAL phaseAngle IS VANG(vecBodyToC1,vecBodyToC2).
-	IF VDOT(vecBodyToC2,VCRS(vecBodyToC1,VCRS(object1:VELOCITY:ORBIT, -vecBodyToC1)):NORMALIZED) > 0 {//corrects for if object2 is ahead or behind object1
+	IF VDOT(vecBodyToC2,VCRS(vecBodyToC1,VCRS(vecBodyToC1,object1:VELOCITY:ORBIT)):NORMALIZED) > 0 {//corrects for if object2 is ahead or behind object1
 		SET phaseAngle TO 360 - phaseAngle.
 	}
 	RETURN phaseAngle.

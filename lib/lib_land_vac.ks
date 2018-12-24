@@ -1,4 +1,4 @@
-FUNCTION sim_land_spot {//credit to dunbaratu for the orignal code
+FUNCTION sim_land_vac {//credit to dunbaratu for the orignal code
 PARAMETER
 ves,				//the craft to simulate for
 isp,			//the isp of the active engines
