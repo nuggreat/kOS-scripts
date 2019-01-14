@@ -12,7 +12,7 @@ LOCAL shipISP IS isp_calc().
 LOCAL nodeLock IS 30.	//the number of sec before the node is locked in
 
 //start of core logic
-LOCAL pData IS LIST(" "," "," "," "," "," "," "," "," "," ").
+LOCAL pData IS LIST(" "," "," "," "," "," "," "," "," "," "," ",autoWarp).
 LOCAL done IS FALSE.
 //LOCAL warping IS autoWarp.
 LOCAL aborting IS FALSE.
@@ -45,6 +45,7 @@ IF SHIP:MASS > 200 {
 UNTIL done {	//waiting for a node to exist or be locked in
 	IF HASNODE {
 		screen_update(pData).
+		SET pData[10] TO warpState.
 		SET shipISP TO isp_calc().
 		LOCAL burnDuration IS burn_duration(shipISP,NEXTNODE:DELTAV:MAG).
 		LOCAL burnStart IS NEXTNODE:ETA - burn_duration(shipISP,NEXTNODE:DELTAV:MAG / 2).

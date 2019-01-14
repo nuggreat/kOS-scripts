@@ -22,7 +22,7 @@ LOCAL limitLex IS LEX("state",-3,"index",0).//,"maxIndex",wayListLength,"speedRa
 LOCAL speedListDynamic IS LIST().
 LOCAL etaListDynamic IS LIST().
 LOCAL distList IS LIST().
-LOCAL limitFunctionLex IS speed_limit_states(limitLex,waypointList,distList,speedListDynamic,etaListDynamic,wayListLength,maxSpeed,minSpeed).
+LOCAL limitFunctionLex IS speed_limit_states(limitLex,waypointList,distList,speedListDynamic,etaListDynamic,maxSpeed,minSpeed).
 UNTIL speed_limit_recalc(limitFunctionLex,limitLex,0) {
 	PRINT " " + padding(percent_state_calc(limitLex,wayListLength) * 100,2,2) + "%" AT(0,1).
 }
@@ -258,7 +258,7 @@ FUNCTION speed_limit_recalc {//runs the speed limit state machine
 }
 
 FUNCTION speed_limit_states {//sets up the various states of the speed limit calculation state machine 
-	PARAMETER dataLex,pointList,distList,speedList,etaList,maxIndex,maxSpeed,minSpeed.
+	PARAMETER dataLex,pointList,distList,speedList,etaList,maxSpeed,minSpeed.
 	LOCAL speedRange IS maxSpeed - minSpeed.
 	LOCAL maxIndex IS pointList:LENGTH - 1.
 	LOCAL returnLex IS LEX().

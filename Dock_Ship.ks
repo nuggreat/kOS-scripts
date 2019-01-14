@@ -225,7 +225,7 @@ FUNCTION translate {
 		PRINT "Port Size: " + portSize.
 		PRINT "Distance:  " + ROUND(distDif,1).
 
-		SET done TO (distDif < minDist) OR (stationPort:STATE = "Docked (docker)") OR (stationPort:STATE = "Docked (dockee)") OR (axisDist[0] < 1).
+		SET done TO (distDif < minDist) OR (stationPort:STATE = "Docked (docker)") OR (stationPort:STATE = "Docked (dockee)") OR (axisDist[0] < 1.5).
 	}
 	SET SHIP:CONTROL:FORE TO 0.
 	SET SHIP:CONTROL:TOP TO 0.

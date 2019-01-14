@@ -132,10 +132,11 @@ FUNCTION balance {	//balances res levels in given tankList
 	LOCAL tankSource IS LIST().
 	LOCAL tankDest IS LIST().
 	FOR tank IN tankList {
-		IF tank[1]:ENABLED {
-			IF (tank[1]:AMOUNT / tank[1]:CAPACITY) > precentLevel {
+		IF tank[1]:ENABLED AND (tank[1]:CAPACITY > 0) {
+			LOCAL tankLevel IS (tank[1]:AMOUNT / tank[1]:CAPACITY).
+			IF tankLevel > precentLevel {
 				tankSource:ADD(tank).
-			} ELSE IF (tank[1]:AMOUNT / tank[1]:CAPACITY) < precentLevel {
+			} ELSE IF tankLevel < precentLevel {
 				tankDest:ADD(tank).
 			}
 		}

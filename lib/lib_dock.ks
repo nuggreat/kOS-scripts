@@ -11,21 +11,6 @@ LOCAL lib_dock_lex IS LEX("sizeConversion",LEX(
 	"size0","0.625m",			//from: stock
 	"conSize0","0.625m Con")).	//from: USI konstruction
 
-//FUNCTION port_scan_of {
-//	PARAMETER craft, canDeploy IS TRUE.	//-----the ship that is scanned for ports-----
-//	LOCAL portList IS LIST().
-//	FOR port IN craft:DOCKINGPORTS {
-//		IF port:STATE = "Ready" {
-//			portList:ADD(port).
-//			port_to_port_size(port).//check for unknown ports
-//		} ELSE IF port:STATE = "Disabled" AND canDeploy {
-//			portList:ADD(port).
-//			port_to_port_size(port).//check for unknown ports
-//		}
-//	}
-//	RETURN port_sorting(portList).
-//}
-
 FUNCTION port_scan_of {
 	PARAMETER craft, canDeploy IS TRUE.	//-----the ship that is scanned for ports-----
 	LOCAL portLex IS LEX().

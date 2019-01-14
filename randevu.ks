@@ -1,6 +1,6 @@
 //COPYPATH("0:/lib/lib_formating.ks","1:/lib/").
 COPYPATH("0:/lib/lib_orbital_math.ks","1:/lib/").
-PARAMETER asap IS FALSE.
+PARAMETER incMatch IS TRUE, hohmann IS TRUE, refine IS TRUE, asap IS FALSE.
 FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 //control_point().
 //WAIT UNTIL active_engine().
@@ -18,59 +18,80 @@ UNTIL done {
 }
 clear_all_nodes().
 
-LOCAL nodesUTs IS UTs_of_nodes(SHIP,TARGET).
-LOCAL highNode IS "an".
-IF asap {
-	IF nodesUTs["an"] > nodesUTs["dn"] {
-		SEt highNode TO "dn".
+IF incMatch {
+	LOCAL nodesUTs IS UTs_of_nodes(SHIP,TARGET).
+	LOCAL highNode IS "an".
+	IF asap {
+		IF nodesUTs["an"] > nodesUTs["dn"] {
+			SEt highNode TO "dn".
+		}
+	} ELSE {
+		IF SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodesUTs["an"])) < SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodesUTs["dn"])) {
+			SEt highNode TO "dn".
+		}
 	}
-} ELSE {
-	IF SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodesUTs["an"])) < SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodesUTs["dn"])) {
-		SEt highNode TO "dn".
-	}
+	
+	LOCAL vecSpeedAtNode IS VELOCITYAT(SHIP,nodesUTs[highNode]):ORBIT.
+	LOCAL vecBurn IS burn_vector(vecSpeedAtNode,normal_of_orbit(TARGET)).
+	//LOCAL vecTarget IS VXCL(vecSpeedAtNode:NORMALIZED,normal_of_orbit(TARGET):NORMALIZED):NORMALIZED * vecSpeedAtNode:MAG.
+	//LOCAL vecBurn IS vecTarget - vecSpeedAtNode.//will be a vector of mag = DV of burn with chordates of burn direction
+	//PRINT "burnVec: " + ROUND(vecBurn:MAG,2).
+	//PRINT " ".
+	//PRINT "Alt an:  " + SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodesUTs["an"])).
+	//PRINT "Alt dn:  " + SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodesUTs["dn"])).
+	//PRINT "HighNode:" + highNode.
+	//PRINT " ".
+	//PRINT "AN UTs:  " + time_formating(nodesUTs["an"]).
+	//PRINT "AD UTs:  " + time_formating(nodesUTs["dn"]).
+	//PRINT "AN time: " + time_formating(nodesUTs["an"] - TIME:SECONDS).
+	//PRINT "DN time: " + time_formating(nodesUTs["dn"] - TIME:SECONDS).
+	
+	LOCAL baseNode IS node_from_vector(vecBurn,nodesUTs[highNode]).
+	ADD baseNode.
+	RUNPATH("1:/node_burn",TRUE).
+	clear_all_nodes().
+	WAIT 1.
 }
 
-LOCAL vecSpeedAtNode IS VELOCITYAT(SHIP,nodesUTs[highNode]):ORBIT.
-LOCAL vecBurn IS burn_vector(vecSpeedAtNode,normal_of_orbit(TARGET)).
-//LOCAL vecTarget IS VXCL(vecSpeedAtNode:NORMALIZED,normal_of_orbit(TARGET):NORMALIZED):NORMALIZED * vecSpeedAtNode:MAG.
-//LOCAL vecBurn IS vecTarget - vecSpeedAtNode.//will be a vector of mag = DV of burn with chordates of burn direction
-//PRINT "burnVec: " + ROUND(vecBurn:MAG,2).
-//PRINT " ".
-//PRINT "Alt an:  " + SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodesUTs["an"])).
-//PRINT "Alt dn:  " + SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,nodesUTs["dn"])).
-//PRINT "HighNode:" + highNode.
-//PRINT " ".
-//PRINT "AN UTs:  " + time_formating(nodesUTs["an"]).
-//PRINT "AD UTs:  " + time_formating(nodesUTs["dn"]).
-//PRINT "AN time: " + time_formating(nodesUTs["an"] - TIME:SECONDS).
-//PRINT "DN time: " + time_formating(nodesUTs["dn"] - TIME:SECONDS).
-
-LOCAL baseNode IS node_from_vector(vecBurn,nodesUTs[highNode]).
-ADD baseNode.
-RUNPATH("1:/node_burn",TRUE).
-clear_all_nodes().
-WAIT 1.
-
-LOCAL smaOfTransfer IS (SHIP:ORBIT:SEMIMAJORAXIS + TARGET:ORBIT:SEMIMAJORAXIS) / 2.
-LOCAL targetPeriod IS TARGET:ORBIT:PERIOD.
-LOCAL shipPeriod IS SHIP:ORBIT:PERIOD.
-LOCAL localTime IS TIME:SECONDS.
-LOCAL angleToTarget IS phase_angle(SHIP,TARGET).
-LOCAL periodOfTransfer IS orbital_period(smaOfTransfer,SHIP:BODY).
-LOCAL angleForTransfer IS MOD(360 * (targetPeriod / (periodOfTransfer / 2)),360).//the angle between ship and target for at the start of the transfer
-LOCAL phaseChange IS ABS(360 / shipPeriod - 360 / targetPeriod).//the change in angle between ship and target per second
-LOCAL UTsOfTransfer IS (MOD(angleForTransfer - angleToTarget + 360,360) / phaseChange) + localTime.
-LOCAL speedAtBurn IS orbital_speed_at_altitude_from_sma(SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,UTsOfTransfer)),smaOfTransfer).
-LOCAL transferDv IS speedAtBurn - VELOCITYAT(SHIP,UTsOfTransfer):ORBIT:MAG.
-//PRINT "angleToTarget:    " + angleToTarget.
-//PRINT "period of ship:   " + shipPeriod.
-//PRINT "period of target: " + targetPeriod.
-//PRINT "periodOfTransfer: " + periodOfTransfer.
-//PRINT "angleForTransfer: " + angleForTransfer.
-//PRINT "phaseChange:      " + phaseChange.
-//PRINT "UTsOfTransfer:    " + UTsOfTransfer.
-//PRINT "etaOfTransfer:    " + ((UTsOfTransfer - localTime)/60).
-ADD NODE(UTsOfTransfer,0,0,transferDv).
+IF hohmann {
+	LOCAL smaOfTransfer IS (SHIP:ORBIT:SEMIMAJORAXIS + TARGET:ORBIT:SEMIMAJORAXIS) / 2.
+	LOCAL targetPeriod IS TARGET:ORBIT:PERIOD.
+	LOCAL shipPeriod IS SHIP:ORBIT:PERIOD.
+	LOCAL localTime IS TIME:SECONDS.
+	LOCAL angleToTarget IS phase_angle(SHIP,TARGET).
+	LOCAL periodOfTransfer IS orbital_period(smaOfTransfer,SHIP:BODY).
+	LOCAL angleForTransfer IS MOD(360 * ((periodOfTransfer / 2) / targetPeriod) + 180,360).//the angle between ship and target for at the start of the transfer
+	LOCAL phaseChange IS ((360 / targetPeriod) - (360 / shipPeriod)).//the change in angle between ship and target per second
+	
+	LOCAL transferETA IS (MOD((360 - angleForTransfer) - angleToTarget + 360,360) / phaseChange).
+	IF transferETA < 0 {
+		SET transferETA TO (MOD((360 - angleForTransfer) - angleToTarget - 360,360) / phaseChange).
+	}
+	
+	LOCAL UTsOfTransfer IS transferETA + localTime.
+	LOCAL speedAtBurn IS orbital_speed_at_altitude_from_sma(SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,UTsOfTransfer)),smaOfTransfer).
+	LOCAL transferDv IS speedAtBurn - VELOCITYAT(SHIP,UTsOfTransfer):ORBIT:MAG.
+	
+	//PRINT "angleToTarget:    " + angleToTarget.
+	//PRINT "period of ship:   " + shipPeriod.
+	//PRINT "period of target: " + targetPeriod.
+	//PRINT "periodOfTransfer: " + periodOfTransfer.
+	//PRINT "angleForTransfer: " + angleForTransfer.
+	//PRINT "phaseChange:      " + phaseChange.
+	//PRINT "UTsOfTransfer:    " + UTsOfTransfer.
+	//PRINT "etaOfTransfer:    " + (transferETA / 60).
+	ADD NODE(UTsOfTransfer,0,0,transferDv).
+	RCS OFF.
+	SAS OFF.
+	PRINT "turn on sas to continue".
+	PRINT "trun on rcs to burn".
+	WAIT UNTIL SAS.
+	IF RCS {
+		RCS OFF.
+		RUNPATH("1:/node_burn",TRUE).
+		clear_all_nodes().
+	}
+}
 
 //WAIT UNTIL RCS.
 CLEARVECDRAWS().

@@ -2,7 +2,9 @@
 PARAMETER landingTar,margin IS 100.
 IF NOT EXISTS ("1/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/lib_mis_utilities.ks"). }
 IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
-FOR lib IN LIST("lib_rocket_utilities","lib_mis_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+//IF NOT EXISTS ("1/lib/lib_hill_climb.ks") { COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/lib_hill_climb.ks"). }
+COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/lib_hill_climb.ks").
+FOR lib IN LIST("lib_rocket_utilities","lib_mis_utilities","lib_geochordnate","lib_hill_climb") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 
 //LOCAl logPath IS PATH("0:/log_land_at_v6.txt").
 //IF EXISTS(logPath) { DELETEPATH(logPath). }
@@ -16,6 +18,7 @@ FOR lib IN LIST("lib_rocket_utilities","lib_mis_utilities","lib_geochordnate") {
 CLEARSCREEN.
 SET TERMINAL:WIDTH TO 55.
 SET TERMINAL:HEIGHT TO 15.
+clear_all_nodes().
 LOCAL landingData IS mis_types_to_geochordnate(landingTar).
 LOCAL landingChord IS landingData["chord"].
 
@@ -32,32 +35,33 @@ GLOBAL varConstants IS LEX(
 	"landingAlt",marginHeight + landingChord:TERRAINHEIGHT,
 	"initalStep",orbitalSpeed/10,
 	"peTarget",(localBody:RADIUS / -1.5),
-	"mode",0,
-	"manipList",LIST("eta","pro","nor","rad"),
-	"maxDv",maxDv
+	"mode",0
 ).
 LOCAL refineDeorbit IS SHIP:ORBIT:PERIAPSIS < 0.
 
+
+LOCAL terms IS 4.
 IF refineDeorbit {
 	SET varConstants["mode"] TO 1.
 	SET nodeStartTime TO (impact_ETA(ta_to_ma(SHIP:ORBIT:ECCENTRICITY,SHIP:ORBIT:TRUEANOMALY),SHIP:ORBIT,varConstants["landingAlt"]) / 2 + TIME:SECONDS).
-	varConstants["manipList"]:REMOVE(0).
+	SET terms TO 3.
 } ELSE IF ETA:APOAPSIS < 600 {
 	SET nodeStartTime TO nodeStartTime + (SHIP:ORBIT:PERIOD / 4).
 }
-clear_all_nodes().
+
 LOCAL baseNode IS NODE(nodeStartTime,0,0,0).
 ADD baseNode.
 IF varConstants["mode"] = 0 { periapsis_manipulaiton(NEXTNODE). }
-LOCAL scored IS score(NEXTNODE).
-LOCAL hillValues IS LEX("score",scored["score"],"stepVal",varConstants["initalStep"],"dist",scored["dist"]).
+LOCAL climbData IS climb_init("first",terms,varConstants["initalStep"],score(NEXTNODE),0.005,1,0.001,0).
+
 LOCAL shipISP IS isp_calc().
 LOCAL timeStart IS TIME:SECONDS.
 LOCAL count IS 0.
+LOCAL bestDist IS 0.
 LOCAL close IS FALSE.
 LOCAL done IS FALSE.
 delta_time().//first call of delta_time function to set initial start time
-UNTIL close{
+UNTIL close {
 	IF done AND (varConstants["mode"] = 0) {
 		SET done TO FALSE.
 		SET nodeStartTime TO nodeStartTime + (SHIP:ORBIT:PERIOD / 4).
@@ -65,57 +69,35 @@ UNTIL close{
 		clear_all_nodes().
 		ADD baseNode.
 		periapsis_manipulaiton(NEXTNODE).
-		LOCAL scored IS score(NEXTNODE).
-		SET hillValues["stepVal"] TO varConstants["initalStep"].
-		SET hillValues["score"] TO scored["score"].
+		SET climbData TO climb_init("first",terms,varConstants["initalStep"],score(NEXTNODE),0.005,1,0.001,0).
 	}
-	LOCAL stepMod IS 0.
+	LOCAL hillDone IS FALSE.
 	UNTIL done {
-		LOCAL stepVal IS hillValues["stepVal"].
-		LOCAL anyGood IS FALSE.
-		LOCAL bestNode IS LIST(hillValues["score"],"no",0,hillValues["dist"]).
-		FOR manipType IN  varConstants["manipList"] {
-			FOR stepTmp IN LIST(stepVal,-stepVal) {
-
-				node_set(NEXTNODE,manipType,stepTmp).
-				LOCAL scoreNew IS score(NEXTNODE).
-				LOCAL DVcheck IS NEXTNODE:DELTAV:MAG < varConstants["maxDv"].
-				node_set(NEXTNODE,manipType,-stepTmp).
-				LOCAL nodeTmp IS LIST(scoreNew["score"],manipType,stepTmp,scoreNew["dist"]).
-
-				IF DVcheck AND bestNode[0] > nodeTmp[0] {
-					SET bestNode TO nodeTmp.
-					SET anyGood TO TRUE.
-					BREAK.
-				}
-			}
-			IF anyGood { BREAK. }
-		}
-
-		IF anyGood {
-			node_set(NEXTNODE,bestNode[1],bestNode[2]).
-			SET stepMod TO MAX(stepMod - 0.005,0).
-			SET hillValues["score"] TO bestNode[0].
-			SET hillValues["dist"] TO bestNode[3].
-			SET hillValues["stepVal"] TO varConstants["initalStep"] / (10^stepMod).
-			SET count TO count + 1.
-			CLEARSCREEN.
-			PRINT "Target Coordinates: (" + ROUND(varConstants["landingChord"]:LAT,2) + "," + ROUND(varConstants["landingChord"]:LNG,2) + ")".
-			PRINT "Score: " + ROUND(hillValues["score"]).
-			PRINT "Dist:  " + ROUND(hillValues["dist"]).
-			PRINT "Pedif: " + ROUND(NEXTNODE:ORBIT:PERIAPSIS - varConstants["peTarget"]).
-			PRINT " ".
-			PRINT "   Step Size: " + ROUND(hillValues["stepVal"],3).
-			PRINT "  Total Time: " + ROUND(TIME:SECONDS - timeStart,3).
-			PRINT "   Step Time: " + ROUND(delta_time(),2).
-			PRINT "Average Time: " + ROUND((TIME:SECONDS - timeStart) / count,3).
+		
+		IF refineDeorbit {
+			SET hillDone TO climb_hill(NEXTNODE,score@,node_step_dv_only@,climbData).
 		} ELSE {
-			SET stepMod TO stepMod + 1.
-			SET hillValues["stepVal"] TO varConstants["initalStep"] / (10^stepMod).
+			SET hillDone TO climb_hill(NEXTNODE,score@,node_step_full@,climbData).
 		}
-		SET done TO (hillValues["stepVal"] < 0.001) OR (NOT refineDeorbit AND (NEXTNODE:ETA < (120 + burn_duration(shipISP,NEXTNODE:DELTAV:MAG)))).
+		LOCAL nodeDV IS NEXTNODE:DELTAV:MAG.
+		SET done TO hillDone OR (nodeDV > maxDv) OR (NOT refineDeorbit) AND (NEXTNODE:ETA < (120 + burn_duration(shipISP,nodeDV))) .
+		
+		SET bestDist TO climbData["results"]["dist"].
+		LOCAL bestScore IS climbData["results"]["score"].
+		SET count TO count + 1.
+		CLEARSCREEN.
+		PRINT "Target Coordinates: (" + ROUND(varConstants["landingChord"]:LAT,2) + "," + ROUND(varConstants["landingChord"]:LNG,2) + ")".
+		PRINT "Score: " + ROUND(bestScore).
+		PRINT "Dist:  " + ROUND(bestDist).
+		PRINT "Pedif: " + ROUND(NEXTNODE:ORBIT:PERIAPSIS - varConstants["peTarget"]).
+		PRINT " ".
+		PRINT "   Step Size: " + ROUND(climbData["maxStep"] * 10^climbData["stepExp"],3).
+		PRINT "  Total Time: " + ROUND(TIME:SECONDS - timeStart,3).
+		PRINT "   Step Time: " + ROUND(delta_time(),2).
+		PRINT "Average Time: " + ROUND((TIME:SECONDS - timeStart) / count,3).
+		
 	}
-	SET close TO ((hillValues["dist"] < 2000) AND (NEXTNODE:DELTAV:MAG < varConstants["maxDv"])) OR (varConstants["mode"] = 1).
+	SET close TO ((bestDist < 2000) AND (NEXTNODE:DELTAV:MAG < maxDv)) OR (varConstants["mode"] = 1).
 }
 //LOG count + "," + ROUND(TIME:SECONDS - timeStart,2) TO logPath.
 //IF NOT EXISTS("0:/land_at_log.txt") { LOG "avrage time" TO "0:/land_at_log.txt". }
@@ -124,12 +106,32 @@ UNTIL close{
 //SET CONFIG:IPU TO ipuBackup.
 
 //end of core logic start of functions
-FUNCTION node_set { //manipulates the targetNode in one of 4 ways depending on manipType for a value of stepVal
-	PARAMETER targetNode,manipType,stepVal.
-	IF manipType = "eta" { SET targetNode:ETA TO targetNode:ETA + stepVal * 2. } ELSE {
-	IF manipType = "pro" { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepVal. } ELSE {
-	IF manipType = "nor" { SET targetNode:NORMAL TO targetNode:NORMAL + stepVal. } ELSE {
-	IF manipType = "rad" { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepVal. }}}}
+
+FUNCTION node_step_full { //manipulates the targetNode in one of 4 ways depending on manipType for a value of stepVal
+	PARAMETER targetNode,stepDir,stepMag.
+	IF stepDir < 0 {
+		SET stepMag TO -stepMag.
+		SET stepDir TO -stepDir.
+	}
+	IF stepDir <= 2 {
+		IF stepDir <=1 { SET targetNode:ETA TO targetNode:ETA + stepMag * 2.
+		} ELSE { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepMag. }
+	} ELSE {
+		IF stepDir <=3 { SET targetNode:NORMAL TO targetNode:NORMAL + stepMag.
+		} ELSE { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepMag. }
+	}
+}
+
+FUNCTION node_step_dv_only {
+	PARAMETER targetNode,stepDir,stepMag.
+	IF stepDir < 0 {
+		SET stepMag TO -stepMag.
+		SET stepDir TO -stepDir.
+	}
+	IF stepDir <= 2 {
+		IF stepDir <=1 { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepVal.
+		} ELSE { SET targetNode:NORMAL TO targetNode:NORMAL + stepVal. }
+	} ELSE { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepVal. }
 }
 
 FUNCTION score { //returns the score of the node
