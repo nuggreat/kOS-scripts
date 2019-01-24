@@ -88,11 +88,13 @@ FUNCTION si_formating {
 	IF num = 0 {
 		RETURN padding(num,1,3) + "  " + unit.
 	} ELSE {
+		//SET num TO sig_dig_rounding(num,4).
 		LOCAL powerOfTen IS MAX(MIN(FLOOR(LOG10(ABS(num))),26),-24).
 		LOCAL SIfactor IS FLOOR(powerOfTen / 3).
 		LOCAL trailingLength IS 3 - (powerOfTen - SIfactor * 3).
 		LOCAL prefix IS lib_formating_lex["siPrefixList"][SIfactor + 8].
-		RETURN padding(num/1000^SIfactor,1,trailingLength) + prefix + unit.
+		//RETURN padding(adv_floor(num/1000^SIfactor,trailingLength),1,trailingLength,TRUE,TRUE) + prefix + unit.
+		RETURN padding(num/1000^SIfactor,1,trailingLength,TRUE,TRUE) + prefix + unit.
 	}
 }
 
@@ -100,8 +102,15 @@ FUNCTION padding {
 	PARAMETER num,	//number to pad
 	leadingLenght,	//min length to the left of the decimal point
 	trailingLength,	// length to the right of the decimal point
-	positiveLeadingSpace IS TRUE.//if when positive should there be a space before the returned string
-	LOCAL returnString IS ABS(ROUND(num,trailingLength)):TOSTRING.
+	positiveLeadingSpace IS TRUE,//if when positive should there be a space before the returned string
+	useFloor IS FALSE.
+	LOCAL returnString IS "".
+	//LOCAL returnString IS ABS(ROUND(num,trailingLength)):TOSTRING.
+	IF useFloor {
+		SET returnString TO ABS(adv_floor(num,trailingLength)):TOSTRING.
+	} ELSE {
+		SET returnString TO ABS(ROUND(num,trailingLength)):TOSTRING.
+	}
 
 	IF trailingLength > 0 {
 		IF NOT returnString:CONTAINS(".") {
@@ -122,4 +131,16 @@ FUNCTION padding {
 			RETURN returnString.
 		}
 	}
+}
+
+LOCAL FUNCTION sig_dig_rounding {
+	PARAMETER num,sigDig.
+	LOCAL multiplier IS 10^(sigDig - FLOOR(LOG10(ABS(num))) - 1).
+	RETURN ROUND(FLOOR(num*multiplier*10)/10,0)/multiplier.
+}
+
+LOCAL FUNCTION adv_floor {
+	PARAMETER num,dp.
+	LOCAL multiplier IS 10^dp.
+	RETURN FLOOR(num * multiplier)/multiplier.
 }

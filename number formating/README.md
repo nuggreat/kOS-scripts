@@ -10,6 +10,7 @@
     Parameter 2: expects a number,   minimum number of digits to the left of the decimal point.
     Parameter 3: expects a number,   number of digits to the right of the decimal point.
 	Parameter 4: expects True/False, if true and if Parameter 1 is positive then there will be a space at the start of the returned string, default is true.
+	Parameter 5: expects True/False, if true will round down to remove excess decimal points, if false will use normal rounding to remove excess decimal points
   
   Examples of use:
   
