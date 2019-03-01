@@ -1,5 +1,5 @@
 //intended to be used with lib_dock_v1
-PARAMETER transSpeed IS 2,stationMove IS FALSE.
+PARAMETER transSpeed IS 5,stationMove IS FALSE.
 FOR lib IN LIST("lib_dock","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
 WAIT UNTIL active_engine().
@@ -190,6 +190,14 @@ FUNCTION translate {
 	}
 
 	LOCAL done IS distDif < minDist OR (stationPort:STATE = "Docked (docker)") OR (stationPort:STATE = "Docked (dockee)").
+	
+	LOCAL trigClear IS FALSE.
+	ON (stationPort:STATE OR trigClear) {
+		IF stationPort:STATE <> "Ready" AND NOT trigClear {
+			SET done TO TRUE.
+		}
+	}
+	
 	UNTIL done {
 		SET axisDist TO axis_distance(craftPort,stationPort).
 		SET axisSpeed TO axis_speed(SHIP,station).
@@ -227,6 +235,7 @@ FUNCTION translate {
 
 		SET done TO (distDif < minDist) OR (stationPort:STATE = "Docked (docker)") OR (stationPort:STATE = "Docked (dockee)") OR (axisDist[0] < 1.5).
 	}
+	SET trigClear TO TRUE.
 	SET SHIP:CONTROL:FORE TO 0.
 	SET SHIP:CONTROL:TOP TO 0.
 	SET SHIP:CONTROL:STARBOARD TO 0.

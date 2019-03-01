@@ -29,7 +29,7 @@ FUNCTION accel_data { //using the Accelerometer part returns the current acceler
 }
 
 FUNCTION advanced_heading {//works just like HEADING but lets you set the roll
-	PARAMETER myHeading,myPitch,myRoll.
+	PARAMETER myHeading,myPitch,myRoll.//positive myRoll is is right wing up left down(q key)
 	LOCAL returnDir IS HEADING(myHeading,myPitch).
 	RETURN ANGLEAXIS(myRoll,returnDir:FOREVECTOR) * returnDir.
 }
@@ -390,27 +390,26 @@ FUNCTION parts_with_module_near {//returns a list of parts containing the named 
 }
 
 FUNCTION number_concatnation {
-	PARAMETER char,string.
+	PARAMETER string,cha.//expects " " as the base string to start with
 	LOCAL returnString TO string.
-	IF LIST("0","1","2","3","4","5","6","7","8","9","-","."):CONTAINS(char) {
-		IF LIST("0","1","2","3","4","5","6","7","8","9"):CONTAINS(char) {
-			RETURN returnString + char.
-		} ELSE IF char = "-" {
+	IF cha:MATCHESPATTERN("[0-9-.]") {
+		IF cha:MATCHESPATTERN("[0-9]") {
+			RETURN returnString + cha.
+		} ELSE IF cha = "-" {
 			IF returnString:CONTAINS("-"){
-				returnString:REMOVE(0).
-				RETURN returnString.
+				RETURN " " + returnString:REMOVE(0,1).
 			} ELSE {
-				RETURN char + returnString.
+				RETURN cha + returnString:REMOVE(0,1).
 			}
-		} ELSE IF char = "." {
+		} ELSE IF cha = "." {
 			IF returnString:CONTAINS(".") {
 				RETURN returnString.
 			} ELSE {
-				RETURN returnString + char.
+				RETURN returnString + cha.
 			}
 		}
-	} ELSE IF (char = TERMINAL:INPUT:BACKSPACE) AND (returnString:LENGTH > 0)  {
-		RETURN returnString:REMOVE(returnString:LENGTH - 1).
+	} ELSE IF (cha = TERMINAL:INPUT:BACKSPACE) AND (returnString:LENGTH > 1)  {
+		RETURN returnString:REMOVE(returnString:LENGTH - 1,1).
 	} ELSE {
 		RETURN returnString.
 	}
@@ -479,6 +478,32 @@ FUNCTION kill {
 	SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 	CLEARVECDRAWS().
 	CLEARGUIS().
+}
+
+FUNCTION thrust_balancer {
+	PARAMETER engList,balanceAroundVec,baseLimit IS 100.
+	LOCAL torqueSumVec IS v(0,0,0).
+	FOR eng IN engList {
+		LOCAL leverVec IS VXCL(balanceAroundVec, eng:POSITION).
+		SET torqueSumVec TO torqueSumVec + leverVec * eng:MAXTHRUST.
+	}
+	
+	LOCAL badEngList IS LIST().
+	LOCAL badTorqueSumVec IS v(0,0,0).
+	FOR eng IN engList {
+		IF VDOT(torqueSumVec,eng:POSITION) > 0 {
+			badEngList:ADD(eng).
+			LOCAL leverVec IS VXCL(balanceAroundVec,eng:POSITION).
+			SET badTorqueSumVec TO badTorqueSumVec + leverVec * eng:MAXTHRUST.
+		} ELSE {
+			SET eng:THRUSTLIMIT TO baseLimit.
+		}
+	}
+	
+	LOCAL thrustLim IS (1 - torqueSumVec:MAG / badTorqueSumVec:MAG) * baseLimit.
+	FOR eng IN badEngList {
+		SET eng:THRUSTLIMIT TO thrustLim.
+	}
 }
 
 //"I am the Bone of my Research Knowledge is my Body and Grants are my Blood.

@@ -175,6 +175,50 @@ FUNCTION axis_distance {
 	RETURN LIST(dist,distFor,distTop,distStar).
 }
 
+//		   PID setup PIDLOOP(kP,kI,kD,min,max)
+LOCAL PIDfore IS PIDLOOP(4,0.1,0.01,-1,1).
+LOCAL PIDtop  IS PIDLOOP(4,0.1,0.01,-1,1).
+LOCAL PIDstar IS PIDLOOP(4,0.1,0.01,-1,1).
+LOCAL RCSdeadZone IS 0.05.//rcs will not fire below this value
+LOCAL desiredFore IS 0.
+LOCAL desiredTop IS 0.
+LOCAL desiredStar IS 0.
+
+FUNCTION translation_control {
+	PARAMETER desiredVelocityVec,tar,craft.
+	WAIT 0.
+	LOCAL shipFacing IS SHIP:FACING.
+	LOCAL axisSpeed IS axis_speed(craft,tar).
+	//PRINT "velocityError: " + ROUND((desiredVelocityVec - axisSpeed[0]):MAG,2).
+	SET PIDfore:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:FOREVECTOR).
+	SET PIDtop:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:TOPVECTOR).
+	SET PIDstar:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:STARVECTOR).
+	
+	SET desiredFore TO PIDfore:UPDATE(TIME:SECONDS,axisSpeed[1]) + desiredFore.
+	SET desiredTop TO PIDtop:UPDATE(TIME:SECONDS,axisSpeed[2]) + desiredTop.
+	SET desiredStar TO PIDstar:UPDATE(TIME:SECONDS,axisSpeed[3]) + desiredStar.
+
+	SET SHIP:CONTROL:FORE TO desiredFore.
+	SET SHIP:CONTROL:TOP TO desiredTop.
+	SET SHIP:CONTROL:STARBOARD TO desiredStar.
+	
+	IF ABS(desiredFore) > RCSdeadZone { SET desiredFore TO 0. }
+	IF ABS(desiredTop) > RCSdeadZone { SET desiredTop TO 0. }
+	IF ABS(desiredStar) > RCSdeadZone { SET desiredStar TO 0. }
+	//pid_debug(PID["Fore"]).
+	//pid_debug(PID["Top"]).
+	//pid_debug(PID["Star"]).
+}
+
+FUNCTION translation_control_init {
+	PIDfore:RESET().
+	PIDtop:RESET().
+	PIDstar:RESET().
+	SET desiredFore TO 0. 
+	SET desiredTop TO 0. 
+	SET desiredStar TO 0.
+}
+
 FUNCTION target_craft {
 	PARAMETER tar.
 	IF NOT tar:ISTYPE("Vessel") { RETURN tar:SHIP. }

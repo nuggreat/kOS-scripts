@@ -18,6 +18,7 @@ COPYPATH("0:/land_at.ks","1:/").
 COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib").
 COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/").
 COPYPATH("0:/lib/lib_orbital_math.ks","1:/lib/").
+COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/").
 COPYPATH("0:/randevu.ks","1:/").
 COPYPATH("0:/deorbit.ks","1:/").
 COPYPATH("0:/rover.ks","1:/").

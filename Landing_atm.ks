@@ -69,16 +69,16 @@ UNTIL (VERTICALSPEED > -2) AND (GROUNDSPEED < 10) {	//waiting until altitude det
 	LOCAL newMass IS SHIP:MASS.
 	LOCAL newForeVec IS SHIP:FACING:FOREVECTOR.
 	LOCAL newGravVec IS localBody:POSITION - SHIP:POSITION.
-	
+
 	SET newAtmPressure TO newAtmPressure * CONSTANT:ATMTOKPA.
 	SET newDynamicP TO newDynamicP * CONSTANT:ATMTOKPA.
 	//SET newMass TO newMass * 1000.
-	
+
 	LOCAL avrPressure IS (newAtmPressure + preAtmPressure) / 2.
 	LOCAL avrDynamicP IS (newDynamicP + preDynamicP) / 2.
 	LOCAL avrForeVec IS ((newForeVec + preForeVec) / 2):NORMALIZED.
 	SET shipISP TO isp_at(get_active_eng(),avrPressure).
-	
+
 	LOCAL deltaTime IS newTime - preTime.
 	LOCAL gravVec IS average_grav(newGravVec:MAG,newGravVec:MAG) * (newGravVec:NORMALIZED + preGravVec:NORMALIZED):NORMALIZED * deltaTime.
 	LOCAL burnDV IS shipISP * 9.80665 * LN(preMass / newMass).
@@ -88,7 +88,7 @@ UNTIL (VERTICALSPEED > -2) AND (GROUNDSPEED < 10) {	//waiting until altitude det
 	SET atmDencity TO (avrDynamicP * 2) / ((newVel:SQRMAGNITUDE + preVel:SQRMAGNITUDE) / 2).//derived from q = d * v^2 / 2
 	SET dragCoef TO dragForce / MAX(avrDynamicP,0.0001).
 	SET atmMolarMass TO atmDencity / avrPressure.
-	
+
 	SET simPreTime TO TIME:SECONDS.
 	SET simResults TO sim_land_atm(SHIP,dragCoef*0.8,atmMolarMass,simStep,deltaTime * simDelay,0.8).
 	LOCAL simDelta IS TIME:SECONDS - simPreTime.
@@ -97,7 +97,7 @@ UNTIL (VERTICALSPEED > -2) AND (GROUNDSPEED < 10) {	//waiting until altitude det
 	LOCAL stopPos IS (localBody:POSITION - newGravVec) + simResults["pos"].
 	SET stopGap TO SHIP:BODY:ALTITUDEOF(stopPos) - SHIP:BODY:GEOPOSITIONOF(stopPos):TERRAINHEIGHT.
 	SET throt TO MIN(100 / MAX((stopGap - retroMarginLow), 100),1).
-	
+
 	//VecDrawAdd(drawLex,SHIP:POSITION,dragAcc*2,RED,"DragVec",1,1).
 	//VecDrawAdd(drawLex,SHIP:POSITION,accelVec*2,GREEN,"burnVec",1,1).
 	//VecDrawAdd(drawLex,SHIP:POSITION,dragAcc*10,RED,1,0).
@@ -115,7 +115,7 @@ UNTIL (VERTICALSPEED > -2) AND (GROUNDSPEED < 10) {	//waiting until altitude det
 	PRINT " ".
 	PRINT "Sim Duration:  " + ROUND(simDelta,2).
 	PRINT "Steps Per Sim: " + simResults["cycles"].
-	
+
 	SET preVel TO newVel.
 	SET preTime TO newTime.
 	SET preGravVec TO newGravVec.

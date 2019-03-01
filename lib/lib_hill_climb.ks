@@ -12,22 +12,25 @@ FUNCTION climb_init {
 	climbData:ADD("incStep",incStep).
 	climbData:ADD("decStep",decStep).
 	climbData:ADD("stepExp",stepExp).
-	
+
 	LOCAL stepsList IS LIST().
 	IF climbType = "grad" {
 		LOCAL stepBlank IS LIST().
 		UNTIL stepBlank:LENGTH >= terms { stepBlank:ADD(0). }
 		climbData:ADD("stepBlank",stepBlank).
 		climbData:ADD("climbType","grad").
-		LOCAL posStep IS TRUE.
+		//LOCAL posStep IS TRUE.
+		LOCAL stepDir IS 1.
 		FROM { LOCAL i IS 0. } UNTIL i >= (terms * 2) STEP { SET i TO i + 1. } DO {
 			stepsList:ADD(stepBlank:COPY()).
-			IF posStep {
-				SET stepsList[i][FLOOR(i / 2)] TO 1.
-			} ELSE {
-				SET stepsList[i][FLOOR(i / 2)] TO -1.
-			}
-			SET posStep TO NOT posStep.
+			SET stepsList[i][FLOOR(i / 2)] TO stepDir.
+			SET stepDir TO -stepDir.
+			//IF posStep {
+			//	SET stepsList[i][FLOOR(i / 2)] TO 1.
+			//} ELSE {
+			//	SET stepsList[i][FLOOR(i / 2)] TO -1.
+			//}
+			//SET posStep TO NOT posStep.
 		}
 	} ELSE {
 		climbData:ADD("climbType","basic").
@@ -60,6 +63,7 @@ LOCAL FUNCTION climb_basic {
 	LOCAL bestScore IS climbData["results"].
 	LOCAL bestScoreValue IS bestScore["score"].
 	LOCAL stepMag IS climbData["maxStep"] * 10^climbData["stepExp"].
+
 	FOR stepDir IN climbData["stepsList"] {
 		stepFunc(thing,stepDir,stepMag).
 		LOCAL tmpScore IS scoreFunc(thing).
@@ -73,6 +77,7 @@ LOCAL FUNCTION climb_basic {
 		}
 		stepFunc(thing,stepDir,-stepMag).
 	}
+
 	IF bestDir <> 0 {
 		stepFunc(thing,bestDir,stepMag).
 		SET climbData["results"] TO bestScore.
@@ -96,10 +101,11 @@ LOCAL FUNCTION climb_grad {
 	LOCAL preScore IS climbData["results"]["score"].
 	LOCAL goodSteps IS LIST().
 	LOCAL maxSteps IS climbData["stepsList"]:LENGTH.
+
 	FROM { LOCAL i IS 0. } UNTIL i >= maxSteps STEP { SET i TO i + 1. } DO {
 		LOCAL stepDir IS climbData["stepsList"][i].
 		stepFunc(thing,stepDir,stepMag).
-		
+
 		LOCAL tmpScore IS scoreFunc(thing)["score"].
 		IF tmpScore < preScore {
 			LOCAL diff IS preScore - tmpScore.
@@ -108,6 +114,7 @@ LOCAL FUNCTION climb_grad {
 		}
 		stepFunc(thing,stepDir,-stepMag).
 	}
+
 	IF goodSteps:LENGTH > 0 {
 		LOCAL stepVec IS climbData["stepBlank"]:COPY().
 		FOR goodStep IN goodSteps {
@@ -129,4 +136,65 @@ LOCAL FUNCTION climb_grad {
 			RETURN FALSE.
 		}
 	}
+}
+
+FUNCTION closest_approach_hill {
+	PARAMETER object1, object2,
+	startTime.
+	LOCAL objects IS LEX("obj1",object1,"obj2",object2,"UTS",startTime).
+	LOCAL climbData IS climb_init("fist",2,object2:ORBIT:PERIOD / 360,ca_score(objects),0,1,1,0).
+	LOCAL done IS FALSE.
+	UNTIL done {
+		SET done TO climb_hill(objects,ca_score@,ca_step@,climbData).
+	}
+	RETURN LEX("dist",climbData["results"]["score"],"time",objects["UTS"]).
+}
+
+LOCAL FUNCTION ca_score {
+	PARAMETER objects.
+		RETURN LEX("score",(POSITIONAT(objects["obj1"],objects["UTS"]) - POSITIONAT(objects["obj2"],objects["UTS"])):MAG).
+}
+
+LOCAL FUNCTION ca_step {
+	PARAMETER objects,stepDir,stepMag.
+	IF stepDir > 0 {
+		SET objects["UTS"] TO objects["UTS"] + stepMag.
+	} ELSE {
+		SET objects["UTS"] TO objects["UTS"] - stepMag.
+	}
+}
+
+FUNCTION node_step_full_grad {
+	PARAMETER targetNode,stepDir,stepMag.
+	SET targetNode:ETA TO targetNode:ETA + stepDir[0] * stepMag.
+	SET targetNode:PROGRADE TO targetNode:PROGRADE + stepDir[1] * stepMag.
+	SET targetNode:NORMAL TO targetNode:NORMAL + stepDir[2] * stepMag.
+	SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepDir[3] * stepMag.
+}
+
+FUNCTION node_step_full { //manipulates the targetNode in one of 4 ways depending on manipType for a value of stepVal
+	PARAMETER targetNode,stepDir,stepMag.
+	IF stepDir < 0 {
+		SET stepMag TO -stepMag.
+		SET stepDir TO -stepDir.
+	}
+	IF stepDir <= 2 {
+		IF stepDir <=1 { SET targetNode:ETA TO targetNode:ETA + stepMag * 2.
+		} ELSE { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepMag. }
+	} ELSE {
+		IF stepDir <=3 { SET targetNode:NORMAL TO targetNode:NORMAL + stepMag.
+		} ELSE { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepMag. }
+	}
+}
+
+FUNCTION node_step_dv_only {//manipulates the targetNode in one of the 3 Vectors depending on stepDir for a value of stepMag, used in best,first type hill climbs 
+	PARAMETER targetNode,stepDir,stepMag.
+	IF stepDir < 0 {
+		SET stepMag TO -stepMag.
+		SET stepDir TO -stepDir.
+	}
+	IF stepDir <= 2 {
+		IF stepDir <=1 { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepMag.
+		} ELSE { SET targetNode:NORMAL TO targetNode:NORMAL + stepMag. }
+	} ELSE { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepMag. }
 }

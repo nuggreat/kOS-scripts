@@ -17,10 +17,10 @@ FUNCTION solar_relitave_positionAt {
   IF firstRun {
     RETURN POSITIONAT(orbital,t) + solar_motion(orbital:BODY,t,FALSE).
   } ELSE {
-    IF orbital = SUN {
-      RETURN v(0,0,0).
-    } ELSE {
+    IF orbital:HASBODY {
       RETURN (POSITIONAT(orbital,t) - orbital:POSITION) + solar_motion(orbital:BODY,t,FALSE).
+    } ELSE {
+      RETURN v(0,0,0).
     }
   }
 }

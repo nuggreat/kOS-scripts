@@ -44,7 +44,7 @@ UNTIL t >= cruse {	//advances the simulation of the craft with out burning for t
 
 	SET preVel TO vel.
 	SET vel TO vel + (accelVec * timeDelta).
-	
+
 	SET pos TO pos + ((vel + preVel) / 2 * timeDelta).
 
 	SET t TO t + timeDelta.
@@ -77,7 +77,7 @@ UNTIL FALSE {	//retroburn simulation
 	//VecDrawAdd(vdLex,SHIP:POSITION,pos,BLUE,"posVec",1,1).
 
 	SET vel TO vel + (accelVec * timeDelta).
-	
+
 	SET pos TO pos + (((vel + preVel) / 2) * timeDelta).
 	SET m TO m - deltaM.
 

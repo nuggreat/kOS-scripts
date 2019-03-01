@@ -1,5 +1,5 @@
-//TODO: 1) add steering limit due to speed value as parameter
-PARAMETER maxSpeed,minSpeed,stopDist,waypointList,waypointRadius,destName,wheelAccel IS 0.025.
+
+PARAMETER maxSpeed,minSpeed,stopDist,waypointList,waypointRadius,destName,wheelAccel IS 0.025,turnCoeff IS 1.
 IF NOT EXISTS("1:/lib/lib_rocket_utilities.ks") COPYPATH("0:/lib/lib_rocket_utilities.ks","1:/lib/").
 FOR lib IN LIST("lib_geochordnate","lib_navball2","lib_formating","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 CLEARSCREEN.
@@ -9,13 +9,13 @@ SET STEERINGMANAGER:ROLLCONTROLANGLERANGE TO 180.
 //SET CONFIG:IPU TO 200.
 //PID setup PIDLOOP(kP,kI,kD,min,max)
 LOCAL throttlePID IS PIDLOOP(0.5,0.2,0.02,-1,1).
-LOCAL steeringPID IS PIDLOOP(0.5,0.02,0.1,-1,1).
+LOCAL steeringPID IS PIDLOOP((0.5 * turnCoeff),(0.02),(0.1 * turnCoeff),-1,1).
 
 control_point("roverControl").
 PRINT "Rover Starting up.".
 LOCAL waypointIndex IS 0.
 LOCAL wayListLength IS waypointList:LENGTH - 1.
-LOCAL offLimit IS waypointRadius * 2.
+LOCAL offLimit IS waypointRadius * 3.
 
 //LOCAL distList IS generate_dist_list(waypointList).//calculate distance along path between waypoints
 LOCAL limitLex IS LEX("state",-3,"index",0).//,"maxIndex",wayListLength,"speedRange",(maxSpeed - minSpeed),"minSpeed",minSpeed).
@@ -132,7 +132,7 @@ UNTIL done {
 	} ELSE {
 		IF (tarDist < stopDist) OR ABORT { SET stopping TO TRUE. ABORT OFF. }
 		LOCAL accelLimit IS accel_dist_to_speed(wheelAccel,tarGeoDist - stopDist,speedRange,0).
-		SET throttlePID:SETPOINT TO MIN(MIN(MAX(MIN(1 - (ABS(steerError * 2) + percentError / 2),1),0) * speedRange,accelLimit) + minSpeed,speedRestrict).
+		SET throttlePID:SETPOINT TO MIN(MIN(MAX(MIN(1 - (ABS(steerError * 2) + MIN(percentError - 0.1,0) / 2),1),0) * speedRange,accelLimit) + minSpeed,speedRestrict).
 		//PRINT (slope_grade_error) AT(0,15).
 		//PRINT ABS(steerError * 2) AT(0,16).
 		//PRINT (1 - percentError) AT (0,17).
@@ -153,7 +153,7 @@ UNTIL done {
 		SET pointVecDraw:SHOW TO showVectors.
 	}
 
-	LOCAL steerPIDrange IS MIN(MAX(1 - ((forSpeed - minSpeed) / steerLimit),0.025),1).
+	LOCAL steerPIDrange IS MIN(MAX(1 - ((forSpeed - minSpeed) / steerLimit),0.025 * turnCoeff),1).
 	SET steeringPID:MAXOUTPUT TO steerPIDrange.
 	SET steeringPID:MINOUTPUT TO -steerPIDrange.
 
@@ -185,6 +185,7 @@ UNTIL done {
 		SET etaListStatic TO etaListDynamic:COPY().
 	}
 }
+
 ABORT OFF.
 BRAKES ON.
 SET SHIP:CONTROL:WHEELTHROTTLE TO 0.
@@ -213,7 +214,7 @@ FUNCTION screen_update {
 	printList:ADD(" ").
 	printList:ADD(" Bearing to Point:" + padding(pointBearing,2,3)).
 	printList:ADD("Wheel Steering Is: " + padding(SHIP:CONTROL:WHEELSTEER,1,3)).
-	
+
 //	printList:ADD(" Input: " + ROUND(steeringPID:INPUT,3) + "    ").
 //	printList:ADD("     P: " + ROUND(steeringPID:PTERM,3) + "    ").
 //	printList:ADD("     I: " + ROUND(steeringPID:ITERM,3) + "    ").
@@ -347,7 +348,7 @@ FUNCTION speed_limit_states {//sets up the various states of the speed limit cal
 			SET dataLex["index"] TO maxIndex - 1.
 		}
 		RETURN FALSE.
-		
+
 	}).
 	returnLex:ADD(4,{//limiting speed backwards based on accel limit
 		PARAMETER curentIndex.
@@ -367,7 +368,7 @@ FUNCTION speed_limit_states {//sets up the various states of the speed limit cal
 		LOCAL i IS dataLex["index"].
 		LOCAL distToNext IS distList[i] - distList[i + 1].
 		LOCAL avrSpeed IS (speedList[i] + speedList[i + 1]) / 2.
-		
+
 		SET etaList[i] TO etaList[i + 1] + distToNext / avrSpeed.
 		SET dataLex["index"] TO i - 1.
 		IF dataLex["index"] < curentIndex {
@@ -390,7 +391,7 @@ FUNCTION percent_state_calc {
 		RETURN (((dataLex["index"] + stateVal / 3) / maxIndex) / 2).
 	} ELSE IF stateVal = 3 {
 		RETURN ((dataLex["index"]/maxIndex) / 6 + 0.5).
-	} ELSE {//stateVal >= 0 {
+	} ELSE {
 		RETURN (((maxIndex - dataLex["index"]) / maxIndex) / 6 + (stateVal / 6)).
 	}
 }

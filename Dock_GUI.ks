@@ -26,10 +26,10 @@ LOCAL translateData IS LEX("steerVec",SHIP:FACING:FOREVECTOR,//lexicon of needed
 LOCAL statusData IS LEX("dispType",0,"data",LIST(0,0,0,0,0,0,0,0,0),"dispOn",FALSE,"showVectors",FALSE).
 
 //		   PID setup PIDLOOP(kP,kI,kD,min,max)
-LOCAL PID IS LEX(	"Fore",PIDLOOP(4,0.1,0.01,-1,1),
-					"Star",PIDLOOP(4,0.1,0.01,-1,1),
-					 "Top",PIDLOOP(4,0.1,0.01,-1,1),
-					 "eng",PIDLOOP(1,0.02,0.05,0,1)).
+LOCAL PID IS LEX("Fore",PIDLOOP(4,0.1,0.01,-1,1),
+				  "Top",PIDLOOP(4,0.1,0.01,-1,1),
+				 "Star",PIDLOOP(4,0.1,0.01,-1,1),
+				  "eng",PIDLOOP(1,0.02,0.05,0,1)).
 SET PID["eng"]:SETPOINT TO 0.01.
 
 LOCAL interface IS GUI(500).
@@ -924,7 +924,7 @@ FUNCTION translate {
 		SAS OFF.
 		LOCK STEERING TO translateData["steerVec"].
 		steering_alinged_duration(TRUE,5,TRUE).
-		LOCK THROTTLE TO 0.
+		//LOCK THROTTLE TO 0.
 		FOR key IN varConstants["translationPIDs"] { PID[key]:RESET(). }
 		taskList:ADD(translate@:BIND((translateState + 1),shipPoint,targetPoint,isKlaw)).
 		RETURN TRUE.
@@ -932,6 +932,7 @@ FUNCTION translate {
 		IF steering_alinged_duration() > 1 {
 			PRINT "Starting Translation".
 			taskList:ADD(translate@:BIND((translateState + 1),shipPoint,targetPoint,isKlaw)).
+			translation_control_init().
 			RETURN TRUE.
 		} ELSE {
 			RETURN FALSE.
@@ -1004,6 +1005,7 @@ FUNCTION translate {
 				vec_draw_add(vecDrawLex,SHIP:POSITION,desiredVelocityVec,GREEN,"targetVel",1,TRUE,0.2).
 				vec_draw_add(vecDrawLex,SHIP:POSITION,statusData["data"][4],RED,"relitveVel",1,TRUE,0.2).
 			}
+			RCS ON.
 			translation_control(desiredVelocityVec,targetPoint,shipPoint).
 			RETURN FALSE.
 		} ELSE {
@@ -1036,24 +1038,23 @@ FUNCTION translation_abort {
 	SET translateData["stop"] TO TRUE.
 }
 
-FUNCTION translation_control {
-	PARAMETER desiredVelocityVec,tar,craft.
-	RCS ON.
-	WAIT 0.
-	LOCAL shipFacing IS SHIP:FACING.
-	LOCAL axisSpeed IS axis_speed(craft,tar).
-	//PRINT "velocityError: " + ROUND((desiredVelocityVec - axisSpeed[0]):MAG,2).
-	SET PID["Fore"]:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:FOREVECTOR).
-	SET PID["Top"]:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:TOPVECTOR).
-	SET PID["Star"]:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:STARVECTOR).
-
-	SET SHIP:CONTROL:FORE TO PID["Fore"]:UPDATE(TIME:SECONDS,axisSpeed[1]).
-	SET SHIP:CONTROL:TOP TO PID["Top"]:UPDATE(TIME:SECONDS,axisSpeed[2]).
-	SET SHIP:CONTROL:STARBOARD TO PID["Star"]:UPDATE(TIME:SECONDS,axisSpeed[3]).
-	//pid_debug(PID["Fore"]).
-	//pid_debug(PID["Top"]).
-	//pid_debug(PID["Star"]).
-}
+//FUNCTION translation_control {
+//	PARAMETER desiredVelocityVec,tar,craft.
+//	WAIT 0.
+//	LOCAL shipFacing IS SHIP:FACING.
+//	LOCAL axisSpeed IS axis_speed(craft,tar).
+//	//PRINT "velocityError: " + ROUND((desiredVelocityVec - axisSpeed[0]):MAG,2).
+//	SET PID["Fore"]:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:FOREVECTOR).
+//	SET PID["Top"]:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:TOPVECTOR).
+//	SET PID["Star"]:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:STARVECTOR).
+//
+//	SET SHIP:CONTROL:FORE TO PID["Fore"]:UPDATE(TIME:SECONDS,axisSpeed[1]).
+//	SET SHIP:CONTROL:TOP TO PID["Top"]:UPDATE(TIME:SECONDS,axisSpeed[2]).
+//	SET SHIP:CONTROL:STARBOARD TO PID["Star"]:UPDATE(TIME:SECONDS,axisSpeed[3]).
+//	//pid_debug(PID["Fore"]).
+//	//pid_debug(PID["Top"]).
+//	//pid_debug(PID["Star"]).
+//}
 
 FUNCTION translation_new_target {
 	PARAMETER translateState,shipPoint,targetPoint,isKlaw.
@@ -1251,7 +1252,8 @@ FUNCTION field_to_numbers_only {
 	LOCAL localString IS field:TEXT.
 	LOCAL dpLocation IS 0.
 	FROM {LOCAL i IS localString:LENGTH - 1.} UNTIL i < 0 STEP {SET i TO i - 1.} DO {
-		IF NOT varConstants["numList"]:CONTAINS(localString[i]) {
+		//IF NOT varConstants["numList"]:CONTAINS(localString[i]) {
+		IF NOT localString[i]:MATCHESPATTERN("[0-9]") {
 			IF localString[i] = "." {
 				IF dpLocation <> 0 {
 					SET didChange TO TRUE.

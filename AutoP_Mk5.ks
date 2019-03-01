@@ -1,5 +1,5 @@
 //-----program set up-----
-PARAMETER dest,	//-----destnationas as a waypoint, geocoordinate, vessel, part, or "ksc" -----
+PARAMETER dest,	//-----destinations as a waypoint, geocoordinate, vessel, part, or "ksc" -----
 	cruseHeight,	//-----height to cruse at in Km-----
 	pitchMax,	//-----max pitch in deg-----
 	rollMax,		//-----mac roll  in deg-----
@@ -226,10 +226,10 @@ SET SHIP:CONTROL:NEUTRALIZE TO True.
 RCS OFF.
 SAS ON.
 //	north west:  -0.0518,-74.7290
-//	soulth west: -0.0452,-74.7290
+//	south west: -0.0452,-74.7290
 //	centerpoint west: -0.0485,-74.7290
 
-//	soulth east: -0.0469,-74.4879
+//	south east: -0.0469,-74.4879
 //	north east:  -0.0535,-74.4879
 //	centerpoint east: -0.0502,-74.4879
 

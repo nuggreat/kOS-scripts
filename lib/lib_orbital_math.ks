@@ -112,14 +112,14 @@ FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to
 
 FUNCTION normal_of_orbit {//returns the normal of a crafts/bodies orbit, will point north if orbiting clockwise on equator
 	PARAMETER craft.
-	RETURN VCRS(craft:VELOCITY:ORBIT, craft:BODY:POSITION - craft:POSITION):NORMALIZED.
+	RETURN VCRS(craft:VELOCITY:ORBIT:NORMALIZED, (craft:BODY:POSITION - craft:POSITION):NORMALIZED):NORMALIZED.
 }
 
 FUNCTION phase_angle {
 	PARAMETER object1,object2.//measures the phase of object2 as seen from object 1
 	LOCAL localBodyPos IS object1:BODY:POSITION.
-	LOCAL vecBodyToC1 IS object1:POSITION - localBodyPos.
-	LOCAL vecBodyToC2 IS VXCL(normal_of_orbit(object1),(object2:POSITION - localBodyPos)).
+	LOCAL vecBodyToC1 IS (object1:POSITION - localBodyPos):NORMALIZED.
+	LOCAL vecBodyToC2 IS VXCL(normal_of_orbit(object1),(object2:POSITION - localBodyPos):NORMALIZED):NORMALIZED.
 	LOCAL phaseAngle IS VANG(vecBodyToC1,vecBodyToC2).
 	IF VDOT(vecBodyToC2,VCRS(vecBodyToC1,VCRS(vecBodyToC1,object1:VELOCITY:ORBIT)):NORMALIZED) > 0 {//corrects for if object2 is ahead or behind object1
 		SET phaseAngle TO 360 - phaseAngle.
@@ -130,4 +130,63 @@ FUNCTION phase_angle {
 FUNCTION orbital_period {
 	PARAMETER sma,localBody.
 	RETURN 2 * CONSTANT:PI * SQRT(sma^3 / localBody:MU).
+}
+
+FUNCTION close_aproach_scan {//one method to try to find closest approach by checking points of finer and finer resolution 
+	PARAMETER object1, object2,//the orbitals to examine for close approach
+	startTime,//the start time (UTs) for the scan
+	scanTimeRange,//the max seconds after the startTime to check to 
+	scanSteps IS 32,//the of points of comparison for each level of resolution
+	minTime IS 1.//the smallest that time increment that will be checked
+	LOCAL bestAproach IS distance_at(object1,object2,startTime). 
+	LOCAL bestAproachTime IS startTime.
+	//LOCAL useBasic IS object1:BODY = object2:BODY.
+	UNTIL scanTimeRange < minTime {
+		LOCAL strFrac IS scanTimeRange / scanSteps.
+		LOCAL maxTime IS startTime + scanTimeRange.
+		SET startTime TO startTime + strFrac / 2.
+		FROM { LOCAL i IS startTime + strFrac. } UNTIL i >= maxTime STEP { SET i TO i + strFrac. } DO {
+			LOCAL tmpAproach IS distance_at(object1,object2,i).
+			IF tmpAproach < bestAproach {
+				SET bestAproach TO tmpAproach.
+				SET bestAproachTime TO i.
+			}
+		}
+		SET startTime TO (bestAproachTime - (strFrac / 2)).
+		SET scanTimeRange TO strFrac.
+		//PRINT bestAproach.
+		//WAIT 0.1.
+	}
+	RETURN LEX("dist",bestAproach,"UTS",bestAproachTime).
+}
+
+LOCAL FUNCTION distance_at {
+	PARAMETER object1, object2, t.//, useBasic IS object1:BODY = object2:BODY.
+	//IF useBasic {
+		RETURN (POSITIONAT(object1,t) - POSITIONAT(object2,t)):MAG.
+	//} ELSE {
+	//	RETURN (solar_relitave_positionAt(object1,t) - solar_relitave_positionAt(object2,t)):MAG.
+	//}
+}
+
+LOCAL FUNCTION solar_relitave_positionAt {//only works for for non hyperbolic orbits
+	PARAMETER orbital,t,firstRun IS TRUE.
+	IF firstRun {
+		RETURN POSITIONAT(orbital,t) + solar_relitave_positionAt(orbital:BODY,t,FALSE).
+	} ELSE {
+		IF orbital:HASBODY {
+			RETURN (POSITIONAT(orbital,t) - orbital:POSITION) + solar_relitave_positionAt(orbital:BODY,t,FALSE).
+		} ELSE {
+			RETURN v(0,0,0).
+		}
+	}
+}
+
+FUNCTION ma_at {//calculates the mean anomaly at a given time
+	PARAMETER t.
+	LOCAL localTime IS TIME:SECONDS.
+	LOCAL obtPer IS SHIP:ORBIT:PERIOD.
+	LOCAL obtStart IS (ETA:PERIAPSIS + localTime) - obtPer.
+	LOCAL tDiff IS ABS(MOD(t - obtStart,obtPer)).
+	RETURN 360 * (tDiff/obtPer).
 }

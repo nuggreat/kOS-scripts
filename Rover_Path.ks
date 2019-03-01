@@ -1,11 +1,10 @@
-PARAMETER endPoint,maxSpeed IS 25,minSpeed IS 5,closeToDist IS 450,roverAccel IS 0.025,unitDist IS 200.
+PARAMETER endPoint,maxSpeed IS 25,minSpeed IS 5,closeToDist IS 450,roverAccel IS 0.05,turnCoeff IS 1,unitDist IS 200.
 FOR lib IN LIST("lib_geochordnate","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 LOCAL srfGrav IS SHIP:BODY:MU / SHIP:BODY:RADIUS^2.
 SET unitDist TO MIN(unitDist,closeToDist).
 CLEARSCREEN.
 ABORT OFF.
 RCS OFF.
-SET CONFIG:IPU TO 2000.
 LOCAL varConstants IS LEX().
 LOCAL nodeTree IS LEX().
 LOCAL nodeQue IS LIST().
@@ -18,6 +17,7 @@ LOCAL pruneCountDown IS 1000.
 IF dest:ISTYPE("geocoordinates") { SET doRoving TO TRUE.}
 
 IF doRoving {
+SET CONFIG:IPU TO 2000.
 
 LOCAL initalDist IS dist_between_coordinates(dest,SHIP:GEOPOSITION).
 //LOCAL unitDist IS initalDist / 5^CEILING(LN(initalDist / MIN(100,(closeToDist / 2))) / LN(5)).
@@ -82,7 +82,7 @@ UNTIL done OR ABORT {
 	IF nodeDist < closeToDist {
 		IF back_propogation_check(nodeID) {
 			SET done TO TRUE.
-			SET waypointList TO back_propogation_waypoint_list(nodeID).
+			SET waypointList TO generate_waypoint_list(nodeID).
 			SET endID TO nodeID.
 		} ELSE {//if back prop check fails then remove all nodes that fail said check from node list
 			SET closestDist TO startDist - 0.01.
@@ -127,19 +127,19 @@ IF NOT ABORT {
 	PRINT "  path size: " + waypointList:LENGTH AT(0,9).
 	render_points(waypointList,vecDrawList).
 //	path_scroll(endID).
-	
+
 //	RCS OFF.
 //	WAIT UNTIL RCS.
 
 	SET waypointList TO smooth_points(waypointList).
 	render_points(waypointList,vecDrawList).
-	
+
 	SET waypointList TO smooth_points(waypointList,TRUE).
 	render_points(waypointList,vecDrawList).
 
 	SET waypointList TO smooth_points(waypointList,TRUE).
 	render_points(waypointList,vecDrawList).
-	
+
 
 	//RCS OFF.
 	//SAS OFF.
@@ -150,7 +150,7 @@ IF NOT ABORT {
 	SET CONFIG:IPU TO 200.
 	IF NOT SAS {
 		//COPYPATH("0:/Rover_Path_execution.ks","1:/").
-		RUNPATH("1:/Rover_Path_execution",maxSpeed,minSpeed,closeToDist,waypointList,unitDist / 4,destName,roverAccel).
+		RUNPATH("1:/Rover_Path_execution",maxSpeed,minSpeed,closeToDist,waypointList,unitDist / 4,destName,roverAccel,turnCoeff).
 	}
 }}
 ABORT OFF.
@@ -205,7 +205,7 @@ FUNCTION prune_que {
 	}
 }
 
-FUNCTION back_propogation_waypoint_list {
+FUNCTION generate_waypoint_list {
 	PARAMETER initalNodeID.
 	LOCAL nodeID IS initalNodeID.
 	LOCAL returnList IS LIST(nodeTree[nodeID]["latLng"]).
@@ -239,18 +239,15 @@ FUNCTION evaluate_node_cluster {
 	PARAMETER preNodeID.
 	LOCAL nodeID IS preNodeID:SPLIT(",").
 	FOR point IN varConstants["nodeCluster"] {
-		LOCAL newNodeID IS newID(nodeID,point).
+	
+		LOCAL xVal IS nodeID[0]:TONUMBER() + point[0].
+		LOCAL yVal IS nodeID[1]:TONUMBER() + point[1].
+		LOCAL newNodeID IS LIST(xVal + "," + yVal,LIST(xVal,yVal)).
+		
 		IF evaluate_node(preNodeID,newNodeID[0],newNodeID[1]) {
 			add_node_to_que(newNodeID[0]).
 		}
 	}
-}
-
-FUNCTION newID {
-	PARAMETER xyVal,changeList.
-	LOCAL xVal IS xyVal[0]:TONUMBER() + changeList[0].
-	LOCAL yVal IS xyVal[1]:TONUMBER() + changeList[1].
-	RETURN LIST(xVal + "," + yVal,LIST(xVal,yVal)).
 }
 
 FUNCTION add_node_to_que {
@@ -299,9 +296,7 @@ FUNCTION evaluate_node {
 	LOCAL preNode IS nodeTree[preNodeID].
 	LOCAL isBetter IS FALSE.
 	IF nodeTree:HASKEY(newNodeIDstr) {
-		IF preNode["prevousNodeID"] <> newNodeIDstr {// AND back_check(newNodeIDstr) {
-		//IF NOT back_propogation_check(preNodeID) {
-		//IF preNodeID = nodeTree[newNodeIDstr]["prevousNodeID"] {
+		IF preNode["prevousNodeID"] <> newNodeIDstr {
 			LOCAL localNode IS nodeTree[newNodeIDstr].
 			LOCAL preNodeChord IS preNode["latLng"].
 			LOCAL newPreDist IS dist_between_coordinates(preNodeChord,localNode["latLng"]).
@@ -310,7 +305,7 @@ FUNCTION evaluate_node {
 			LOCAL newNodeScoreSlope IS node_score_slope(preNode["grade"],newGrade,localNode["slope"],localNode["curvature"],newPreDist).
 			LOCAL newNodeTotalSlope IS newNodeScoreSlope + preNode["totalSlope"].
 			LOCAL newNodeScore IS node_score_total(localNode["distToDest"],newTotalDist,newNodeScoreSlope,newNodeTotalSlope).
-			
+
 			IF newNodeScore < localNode["nodeScore"] AND limited_back_check(preNodeID,newNodeIDstr) {
 				remove_from_que(newNodeIDstr,localNode["nodeScore"]).
 				SET localNode["prevousNodeID"] TO preNodeID.
@@ -374,7 +369,7 @@ FUNCTION evaluate_node {
 		newNode:ADD("slopeScore",node_score_slope(preNode["grade"],newNode["grade"],newNode["slope"],newNode["curvature"],newNode["preDist"])).
 		newNode:ADD("totalSlope",newNode["slopeScore"] + preNode["totalSlope"]).
 		newNode:ADD("nodeScore",node_score_total(newNode["distToDest"],newNode["totalDist"],newNode["slopeScore"],newNode["totalSlope"])).
-		
+
 		SET isBetter TO TRUE.
 	}
 	RETURN isBetter.
@@ -398,18 +393,18 @@ FUNCTION limited_back_check {
 
 FUNCTION calculate_curviture {
 	PARAMETER nodeGeo,northHeading.
-	
+
 	LOCAL pointHeadingA TO deg_protect(northHeading).
 	LOCAL pointHeadingB TO deg_protect(northHeading + 45).
 	LOCAL pointHeadingC TO deg_protect(northHeading + 90).
 	LOCAL pointHeadingD TO deg_protect(northHeading + 135).
-	
+
 	LOCAL nodeNormal IS surface_normal(nodeGeo).
 	LOCAL aVec IS normal_diff(pointHeadingA,nodeGeo,0.5).
-	LOCAL bVec IS normal_diff(pointHeadingA,nodeGeo,SQRT(0.5)).
-	LOCAL cVec IS normal_diff(pointHeadingA,nodeGeo,0.5).
-	LOCAL dVec IS normal_diff(pointHeadingA,nodeGeo,SQRT(0.5)).
-	LOCAL sumVec IS aVec + bVec + cVec + dVec + nodeNormal.
+	LOCAL bVec IS normal_diff(pointHeadingB,nodeGeo,SQRT(0.5)).
+	LOCAL cVec IS normal_diff(pointHeadingC,nodeGeo,0.5).
+	LOCAL dVec IS normal_diff(pointHeadingD,nodeGeo,SQRT(0.5)).
+	LOCAL sumVec IS aVec + bVec + cVec + dVec.
 	RETURN VANG(nodeNormal,sumVec).
 }
 
@@ -486,7 +481,6 @@ FUNCTION node_score_total {
 FUNCTION node_score_slope {
 	PARAMETER oldGrade,newGrade,localSlope,localCurvature,preDist.
 	LOCAL score IS SIN(MIN(ABS(oldGrade - newGrade),90)) * preDist * 20.//was 20
-	//LOCAL score IS SIN((ABS(oldGrade - newGrade)/2)) * preDist * 40.
 	SET score TO score + SIN(localSlope) * preDist * 30.//was 25
 	SET score TO score + SIN(localCurvature) * preDist * 15.//was 15
 	RETURN score.//didn't have preSlope
@@ -509,14 +503,14 @@ FUNCTION new_node_chord {
 
 FUNCTION path_scroll {
 	PARAMETER startID.
-	
+
 	LOCAL nodeID IS startID.
 	LOCAL pathList IS LIST(nodeID).
 	UNTIL nodeID = "0,0" {
 		SET nodeID TO nodeTree[nodeID]["prevousNodeID"].
 		pathList:INSERT(0,nodeID).
 	}
-	
+
 	LOCAL nodeVec IS VECDRAW(SHIP:POSITION,SHIP:UP:VECTOR * 5, YELLOW,"",100,TRUE,1).
 	LOCAL termIn IS TERMINAL:INPUT.
 	LOCAL i IS 0.
@@ -543,10 +537,4 @@ FUNCTION path_scroll {
 		}
 		WAIT 0.
 	}
-}
-
-FUNCTION back_propogation_id_list {
-	PARAMETER initalNodeID.
-	LOCAL nodeID IS initalNodeID.
-	RETURN returnList.
 }

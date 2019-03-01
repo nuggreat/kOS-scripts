@@ -38,7 +38,7 @@ RCS OFF.
 UNTIL RCS {
 	//WAIT UNTIL timeNext <= TIME:SECONDS.
 	WAIT 0.
-	
+
 	LOCAL newTime IS TIME:SECONDS.
 	LOCAL newAlt IS SHIP:ALTITUDE.
 	LOCAL newDynamicP IS SHIP:Q.//is in atmospheres 
@@ -47,16 +47,16 @@ UNTIL RCS {
 	LOCAL newMass IS SHIP:MASS.
 	LOCAL newForeVec IS SHIP:FACING:FOREVECTOR.
 	LOCAL newGravVec IS localBody:POSITION - SHIP:POSITION.
-	
+
 	SET newAtmPressure TO newAtmPressure * CONSTANT:ATMTOKPA.
 	SET newDynamicP TO newDynamicP * CONSTANT:ATMTOKPA.
 	//SET newMass TO newMass * 1000.
-	
+
 	LOCAL avrPressure IS (newAtmPressure + preAtmPressure) / 2.
 	LOCAL avrDynamicP IS (newDynamicP + preDynamicP) / 2.
 	LOCAL avrForeVec IS ((newForeVec + preForeVec) / 2):NORMALIZED.
 	SET shipISP TO isp_at(get_active_eng(),avrPressure).
-	
+
 	LOCAL deltaTime IS newTime - preTime.
 	LOCAL gravVec IS average_grav(newGravVec:MAG,newGravVec:MAG) * (newGravVec:NORMALIZED + preGravVec:NORMALIZED):NORMALIZED * deltaTime.
 	LOCAL burnDV IS shipISP * 9.80665 * LN(preMass / newMass) * burnCoeff.
@@ -76,7 +76,7 @@ UNTIL RCS {
 	PRINT "dCof: " + dragCoef.
 	PRINT "forc: " + dragForce.
 	log_data(LIST(newTime,newAlt,newVel:MAG,newDynamicP,dragForce,newAtmPressure,atmDencity*1000,dragCoef,atmMolarMass,atmTemp,mach),logPath).
-	
+
 	SET preVel TO newVel.
 	SET preTime TO newTime.
 	SET preGravVec TO newGravVec.

@@ -57,7 +57,7 @@ FUNCTION drop_tanks {
 			FOR res IN tank:RESOURCES {
 				IF res:AMOUNT < 0.01 {
 					SET drop TO TRUE.
-					BREAK.
+					BREAK. BREAK.
 				}
 			}
 		}

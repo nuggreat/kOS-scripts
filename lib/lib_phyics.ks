@@ -2,24 +2,24 @@
 
 LOCAL testFunctions IS LEX(	00,LIST(accel_time_to_dist@,time_dist_to_accel@,accel_dist_to_time@,"accel_time_to_dist"),
 							01,LIST(accel_time_to_speed@,time_speed_to_accel@,accel_speed_to_time@,"accel_time_to_speed"),
-							
+
 							02,LIST(accel_dist_to_time@,d_t_a@,accel_time_to_dist@,"accel_dist_to_time"),
 							03,LIST(accel_dist_to_speed@,dist_speed_to_accel@,accel_speed_to_dist@,"accel_dist_to_speed"),
-							
+
 							04,LIST(accel_speed_to_time@,s_t_a@,accel_time_to_speed@,"accel_speed_to_time"),
 							05,LIST(accel_speed_to_dist@,s_d_a@,accel_dist_to_speed@,"accel_speed_to_dist"),
-							
-							
+
+
 							06,LIST(time_dist_to_accel@,d_a_t@,t_a_d@,"accel_speed_to_dist"),
 							07,LIST(time_dist_to_speed@,dist_speed_to_time@,time_speed_to_dist@,"time_dist_to_speed"),
-							
+
 							08,LIST(time_speed_to_accel@,s_a_t@,t_a_s@,"accel_speed_to_dist"),
 							09,LIST(time_speed_to_dist@,s_d_t@,time_dist_to_speed@,"time_speed_to_dist"),
-							
+
 							10,LIST(dist_speed_to_time@,s_t_d@,d_t_s@,"accel_speed_to_dist"),
 							11,LIST(dist_speed_to_accel@,s_a_d@,d_a_s@,"accel_speed_to_dist")).
-							
-							
+
+
 ABORT OFF.
 RCS ON.
 LOCAL i IS 0.

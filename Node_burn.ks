@@ -164,15 +164,20 @@ IF NOT aborting {
 		LOCAL shipAccel IS SHIP:AVAILABLETHRUST / SHIP:MASS.
 		LOCAL count IS 5.
 		WAIT 0.01.
-		LOCK THROTTLE TO MAX(MIN(DVvector:MAG / (shipAccel * 1),1),0.01).
+		LOCAL throt IS MAX(MIN(DVvector:MAG / shipAccel,1),0.01).
+		LOCK THROTTLE TO throt.
 		LOCAL done IS FALSE.
 		CLEARSCREEN.
 		UNTIL done {	//executing the burn
 			WAIT 0.
 			SET shipAccel TO SHIP:AVAILABLETHRUST / SHIP:MASS.
 			LOCAL timeNow IS TIME:SECONDS.
-			LOCAL throt IS THROTTLE.
 			LOCAL shipFacingFore IS SHIP:FACING:FOREVECTOR.
+			IF shipAccel > 0 {
+				SET throt TO MAX(MIN(DVvector:MAG / shipAccel,1),0.01)..
+			} ELSE {
+				SET throt TO 0.
+			}
 			LOCAL deltaTime IS timeNow - timePast.
 			SET timePast TO timeNow.
 			LOCAL shipAcceleration IS (shipAccel * MAX(throt,0.01)) * deltaTime.

@@ -33,7 +33,7 @@ FUNCTION mis_types_to_geochordnate {	//converts types of vessel,part,waypoint, a
 }
 
 FUNCTION str_to_types {//converts a given string to a latlng,waypoint, or vessel
-	PARAMETER str,sameBody IS TRUE,doPrint IS TRUE.
+	PARAMETER str,sameBody IS TRUE,doPrint IS TRUE,doLatLng IS TRUE,doWaypoint IS TRUE,doCraft IS TRUE.
 	IF str:ISTYPE("string") {				//string should only include one "," this is for separating the latlng numbers like: "-10,45" is valid
 		LOCAL strSplit IS str:SPLIT(",").	//the "," can also separate the parts of a waypoint/craft name
 		IF strSplit:LENGTH > 1 {				//EXAMPLE "mun,lander" is valid for craft with names: "munlander", "mun station lander", "lander mun-station"
@@ -106,9 +106,10 @@ LOCAL FUNCTION contains_srt_list { //checks if the name of a thing contains the 
 	RETURN validThing.
 }
 
-FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time(UTs) adjusting for planetary rotation over time
+FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time(UTs) adjusting for planetary rotation over time, only works for non tilted spin on bodies 
 	PARAMETER pos,posTime,localBody IS SHIP:BODY.
-	LOCAL rotationalDir IS VDOT(localBody:NORTH:FOREVECTOR,localBody:ANGULARVEL) * CONSTANT:RADTODEG. //the number of degrees the body will rotate in one second
+	LOCAL bodyNorth IS v(0,1,0).//using this instead of localBody:NORTH:VECTOR because in many cases the non hard coded value is incorrect
+	LOCAL rotationalDir IS VDOT(bodyNorth,localBody:ANGULARVEL) * CONSTANT:RADTODEG. //the number of degrees the body will rotate in one second
 	LOCAL posLATLNG IS localBody:GEOPOSITIONOF(pos).
 	LOCAL timeDif IS posTime - TIME:SECONDS.
 	LOCAL longitudeShift IS rotationalDir * timeDif.

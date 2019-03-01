@@ -1,5 +1,5 @@
 //program set up
-PARAMETER apHeight,launchHeading.
+PARAMETER apHeight,launchHeading,skipConfirm IS FALSE.
 FOR lib IN LIST("lib_navball2","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
 LOCAL targetAP IS apHeight * 1000.
@@ -11,31 +11,34 @@ LOCAL bodyAtmosphere IS SHIP:BODY:ATM.
 //PID setup PIDLOOP(kP,kI,kD,min,max)
 SET throttlePID TO PIDLOOP(0.5,0.1,0,0,1).
 SET circulisePID TO PIDLOOP(0.02,0.0002,0.002,-20,20).
+LOCAL goNoGo IS TRUE.//true to launch, false to cancel 
 
 //launch parameter verificaton
 CLEARSCREEN.
-PRINT "Lanuching to an apolapsis of: " + (targetAP / 1000) + "Km".
-IF bodyAtmosphere:EXISTS AND targetAP < bodyAtmosphere:HEIGHT {
-	PRINT "Warning target apolapsis is below atmosphere height".
+IF NOT skipConfirm {
+	PRINT "Lanuching to an apolapsis of: " + (targetAP / 1000) + "Km".
+	IF bodyAtmosphere:EXISTS AND targetAP < bodyAtmosphere:HEIGHT {
+		PRINT "Warning target apolapsis is below atmosphere height".
+		PRINT " ".
+	}
+	PRINT "Lanuching with heaidng of:    " + launchHeading.
 	PRINT " ".
+	IF bodyAtmosphere:EXISTS {
+		PRINT SHIP:BODY:NAME + " has a atmosphere height of: " + bodyAtmosphere:HEIGHT / 1000 + "Km".
+	} ELSE {
+		PRINT SHIP:BODY:NAME + " has no atmosphere".
+	}
+	PRINT " ".
+	PRINT "Activate SAS to start Launch, RCS to abort".
+	
+	UNTIL SAS OR RCS {
+		WAIT 1.
+		SET goNoGo TO SAS.
+	}
+	CLEARSCREEN.
+	RCS OFF.
+	SAS OFF.
 }
-PRINT "Lanuching with heaidng of:    " + launchHeading.
-PRINT " ".
-IF bodyAtmosphere:EXISTS {
-	PRINT SHIP:BODY:NAME + " has a atmosphere height of: " + bodyAtmosphere:HEIGHT / 1000 + "Km".
-} ELSE {
-	PRINT SHIP:BODY:NAME + " has no atmosphere".
-}
-PRINT " ".
-PRINT "Activate SAS to start Launch, RCS to abort".
-
-UNTIL SAS OR RCS {
-	WAIT 1.
-	SET goNoGo TO SAS.
-}
-CLEARSCREEN.
-RCS OFF.
-SAS OFF.
 
 //LOCK twr TO (SHIP:AVAILABLETHRUST / SHIP:MASS) / (SHIP:BODY:MU / SHIP:BODY:RADIUS^2). LOCK THROTTLE TO 2/twr.
 
@@ -108,6 +111,7 @@ IF bodyAtmosphere:EXISTS {
 	LOCAL pitchTar IS pitch_target(gradeVec,etaSet,5,-5,20).
 	//LOCAL throttleLimit IS twr_limit(2).
 	LOCK STEERING TO HEADING(headingTar,pitchTar).
+	//LOCK STEERING TO SHIP:VELOCITY:SURFACE.
 //	PID_config(throttlePID,etaSet,0.25).
 	PID_config(throttlePID,etaSet,0.5).
 //	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
@@ -212,8 +216,8 @@ UNTIL SHIP:ORBIT:PERIAPSIS > (targetAP * 0.99) {
 	stage_check().
 	WAIT 0.01.
 }
-}
 PRINT "Done With Engines".
+}
 
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 UNLOCK THROTTLE.

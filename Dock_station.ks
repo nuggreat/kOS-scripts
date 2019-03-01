@@ -81,15 +81,21 @@ PRINT "Aliened and Waiting for Docking.".
 cratConect:SENDMESSAGE(noFlyZone).
 WAIT 10.
 LOCAL done IS FALSE.
+ON stationPort:STATE {
+	IF stationPort:STATE <> "Ready" {
+		SET done TO TRUE.
+	}
+}
 LOCK docked TO (stationPort:STATE = "Docked (docker)") OR (stationPort:STATE = "Docked (dockee)") OR (stationPort:STATE = "PreAttached").
 UNTIL docked OR done {
-	SET done TO screenUpdate(stationPort,craftPort) < 1.
+	//SET done TO
+	screenUpdate(stationPort,craftPort).
 }
 UNLOCK STEERING.
 SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
-UNTIL docked {
-	SET done TO screenUpdate(stationPort,craftPort).
-}
+//UNTIL docked {
+//	SET done TO screenUpdate(stationPort,craftPort).
+//}
 } ELSE {
 	PRINT "no Matching Unused Dockingports.".
 }

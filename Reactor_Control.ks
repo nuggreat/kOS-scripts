@@ -10,14 +10,6 @@ LOCAL isControlCore IS am_control_core(reactorControlers).
 LOCAL reactorModuleList IS SHIP:MODULESNAMED("FissionReactor").
 LOCAL ec IS get_ec().
 
-//LOCAL numberOfParts IS SHIP:PARTS:LENGTH.
-//WHEN numberOfParts <> SHIP:PARTS:LENGTH THEN {//detection of docking events
-//	SET ec TO get_ec().
-//	SET numberOfParts TO SHIP:PARTS:LENGTH.
-//	SET newScanTime TO TIME:SECONDS - 1.
-//	PRESERVE.
-//}
-
 ON SHIP:PARTS:LENGTH {//detection of docking events
 	SET ec TO get_ec().
 	SET numberOfParts TO SHIP:PARTS:LENGTH.
@@ -51,9 +43,6 @@ UNTIL FALSE {
 				reactor:SETFIELD("power setting",coreSetting).
 			}
 			WAIT 0.
-			//CLEARSCREEN.
-			//PRINT "ecPrecentage:  " ecPrecentage.
-			//PRINT "settingChange: " settingChange.
 		} ELSE {
 			WAIT UNTIL not_warping().
 		}

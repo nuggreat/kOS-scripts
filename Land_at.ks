@@ -1,9 +1,9 @@
 //TODO: re-add in hillclimb solution for impact for when in hyperbolic orbits
 PARAMETER landingTar,margin IS 100.
-IF NOT EXISTS ("1/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/lib_mis_utilities.ks"). }
-IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
-//IF NOT EXISTS ("1/lib/lib_hill_climb.ks") { COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/lib_hill_climb.ks"). }
-COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/lib_hill_climb.ks").
+//IF NOT EXISTS("1/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/lib_mis_utilities.ks"). }
+//IF NOT EXISTS("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
+//IF NOT EXISTS("1/lib/lib_hill_climb.ks") { COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/lib_hill_climb.ks"). }
+//COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/lib_hill_climb.ks").
 FOR lib IN LIST("lib_rocket_utilities","lib_mis_utilities","lib_geochordnate","lib_hill_climb") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
 
 //LOCAl logPath IS PATH("0:/log_land_at_v6.txt").
@@ -73,7 +73,7 @@ UNTIL close {
 	}
 	LOCAL hillDone IS FALSE.
 	UNTIL done {
-		
+
 		IF refineDeorbit {
 			SET hillDone TO climb_hill(NEXTNODE,score@,node_step_dv_only@,climbData).
 		} ELSE {
@@ -81,7 +81,7 @@ UNTIL close {
 		}
 		LOCAL nodeDV IS NEXTNODE:DELTAV:MAG.
 		SET done TO hillDone OR (nodeDV > maxDv) OR (NOT refineDeorbit) AND (NEXTNODE:ETA < (120 + burn_duration(shipISP,nodeDV))) .
-		
+
 		SET bestDist TO climbData["results"]["dist"].
 		LOCAL bestScore IS climbData["results"]["score"].
 		SET count TO count + 1.
@@ -91,11 +91,11 @@ UNTIL close {
 		PRINT "Dist:  " + ROUND(bestDist).
 		PRINT "Pedif: " + ROUND(NEXTNODE:ORBIT:PERIAPSIS - varConstants["peTarget"]).
 		PRINT " ".
-		PRINT "   Step Size: " + ROUND(climbData["maxStep"] * 10^climbData["stepExp"],3).
+		PRINT "   Step Size: " + ROUND(climbData["maxStep"] * 10^climbData["stepExp"],4).
 		PRINT "  Total Time: " + ROUND(TIME:SECONDS - timeStart,3).
 		PRINT "   Step Time: " + ROUND(delta_time(),2).
 		PRINT "Average Time: " + ROUND((TIME:SECONDS - timeStart) / count,3).
-		
+
 	}
 	SET close TO ((bestDist < 2000) AND (NEXTNODE:DELTAV:MAG < maxDv)) OR (varConstants["mode"] = 1).
 }
@@ -106,33 +106,6 @@ UNTIL close {
 //SET CONFIG:IPU TO ipuBackup.
 
 //end of core logic start of functions
-
-FUNCTION node_step_full { //manipulates the targetNode in one of 4 ways depending on manipType for a value of stepVal
-	PARAMETER targetNode,stepDir,stepMag.
-	IF stepDir < 0 {
-		SET stepMag TO -stepMag.
-		SET stepDir TO -stepDir.
-	}
-	IF stepDir <= 2 {
-		IF stepDir <=1 { SET targetNode:ETA TO targetNode:ETA + stepMag * 2.
-		} ELSE { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepMag. }
-	} ELSE {
-		IF stepDir <=3 { SET targetNode:NORMAL TO targetNode:NORMAL + stepMag.
-		} ELSE { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepMag. }
-	}
-}
-
-FUNCTION node_step_dv_only {
-	PARAMETER targetNode,stepDir,stepMag.
-	IF stepDir < 0 {
-		SET stepMag TO -stepMag.
-		SET stepDir TO -stepDir.
-	}
-	IF stepDir <= 2 {
-		IF stepDir <=1 { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepVal.
-		} ELSE { SET targetNode:NORMAL TO targetNode:NORMAL + stepVal. }
-	} ELSE { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepVal. }
-}
 
 FUNCTION score { //returns the score of the node
 	PARAMETER targetNode.
@@ -210,7 +183,7 @@ FUNCTION margin_error { //approximates vertical drop needed for the craft to sto
 	//LOCAL velSpeed IS ((orbitalSpeed^2)/2)^0.5.
 	//LOCAL srfGrav IS ((SHIP:BODY:MU / (SHIP:BODY:RADIUS ^ 2)) + (SHIP:BODY:MU / (SHIP:ORBIT:SEMIMAJORAXIS ^ 2))) / 2.
 	LOCAL srfGrav IS SHIP:BODY:MU / (SHIP:BODY:RADIUS ^ 2).
-//	LOCAL orbGrav IS SHIP:BODY:MU / (SHIP:ORBIT:SEMIMAJORAXIS ^ 2).
+	//LOCAL orbGrav IS SHIP:BODY:MU / (SHIP:ORBIT:SEMIMAJORAXIS ^ 2).
 	LOCAL burnTime IS 0.
 	LOCAL burnTimePre IS 0.
 	LOCAL shipISP IS isp_calc().
@@ -221,7 +194,7 @@ FUNCTION margin_error { //approximates vertical drop needed for the craft to sto
 		SET burnTime TO burn_duration(shipISP,SQRT(((burnTime * srfGrav) ^ 2) + orbitalSpeed ^ 2)).
 		//SET burnTime TO burn_duration(shipISP,(burnTime * srfGrav + orbitalSpeed)).
 		IF ABS(burnTime - burnTimePre) < 0.01 { RETURN (1/30 * srfGrav * burnTime^2). }// - (1/2 * orbGrav * burnTime^2). }
-//		IF ABS(burnTime - burnTimePre) < 0.01 { RETURN (srfGrav * (burnTime / 2)^2). }// - (1/2 * orbGrav * burnTime^2). }
+		//IF ABS(burnTime - burnTimePre) < 0.01 { RETURN (srfGrav * (burnTime / 2)^2). }// - (1/2 * orbGrav * burnTime^2). }
 		SET burnTimePre TO burnTime.
 	}
 }

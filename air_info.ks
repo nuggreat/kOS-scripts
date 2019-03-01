@@ -2,7 +2,7 @@ RCS OFF.
 UNTIL RCS {
 	CLEARSCREEN.
 	PRINT "Angle Of Attack: " + ROUND(angle_of_attack(),1).
-	PRINT "Sideslip:        " + ROUND(sideslip(),1).
+	PRINT "Side slip:       " + ROUND(sideslip(),1).
 	PRINT "Radar Altitude:  " + ROUND(ALT:RADAR).
 	PRINT "Air	Speed:      " + ROUND(SHIP:AIRSPEED,1).
 	PRINT "Vert Speed:      " + ROUND(VERTICALSPEED,1).
