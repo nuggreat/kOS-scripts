@@ -403,9 +403,9 @@ FUNCTION calculate_curviture {
 	
 	LOCAL nodeNormal IS surface_normal(nodeGeo).
 	LOCAL aVec IS normal_diff(pointHeadingA,nodeGeo,0.5).
-	LOCAL bVec IS normal_diff(pointHeadingA,nodeGeo,SQRT(0.5)).
-	LOCAL cVec IS normal_diff(pointHeadingA,nodeGeo,0.5).
-	LOCAL dVec IS normal_diff(pointHeadingA,nodeGeo,SQRT(0.5)).
+	LOCAL bVec IS normal_diff(pointHeadingB,nodeGeo,SQRT(0.5)).
+	LOCAL cVec IS normal_diff(pointHeadingC,nodeGeo,0.5).
+	LOCAL dVec IS normal_diff(pointHeadingD,nodeGeo,SQRT(0.5)).
 	LOCAL sumVec IS aVec + bVec + cVec + dVec + nodeNormal.
 	RETURN VANG(nodeNormal,sumVec).
 }
