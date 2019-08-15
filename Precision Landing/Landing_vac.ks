@@ -104,13 +104,14 @@ UNLOCK THROTTLE.
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 
 LOCAL shipThrust IS SHIP:AVAILABLETHRUST * 0.90.
+LOCAL surfGrav IS SHIP:BODY:MU/(SHIP:BODY:RADIUS)^2.
 LOCAL shipAcc IS (shipThrust / SHIP:MASS).
 LOCAL sucideMargin IS vertMargin + 7.5.
-LOCAL decentLex IS decent_math(shipThrust).
+LOCAL decentLex IS decent_math(shipThrust,surfGrav).
 LOCK STEERING TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR,SHIP:NORTH:FOREVECTOR).
 LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 UNTIL ALT:RADAR < sucideMargin {	//vertical suicide burn stopping at about 10m above surface
-	SET decentLex TO decent_math(shipThrust).
+	SET decentLex TO decent_math(shipThrust,surfGrav).
 	SET shipAcc TO decentLex["acc"].
 	SET landing_PID:SETPOINT TO MIN(-shipAcc * SQRT(ABS(2 * (ALT:RADAR - sucideMargin) / shipAcc)),-0.5).
 	CLEARSCREEN.
@@ -127,7 +128,7 @@ UNTIL ALT:RADAR < sucideMargin {	//vertical suicide burn stopping at about 10m a
 LOCAL steeringTar IS LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR:NORMALIZED + (SHIP:UP:FOREVECTOR:NORMALIZED * 3),SHIP:NORTH:FOREVECTOR).
 LOCK STEERING TO steeringTar.
 UNTIL STATUS = "LANDED" OR STATUS = "SPLASHED" {	//slow decent until touchdown
-	LOCAL decentLex IS decent_math(shipThrust).
+	LOCAL decentLex IS decent_math(shipThrust,surfGrav).
 
 	LOCAL vSpeedTar IS MIN(0 - (ALT:RADAR - vertMargin - (ALT:RADAR * decentLex["stopTime"])) / (11 - MIN(decentLex["twr"],10)),-0.5).
 	SET landing_PID:SETPOINT TO vSpeedTar.
@@ -163,12 +164,11 @@ LIGHTS OFF.
 
 //end of core logic start of functions
 FUNCTION decent_math {// the math needed for suicide burn and final decent
-	PARAMETER shipThrust.
-	LOCAL localGrav IS SHIP:BODY:MU/(SHIP:BODY:RADIUS)^2.		//calculates gravity of the body
-	LOCAL shipAcc IS shipThrust / SHIP:MASS.						//ship acceleration in m/s
-	LOCAL stopTime IS  ABS(VERTICALSPEED) / (shipAcc - localGrav).//time needed to neutralize vertical speed
-	LOCAL stopDist IS 1/2 * shipAcc * stopTime * stopTime.			//how much distance is needed to come to a stop
-	LOCAL twr IS shipAcc / localGrav.					//the TWR of the craft based on local gravity
+	PARAMETER shipThrust,localGrav.
+	LOCAL shipAcc IS (shipThrust / SHIP:MASS) - localGrav.	//ship acceleration in m/s
+	LOCAL stopTime IS  ABS(VERTICALSPEED) / shipAcc.		//time needed to neutralize vertical speed
+	LOCAL stopDist IS 1/2 * shipAcc * stopTime * stopTime.	//how much distance is needed to come to a stop
+	LOCAL twr IS shipAcc / localGrav + 1.					//the TWR of the craft based on local gravity
 	RETURN LEX("stopTime",stopTime,"stopDist",stopDist,"twr",twr,"acc",(shipAcc - localGrav)).
 }
 
