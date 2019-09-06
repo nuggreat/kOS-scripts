@@ -47,6 +47,16 @@ FUNCTION pitch_roll {//intended for use with aircraft, needs navBall2 lib
 	RETURN ANGLEAXIS(myRoll,returnDir:FOREVECTOR) * returnDir.
 }
 
+FUNCTION pitch_roll {
+	PARAMETER myPitch, myRoll.//intended for use with aircraft
+	LOCAL upVec IS SHIP:UP:VECTOR.
+	LOCAL returnDir IS LOOKDIRUP(VXCL(upVec,SHIP:SRFPROGRADE:FOREVECTOR),upVec).
+	
+	SET returnDir TO ANGLEAXIS(myPitch,returnDir:STARVECTOR) * returnDir.
+	SET returnDir TO ANGLEAXIS(myRoll,returnDir:FOREVECTOR) * returnDir.
+	RETURN returnDir.
+}
+
 FUNCTION pitch_roll {//intended for use with aircraft
 	PARAMETER wantPitch,wantRoll.
 
@@ -254,17 +264,40 @@ FUNCTION chute_deploy_all {
 
 FUNCTION percent_resource_for_tag {//returns percentage of given resource in tagged tanks
 	PARAMETER tankTag, resName IS "LIQUIDFUEL".
-	LOCAL LFamount IS 0.
-	LOCAL LFcapacity IS 0.
+	LOCAL resAmo IS 0.
+	LOCAL resCap IS 0.
 	FOR tank IN SHIP:PARTSTAGGED(tankTag) {
 		FOR res IN tank:RESOURCES {
 			IF res:NAME = resName {
-				SET LFamount TO LFamount + res:AMOUNT.
-				SET LFcapacity TO LFcapacity + res:CAPACITY.
+				SET resAmo TO resAmo + res:AMOUNT.
+				SET resCap TO resCap + res:CAPACITY.
 			}
 		}
 	}
-	RETURN ((LFamount * 100) / LFcapacity).
+	RETURN ((resAmo * 100) / resCap).
+}
+
+FUNCTION resorce_amount_for_tagged {//returns percentage of given resource in tagged tanks
+	PARAMETER tankTag, resName IS "LIQUIDFUEL".
+	LOCAL resAmo IS 0.
+	FOR tank IN SHIP:PARTSTAGGED(tankTag) {
+		FOR res IN tank:RESOURCES {
+			IF res:NAME = resName {
+				SET resAmo TO resAmo + res:AMOUNT.
+			}
+		}
+	}
+	RETURN resAmo.
+}
+
+FUNCTION parts_with_res {
+	PARAMETER resName.
+	FOR res IN SHIP:RESOURCES {
+		IF res:NAME = resName {
+			RETURN res:PARTS.
+		}
+	}
+	RETURN LIST().
 }
 
 LOCAL functionData IS LEX("angleOldTime",TIME:SECONDS,"angleOldVec",v(0,0,0)).
@@ -432,10 +465,10 @@ FUNCTION print_delta {
 
 FUNCTION circularize_at_UT {
   PARAMETER UTs.
-  LOCAL upVec IS POSITIONAT(SHIP,UTs) - SHIP:BODY:POSITION.
-  LOCAL vecNodePrograde IS VELOCITYAT(SHIP,UTs):ORBIT.
-  LOCAL vecNodeNormal IS VCRS(vecNodePrograde,upVec).
-  LOCAL vecNodeRadial IS VCRS(vecNodeNormal,vecNodePrograde).
+  LOCAL upVec IS (POSITIONAT(SHIP,UTs) - SHIP:BODY:POSITION).
+  LOCAL vecNodePrograde IS VELOCITYAT(SHIP,UTs):ORBIT:NORMALIZED.
+  LOCAL vecNodeNormal IS VCRS(vecNodePrograde,upVec):NORMALIZED.
+  LOCAL vecNodeRadial IS VCRS(vecNodeNormal,vecNodePrograde):NORMALIZED.
   
   LOCAL velTarget IS SQRT(SHIP:BODY:MU / upVec:MAG).
   LOCAL vecTarget IS (VXCL(upVec,vecNodePrograde):NORMALIZED * velTarget) - vecNodePrograde.
@@ -504,6 +537,33 @@ FUNCTION thrust_balancer {
 	FOR eng IN badEngList {
 		SET eng:THRUSTLIMIT TO thrustLim.
 	}
+}
+
+FUNCTION circ_at_pe {
+	LOCAL nodeTime IS TIME:SECONDS + ETA:PERIAPSIS.
+	LOCAL velAtPE IS VELOCITYAT(SHIP,nodeTime):ORBIT:MAG.
+	LOCAL circularVel IS SQRT(BODY:MU / (SHIP:ORBIT:PERIAPSIS + BODY:RADIUS)).
+	RETURN NODE(nodeTime,0,0,velAtPE - circularVel).
+}
+
+FUNCTION circ_at_ap {
+	LOCAL nodeTime IS TIME:SECONDS + ETA:APOAPSIS.
+	LOCAL velAtPE IS VELOCITYAT(SHIP,nodeTime):ORBIT:MAG.
+	LOCAL circularVel IS SQRT(BODY:MU / (SHIP:ORBIT:APOAPSIS + BODY:RADIUS)).
+	RETURN NODE(nodeTime,0,0,velAtPE - circularVel).
+}
+
+FUNCTION message_ques {
+	LOCAL mQueue IS QUEUE().
+	LOCAL coreM IS CORE:MESSAGES.
+	UNTIL coreM:EMPTY {
+		mQueue:PUSH(coreM:POP()).
+	}
+	LOCAL shipM IS SHIP::MESSAGES.
+	UNTIL shipM {
+		mQueue:PUSH(shipM:POP()).
+	}
+	RETURN qQueue.
 }
 
 //"I am the Bone of my Research Knowledge is my Body and Grants are my Blood.

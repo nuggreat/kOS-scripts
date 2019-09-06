@@ -1,5 +1,5 @@
 @LAZYGLOBAL OFF.
-LOCAL hill_climb_lex IS LEX().
+//LOCAL hill_climb_lex IS LEX().
 
 FUNCTION climb_init {
 	PARAMETER climbType,terms,maxStep,initalResults,incStep IS 0,decStep IS 1,minStep IS 0.01,stepExp IS 0.//inc/dec step are the change to x in the maxStep*10^x, inc for improvement, dec for no improvement
@@ -43,12 +43,13 @@ FUNCTION climb_init {
 	SET climbData["stepsList"] TO stepsList.
 	RETURN climbData.
 }
-hill_climb_lex:ADD("basic",climb_basic@).
-hill_climb_lex:ADD("grad",climb_grad@).
+//hill_climb_lex:ADD("basic",climb_basic@).
+//hill_climb_lex:ADD("grad",climb_grad@).
 
+LOCAL hill_climb_type IS LEX("basic",climb_basic@,"grad",climb_grad@).
 FUNCTION climb_hill {
 	PARAMETER thing,scoreFunc,stepFunc,climbData.
-	LOCAL tmpFunc IS hill_climb_lex[climbData["climbType"]]@.
+	LOCAL tmpFunc IS hill_climb_type[climbData["climbType"]]@.
 	//PRINT climbData["climbType"].
 	//PRINT tmpFunc:TYPENAME.
 	//PRINT tmpFunc:SUFFIXNAMES.
@@ -152,7 +153,7 @@ FUNCTION closest_approach_hill {
 
 LOCAL FUNCTION ca_score {
 	PARAMETER objects.
-		RETURN LEX("score",(POSITIONAT(objects["obj1"],objects["UTS"]) - POSITIONAT(objects["obj2"],objects["UTS"])):MAG).
+	RETURN LEX("score",(POSITIONAT(objects["obj1"],objects["UTS"]) - POSITIONAT(objects["obj2"],objects["UTS"])):MAG).
 }
 
 LOCAL FUNCTION ca_step {
@@ -172,29 +173,39 @@ FUNCTION node_step_full_grad {
 	SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepDir[3] * stepMag.
 }
 
+//hill_climb_lex:ADD("stepOrder",LEX()).
+
+LOCAL node_step_lex IS LEX().
+FUNCTION node_step_init {
+	PARAMETER stepOrder IS LIST("eta","pro","norm","rad").
+	//LOCAL stepLex IS hill_climb_lex["stepOrder"].
+	node_step_lex:CLEAR().
+	LOCAL numKey IS 1.
+	FOR nStep IN stepOrder {
+		IF nStep = "eta" {
+			node_step_lex:ADD(numKey,{ PARAMETER targetNode,stepMag. SET targetNode:ETA TO targetNode:ETA + stepMag. }).
+			node_step_lex:ADD(-numKey,{ PARAMETER targetNode,stepMag. SET targetNode:ETA TO targetNode:ETA - stepMag. }).
+		} ELSE IF nStep = "pro" {
+			node_step_lex:ADD(numKey,{ PARAMETER targetNode,stepMag. SET targetNode:PROGRADE TO targetNode:PROGRADE + stepMag. }).
+			node_step_lex:ADD(-numKey,{ PARAMETER targetNode,stepMag. SET targetNode:PROGRADE TO targetNode:PROGRADE - stepMag. }).
+		} ELSE IF nStep = "norm" {
+			node_step_lex:ADD(numKey,{ PARAMETER targetNode,stepMag. SET targetNode:NORMAL TO targetNode:NORMAL + stepMag. }).
+			node_step_lex:ADD(-numKey,{ PARAMETER targetNode,stepMag. SET targetNode:NORMAL TO targetNode:NORMAL - stepMag. }).
+		} ELSE IF nStep = "rad" {
+			node_step_lex:ADD(numKey,{ PARAMETER targetNode,stepMag. SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepMag. }).
+			node_step_lex:ADD(-numKey,{ PARAMETER targetNode,stepMag. SET targetNode:RADIALOUT TO targetNode:RADIALOUT - stepMag. }).
+		}
+		SET numKey TO numKey + 1.
+	}
+}
+node_step_init().
+
 FUNCTION node_step_full { //manipulates the targetNode in one of 4 ways depending on manipType for a value of stepVal
 	PARAMETER targetNode,stepDir,stepMag.
-	IF stepDir < 0 {
-		SET stepMag TO -stepMag.
-		SET stepDir TO -stepDir.
-	}
-	IF stepDir <= 2 {
-		IF stepDir <=1 { SET targetNode:ETA TO targetNode:ETA + stepMag * 2.
-		} ELSE { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepMag. }
-	} ELSE {
-		IF stepDir <=3 { SET targetNode:NORMAL TO targetNode:NORMAL + stepMag.
-		} ELSE { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepMag. }
-	}
+	node_step_lex[stepDir](targetNode,stepMag).
 }
 
 FUNCTION node_step_dv_only {//manipulates the targetNode in one of the 3 Vectors depending on stepDir for a value of stepMag, used in best,first type hill climbs 
 	PARAMETER targetNode,stepDir,stepMag.
-	IF stepDir < 0 {
-		SET stepMag TO -stepMag.
-		SET stepDir TO -stepDir.
-	}
-	IF stepDir <= 2 {
-		IF stepDir <=1 { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepMag.
-		} ELSE { SET targetNode:NORMAL TO targetNode:NORMAL + stepMag. }
-	} ELSE { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepMag. }
+	node_step_lex[stepDir](targetNode,stepMag).
 }

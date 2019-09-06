@@ -1,6 +1,6 @@
 PARAMETER degreesOfRotation IS 0, facingForward IS FALSE.
 LOCAL dockingPoint IS SHIP:PARTSTAGGED("dockingPoint")[0].
-FOR lib IN LIST("lib_dock","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_dock","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 ABORT OFF.
 SAS OFF.
 LOCAL targetCraft IS TARGET.

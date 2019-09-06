@@ -1,26 +1,40 @@
-//LOCAL defautlTar IS LATLNG().
-PARAMETER landingTar.
+LOCAL defautlTar IS "Default not set".
+IF EXISTS("1:/data/landing_default.json") {
+	LOCAL defaultData IS READJSON("1:/data/landing_default.json").
+	SET defautlTar TO BODY(defaultData["body"]):GEOPOSITIONLATLNG(defaultData["lat"],defaultData["lng"]).
+}
+PARAMETER landingTar IS defautlTar,doWarp IS FALSE,setDefault IS FALSE.
 IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
-FOR lib IN LIST("lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
+
+
+IF landingTar:ISTYPE("boolean") {
+	SET doWarp TO landingTar.
+	SET landingTar TO defautlTar.
+}
 
 LOCAL landingChord IS mis_types_to_geochordnate(landingTar)["chord"].
+
+IF setDefault {
+	SET defautlTar TO landingTar.
+	IF NOT EXISTS("1:/data/") {CREATEDIR("1:/data/").}
+	WRITEJSON(LEXICON("body",landingChord:BODY:NAME,"lat",landingChord:LAT,"lng",landingChord:LNG),"1:/data/landing_default.json").
+}
 
 IF landingChord:ISTYPE("geocoordinates") {
 //LOCAL thrustLimitBackup IS twr_restriction(7.5).
 ABORT OFF.
 RUN land_at(landingTar).
 IF NOT ABORT {
-	RUN node_burn.
-	//RUN land_at(landingChord).
-	//RUN node_burn.
+	RUN node_burn(doWarp).
 	REMOVE NEXTNODE.
 	IF NOT ABORT {
 		RUN landing_vac(TRUE,landingTar).
-		//IF landingTar = defautlTar {
-		//	DEPLOYDRILLS ON.
-		//	WAIT 10.
-		//	DRILLS ON.
-		//}
+		IF landingTar = defautlTar AND (SHIP:MODULESNAMED("ModuleResourceHarvester"):LENGTH > 0) {
+			DEPLOYDRILLS ON.
+			WAIT 10.
+			DRILLS ON.
+		}
 	}
 }
 

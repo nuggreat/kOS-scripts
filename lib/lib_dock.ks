@@ -175,7 +175,7 @@ FUNCTION axis_distance {
 	RETURN LIST(dist,distFor,distTop,distStar).
 }
 
-//		   PID setup PIDLOOP(kP,kI,kD,min,max)
+//    PID setup PIDLOOP(kP,kI,kD,min,max)
 LOCAL PIDfore IS PIDLOOP(4,0.1,0.01,-1,1).
 LOCAL PIDtop  IS PIDLOOP(4,0.1,0.01,-1,1).
 LOCAL PIDstar IS PIDLOOP(4,0.1,0.01,-1,1).
@@ -187,7 +187,7 @@ LOCAL desiredStar IS 0.
 FUNCTION translation_control {
 	PARAMETER desiredVelocityVec,tar,craft.
 	WAIT 0.
-	LOCAL shipFacing IS SHIP:FACING.
+	LOCAL shipFacing IS craft:FACING.
 	LOCAL axisSpeed IS axis_speed(craft,tar).
 	//PRINT "velocityError: " + ROUND((desiredVelocityVec - axisSpeed[0]):MAG,2).
 	SET PIDfore:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:FOREVECTOR).
@@ -205,9 +205,6 @@ FUNCTION translation_control {
 	IF ABS(desiredFore) > RCSdeadZone { SET desiredFore TO 0. }
 	IF ABS(desiredTop) > RCSdeadZone { SET desiredTop TO 0. }
 	IF ABS(desiredStar) > RCSdeadZone { SET desiredStar TO 0. }
-	//pid_debug(PID["Fore"]).
-	//pid_debug(PID["Top"]).
-	//pid_debug(PID["Star"]).
 }
 
 FUNCTION translation_control_init {
@@ -221,6 +218,9 @@ FUNCTION translation_control_init {
 
 FUNCTION target_craft {
 	PARAMETER tar.
-	IF NOT tar:ISTYPE("Vessel") { RETURN tar:SHIP. }
-	RETURN tar.
+	IF tar:ISTYPE("Vessel") {
+		RETURN tar.
+	} ELSE {
+		RETURN tar:SHIP.
+	}
 }

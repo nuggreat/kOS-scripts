@@ -1,5 +1,5 @@
 //intended to be used with lib_dock_v1
-FOR lib IN LIST("lib_dock") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_dock") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 CLEARSCREEN.
 SAS OFF.
 RCS OFF.

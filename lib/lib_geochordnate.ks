@@ -28,12 +28,12 @@ FUNCTION mis_types_to_geochordnate {	//converts types of vessel,part,waypoint, a
 		}
 
 	}
-	IF doPrint { PRINT "I don't know how use a target type of :" + thing:TYPENAME. }
+	IF doPrint { PRINT "I don't know how use a target type of: " + thing:TYPENAME. }
 	RETURN LEX("chord",FALSE,"name",FALSE,"thing",FALSE).
 }
 
 FUNCTION str_to_types {//converts a given string to a latlng,waypoint, or vessel
-	PARAMETER str,sameBody IS TRUE,doPrint IS TRUE,doLatLng IS TRUE,doWaypoint IS TRUE,doCraft IS TRUE.
+	PARAMETER str,sameBody IS TRUE,doPrint IS TRUE,doLatLng IS TRUE,doWaypoint IS TRUE,doCraft IS TRUE, isLanded IS TRUE.
 	IF str:ISTYPE("string") {				//string should only include one "," this is for separating the latlng numbers like: "-10,45" is valid
 		LOCAL strSplit IS str:SPLIT(",").	//the "," can also separate the parts of a waypoint/craft name
 		IF strSplit:LENGTH > 1 {				//EXAMPLE "mun,lander" is valid for craft with names: "munlander", "mun station lander", "lander mun-station"
@@ -47,7 +47,7 @@ FUNCTION str_to_types {//converts a given string to a latlng,waypoint, or vessel
 		LOCAL candidateList IS LIST().
 		FOR point IN ALLWAYPOINTS() {
 			IF (NOT sameBody) OR (point:BODY = SHIP:BODY) {
-				IF contains_srt_list(point,strSplit) {
+				IF contains_str_list(point,strSplit) {
 					candidateList:ADD(point).
 				}
 			}
@@ -59,8 +59,8 @@ FUNCTION str_to_types {//converts a given string to a latlng,waypoint, or vessel
 		LOCAL vesselList IS LIST().
 		LIST TARGETS IN vesselList.
 		FOR ves IN vesselList {
-			IF (NOT sameBody) OR ((ves:BODY = SHIP:BODY) AND (ves:STATUS = "Landed")) {
-				IF contains_srt_list(ves,strSplit) {
+			IF (((NOT sameBody) OR (ves:BODY = SHIP:BODY)) AND ((ves:STATUS = "Landed") = isLanded)) {
+				IF contains_str_list(ves,strSplit) {
 					candidateList:ADD(ves).
 				}
 			}
@@ -94,11 +94,11 @@ LOCAL FUNCTION closest_thing {//returns the thing closest to the ship
 	RETURN closest.
 }
 
-LOCAL FUNCTION contains_srt_list { //checks if the name of a thing contains the strings of the passed in list
-	PARAMETER thing,srtList.
+LOCAL FUNCTION contains_str_list { //checks if the name of a thing contains the strings of the passed in list
+	PARAMETER thing,strList.
 	LOCAL validThing IS TRUE.
-	FOR srtPart IN srtList {
-		IF NOT thing:NAME:CONTAINS(srtPart) {
+	FOR strPart IN strList {
+		IF NOT thing:NAME:CONTAINS(strPart) {
 			SET validThing TO FALSE.
 			BREAK.
 		}
@@ -138,7 +138,6 @@ FUNCTION inital_heading { //returns the initial heading for shortest distance be
 
 FUNCTION distance_heading_to_latlng {//takes in a heading, distance, and start point and returns the latlng at the end of the greater circle
 	PARAMETER head,dist,p1 IS SHIP:GEOPOSITION.
-	LOCAL localBody IS p1:BODY.
 	LOCAL degTravle IS (dist*180) / (p1:BODY:RADIUS * CONSTANT:PI).//degrees around the body, might make as constant
 	LOCAL sinP1lat IS SIN(p1:LAT).
 	LOCAL sinDegTcosP1lat IS SIN(degTravle)*COS(p1:LAT).
@@ -163,7 +162,7 @@ FUNCTION surface_normal {
 	LOCAL basePos IS p1:POSITION.
 
 	LOCAL upVec IS (basePos - localBody:POSITION):NORMALIZED.
-	LOCAL northVec IS VXCL(upVec,LATLNG(90,0):POSITION - basePos):NORMALIZED * 4.
+	LOCAL northVec IS VXCL(upVec,LATLNG(90,0):POSITION - basePos):NORMALIZED * 3.
 	LOCAL sideVec IS VCRS(upVec,northVec):NORMALIZED * 3.//is east
 
 	LOCAL aPos IS localBody:GEOPOSITIONOF(basePos - northVec + sideVec):POSITION - basePos.
@@ -192,8 +191,8 @@ FUNCTION average_eta {
         SET dataLex["oldTime"] TO localTime.
         SET dataLex["averageDeltaDist"] TO 0.
         SET dataLex["firstSample"] TO TRUE.
-        SET dataLex["maxSamples"] TO maxSamples.
-		SET dataLex["sampleCoef"] TO (dataLex["maxSamples"] + 1) / MAX(dataLex["maxSamples"],1).
+        SET dataLex["maxSamples"] TO MAX(maxSamples,1).
+		SET dataLex["sampleCoef"] TO (dataLex["maxSamples"] + 1) / dataLex["maxSamples"].
         RETURN 0.
     } ELSE {
         LOCAL deltaTime IS localTime - dataLex["oldTime"].

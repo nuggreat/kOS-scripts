@@ -1,7 +1,6 @@
-
 PARAMETER maxSpeed,minSpeed,stopDist,waypointList,waypointRadius,destName,wheelAccel IS 0.025,turnCoeff IS 1.
 IF NOT EXISTS("1:/lib/lib_rocket_utilities.ks") COPYPATH("0:/lib/lib_rocket_utilities.ks","1:/lib/").
-FOR lib IN LIST("lib_geochordnate","lib_navball2","lib_formating","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_geochordnate","lib_navball2","lib_formating","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 CLEARSCREEN.
 ABORT OFF.
 SAS OFF.
@@ -67,10 +66,10 @@ BRAKES OFF.
 UNTIL done {
 	//WAIT 0.
 	LOCAL upVec IS SHIP:UP:VECTOR.
-	LOCAL targetPos IS waypointList[waypointIndex]:POSITION.
-	LOCAL origenPos IS SHIP:POSITION.
-	LOCAL shipWayVec IS targetPos - origenPos.
-	LOCAL distToWay IS shipWayVec:MAG.
+	LOCAL nextPos IS waypointList[waypointIndex]:POSITION.
+	LOCAL prePos IS SHIP:POSITION.
+	LOCAL shipNextWayVec IS nextPos - prePos.
+	LOCAL distToWay IS shipNextWayVec:MAG.
 
 	//IF (distToWay < waypointRadius) AND (NOT stopping) {
 	IF ((distToWay < waypointRadius) OR (pointMag = 1)) AND (NOT stopping) AND (waypointIndex < wayListLength) {
@@ -82,9 +81,9 @@ UNTIL done {
 			SET oldSpeed TO newSpeed.
 			SET newSpeed TO speedListStatic[waypointIndex].
 
-			SET targetPos TO waypointList[waypointIndex]:POSITION.
-			SET shipWayVec TO targetPos - SHIP:POSITION.
-			SET distToWay TO shipWayVec:MAG.
+			SET nextPos TO waypointList[waypointIndex]:POSITION.
+			SET shipNextWayVec TO nextPos - SHIP:POSITION.
+			SET distToWay TO shipNextWayVec:MAG.
 			LOCAL localTime IS TIME:SECONDS.
 			PRINT "deltaT: " + ROUND(localTime - oldTime,2) + "   " AT(0,15).
 			PRINT "deltaE: " + ROUND(etaListStatic[MAX(waypointIndex - 2,0)] - etaListStatic[MAX(waypointIndex - 1,0)],2) + "   " AT(0,16).
@@ -92,15 +91,15 @@ UNTIL done {
 		}
 	}
 	IF waypointIndex <> 0 {
-		SET origenPos TO waypointList[waypointIndex - 1]:POSITION.
+		SET prePos TO waypointList[waypointIndex - 1]:POSITION.
 	}
-	LOCAL preNextVec IS targetPos - origenPos.
-	LOCAL offPathVec IS VXCL(upVec,shipWayVec).
+	LOCAL preNextVec IS nextPos - prePos.
+	LOCAL flatshipNextWayVec IS VXCL(upVec,shipNextWayVec).
 	LOCAL pathVec IS VXCL(upVec,preNextVec).
-	//LOCAL offPathBy IS VANG(pathVec,offPathVec).
-	LOCAL offPathBy IS VXCL(pathVec,offPathVec):MAG.//number of meters off the pathVector
+	//LOCAL offPathBy IS VANG(pathVec,flatshipNextWayVec).
+	LOCAL offPathBy IS VXCL(pathVec,flatshipNextWayVec):MAG.//number of meters off the pathVector
 
-	LOCAL percentTravled IS MAX(MIN(VDOT(pathVec - offPathVec,pathVec:NORMALIZED) / pathVec:MAG,1),-0.5).//distance of ship along pathVector in % 
+	LOCAL percentTravled IS MAX(MIN(VDOT(pathVec - flatshipNextWayVec,pathVec:NORMALIZED) / pathVec:MAG,1),-0.5).//distance of ship along pathVector in % 
 	//LOCAL percentError IS (1 - percentTravled) * offPathBy / 180.
 	//LOCAL percentError IS (1 - percentTravled) * COS(MIN(offPathBy*2,90)).
 	//LOCAL percentError IS COS(MIN(offPathBy * 2,90)).
@@ -109,9 +108,9 @@ UNTIL done {
 	//CLEARSCREEN.
 	//PRINT "error: " + percentError.
 	//PRINT "%remain: " + percentTravled.
-	SET pointMag TO MAX(MIN(percentTravled + MAX(1 - percentError,0) * 0.5,1),0).//% along preNextVec vec the target point is
+	SET pointMag TO MAX(MIN(percentTravled + MAX(1 - percentError,0) * 0.5,1),0).//% along preNextVec the target point is
 	LOCAL speedRestrict IS pointMag * newSpeed + (1 - pointMag) * oldSpeed.
-	LOCAL pointPos IS preNextVec * pointMag + origenPos.//calculating the target position along the path vec
+	LOCAL pointPos IS preNextVec * pointMag + prePos.//calculating the target position along the path vec
 	LOCAL shipPoinVec IS pointPos - SHIP:POSITION.
 
 	LOCAL tarDist IS pathDist + distToWay.
@@ -141,7 +140,7 @@ UNTIL done {
 	}
 
 	IF showVectors {
-		SET pathVecDraw:START TO origenPos + upVec * 10.
+		SET pathVecDraw:START TO prePos + upVec * 10.
 		SET pathVecDraw:VEC TO preNextVec.
 		//SET pointVecDraw:START TO SHIP:POSITION.
 		SET pointVecDraw:VEC TO shipPoinVec + upVec * 10.

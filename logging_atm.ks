@@ -9,10 +9,10 @@ PRINT "logging to " + logPath.
 LOG ("time(s),altitude(m),vel(m/s),Q(kPa),force(kN),press(kPa),atmDencity(kg/m^3),dragCoef(m^2),mg/J,temp(K),mach(m/s),body: " + localBody:NAME) TO logPath.
 
 
-LOCAL jPerKgK IS (8314.4598/42).//this is ideal gas constant dived by the molecular mass of the bodies atmosphere
+LOCAL jPerKgK IS (8.3144598/0.00042).//this is ideal gas constant dived by the molecular mass of the bodies atmosphere
 LOCAL heatCapacityRatio IS 1.2.
 IF localBody = KERBIN {
-	SET jPerKgK TO (8314.4598/28.9644).
+	SET jPerKgK TO (8.3144598/0.0289644).
 	SET heatCapacityRatio TO 1.4.
 	PRINT "local Body is Kerbin".
 }
@@ -26,7 +26,7 @@ LOCAL preForeVec IS SHIP:FACING:FOREVECTOR.
 LOCAL preMass IS SHIP:MASS.
 LOCAL preDynamicP IS SHIP:Q * CONSTANT:ATMTOKPA.
 LOCAL preAtmPressure IS MAX(localAtm:ALTITUDEPRESSURE(ALTITUDE) * CONSTANT:ATMTOKPA,0.000001).
-LOCAL atmDencity IS preDynamicP / preVel:SQRMAGNITUDE.
+LOCAL atmDencity IS (preDynamicP * 2) / preVel:SQRMAGNITUDE.
 LOCAL atmMolarMass IS atmDencity / preAtmPressure.
 
 LOCAL burnCoeff IS 0.
@@ -65,7 +65,7 @@ UNTIL RCS {
 	LOCAL dragForce IS ((newMass + preMass) / 2) * VDOT(dragAcc,avrForeVec).
 	SET atmDencity TO (avrDynamicP * 2) / ((newVel:SQRMAGNITUDE + preVel:SQRMAGNITUDE) / 2).//derived from q = d * v^2 / 2
 	SET dragCoef TO dragForce / MAX(avrDynamicP,0.0001).
-	SET atmMolarMass TO atmDencity / avrPressure.
+	SET thermalMassIsh TO atmDencity / avrPressure.
 	LOCAL atmTemp IS avrPressure / (jPerKgK * atmDencity).
 	LOCAL mach IS SQRT(heatCapacityRatio * jPerKgK * atmTemp).
 	CLEARSCREEN.
@@ -75,7 +75,7 @@ UNTIL RCS {
 	PRINT "mach: " + mach.
 	PRINT "dCof: " + dragCoef.
 	PRINT "forc: " + dragForce.
-	log_data(LIST(newTime,newAlt,newVel:MAG,newDynamicP,dragForce,newAtmPressure,atmDencity*1000,dragCoef,atmMolarMass,atmTemp,mach),logPath).
+	log_data(LIST(newTime,newAlt,newVel:MAG,newDynamicP,dragForce,newAtmPressure,atmDencity*1000,dragCoef,thermalMassIsh,atmTemp,mach),logPath).
 
 	SET preVel TO newVel.
 	SET preTime TO newTime.

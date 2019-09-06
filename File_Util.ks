@@ -1,5 +1,5 @@
 CLEARGUIS().
-FOR lib IN LIST("lib_file_util") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_file_util") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 IF HOMECONNECTION:ISCONNECTED {
 
 LOCAL archiveRoot IS PATH("0:/").

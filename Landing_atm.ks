@@ -1,5 +1,5 @@
 PARAMETER retroMargin IS 1000.
-FOR lib IN LIST("lib_land_atm","lib_navball2","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_land_atm","lib_navball2","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
 //LOCAL retroMargin IS 100.	//the distance above the ground that the ship will come to during the retroburn
 LOCAL decentMinSpeed IS 0.5.//the slowest the craft will go on the hover decent

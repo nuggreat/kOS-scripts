@@ -1,7 +1,7 @@
 PARAMETER autoWarp IS FALSE, degreesOfRotation IS 0, doStage IS FALSE.
 IF NOT SHIP:UNPACKED { PRINT "waiting for unpack". WAIT UNTIL SHIP:UNPACKED. WAIT 1. PRINT "unpacked". }
 IF NOT EXISTS("1:/lib/lib_formating.ks") COPYPATH("0:/lib/lib_formating.ks","1:/lib/").
-FOR lib IN LIST("lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
 SAS OFF.
 ABORT OFF.

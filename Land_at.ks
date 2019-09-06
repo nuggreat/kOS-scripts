@@ -4,7 +4,7 @@ PARAMETER landingTar,margin IS 100.
 //IF NOT EXISTS("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
 //IF NOT EXISTS("1/lib/lib_hill_climb.ks") { COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/lib_hill_climb.ks"). }
 //COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/lib_hill_climb.ks").
-FOR lib IN LIST("lib_rocket_utilities","lib_mis_utilities","lib_geochordnate","lib_hill_climb") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_rocket_utilities","lib_mis_utilities","lib_geochordnate","lib_hill_climb") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 
 //LOCAl logPath IS PATH("0:/log_land_at_v6.txt").
 //IF EXISTS(logPath) { DELETEPATH(logPath). }
@@ -41,10 +41,12 @@ LOCAL refineDeorbit IS SHIP:ORBIT:PERIAPSIS < 0.
 
 
 LOCAL terms IS 4.
+node_step_init(LIST("eta","norm","pro","rad")).
 IF refineDeorbit {
 	SET varConstants["mode"] TO 1.
 	SET nodeStartTime TO (impact_ETA(ta_to_ma(SHIP:ORBIT:ECCENTRICITY,SHIP:ORBIT:TRUEANOMALY),SHIP:ORBIT,varConstants["landingAlt"]) / 2 + TIME:SECONDS).
 	SET terms TO 3.
+	node_step_init(LIST("pro","norm","rad")).
 } ELSE IF ETA:APOAPSIS < 600 {
 	SET nodeStartTime TO nodeStartTime + (SHIP:ORBIT:PERIOD / 4).
 }
@@ -95,7 +97,6 @@ UNTIL close {
 		PRINT "  Total Time: " + ROUND(TIME:SECONDS - timeStart,3).
 		PRINT "   Step Time: " + ROUND(delta_time(),2).
 		PRINT "Average Time: " + ROUND((TIME:SECONDS - timeStart) / count,3).
-
 	}
 	SET close TO ((bestDist < 2000) AND (NEXTNODE:DELTAV:MAG < maxDv)) OR (varConstants["mode"] = 1).
 }

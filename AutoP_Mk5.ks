@@ -5,7 +5,7 @@ PARAMETER dest,	//-----destinations as a waypoint, geocoordinate, vessel, part, 
 	rollMax,		//-----mac roll  in deg-----
 	cruseSpeed,	//-----cruse speed in m/s-----
 	landingSpeed.//-----landing speed in m/s-----
-FOR lib IN LIST("lib_navball","lib_navball2","lib_geochordnate","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_navball","lib_navball2","lib_geochordnate","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 SET TERMINAL:WIDTH TO 60.
 SET TERMINAL:HEIGHT TO 15.
 CLEARSCREEN.
@@ -126,8 +126,8 @@ UNTIL isAligned {	//-----aligning to runway-----
 
 	LOCAL pitchTo IS vSpeedCon_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 
-	LOCAL headingDif IS runwayEnd:heading - runwayStart:heading .
-	LOCAL rollTo IS rollTar_PID:UPDATE(TIME:SECONDS,(headingDif * (dist / 1000)) - tarBearing).
+	LOCAL headingError IS runwayEnd:HEADING - runwayStart:HEADING.
+	LOCAL rollTo IS rollTar_PID:UPDATE(TIME:SECONDS,MAX(MIN(headingError * (dist / 1000),90),-90) - tarBearing).
 
 	LOCAL speedTar IS MIN(MAX(landingSpeed,(dist - 100) / 100),landingSpeed * 2).
 	SET throttle_PID:SETPOINT TO speedTar.

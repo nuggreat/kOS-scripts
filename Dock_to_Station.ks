@@ -1,5 +1,5 @@
-PARAMETER tar IS TARGET.
-FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+PARAMETER doLiftOff IS TRUE,tar IS TARGET.
+FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 IF tar:ISTYPE("STRING") {
 	LOCAL vesselList IS LIST().
 	LIST TARGETS IN vesselList.
@@ -17,12 +17,15 @@ IF NOT tar:ISTYPE("VESSEL") { SET go TO FALSE. }
 
 IF go {
 	LOCAL targetHeight IS SHIP:BODY:ATM:HEIGHT / 1000 + 25.
-	RUN lift_off(targetHeight,90,TRUE).
+	IF doLiftOff {
+		RUN lift_off(targetHeight,90,TRUE).
+	}
 	RUN randevu(TRUE,TRUE,TRUE,FALSE,TRUE).
+	warp_to_closest(300).//warps to 5min before closest approach
 	warp_to_closest(60).//warps to 60 seconds before closest approach
 	PRINT "done with warp".
 	LOCK STEERING TO TARGET:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
-	WAIT 40.//additional 40 sec wait for final alignment 
+	//WAIT 40.//additional 40 sec wait for final alignment 
 	//some wait logic for the close to target, with additional stops for alignment checks
 	RUN dock_ship.
 }
@@ -38,7 +41,7 @@ FUNCTION warp_to_closest {
 			steering_alinged_duration(TRUE,5,FALSE).
 			SET warpState TO 1.//state warp state
 		} ELSE IF warpState = 1 {//wait for alignment 
-			IF (TIME:SECONDS => (targetTime - 5)) {
+			IF (TIME:SECONDS >= (targetTime - 5)) {
 				SET warpState TO 3.//done state
 				KUNIVERSE:TIMEWARP:CANCELWARP().
 			}
@@ -48,7 +51,7 @@ FUNCTION warp_to_closest {
 				SET warpState TO 2.//warping state
 			}
 		} ELSE IF warpState = 2 {//warp so long as craft is aligned 
-			IF steering_alinged_duration() = 0 {
+			IF steering_alinged_duration() <= 5 {
 				KUNIVERSE:TIMEWARP:CANCELWARP().
 				WAIT UNTIL not_warping().
 				SET warpState TO 1.//start warp state

@@ -7,7 +7,7 @@ PARAMETER dest,		//destination as a waypoint, geocoordinate, vessel, or part
 IF NOT EXISTS("1:/lib/lib_formating.ks") COPYPATH("0:/lib/lib_formating.ks","1:/lib/").
 IF NOT EXISTS("1:/lib/lib_rocket_utilities.ks") COPYPATH("0:/lib/lib_rocket_utilities.ks","1:/lib/").
 IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
-FOR lib IN LIST("lib_navball","lib_formating","lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_navball","lib_formating","lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 
 BRAKES OFF.
 RCS OFF.

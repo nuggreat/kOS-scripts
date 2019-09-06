@@ -1,6 +1,6 @@
 //program set up
 PARAMETER apHeight,launchHeading,skipConfirm IS FALSE.
-FOR lib IN LIST("lib_navball2","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_navball2","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
 LOCAL targetAP IS apHeight * 1000.
 
@@ -82,6 +82,7 @@ UNTIL SHIP:AVAILABLETHRUST > 0 {
 PRINT "Beginning Roll and Pitch Program".
 UNTIL SHIP:VERTICALSPEED > vertSpeed OR (signed_eta_ap() > (etaSet - 0.1) AND SHIP:VERTICALSPEED > 10) {
 	SET pitchTo TO 90 - MIN(SHIP:VERTICALSPEED / vertSpeed * maxPitch,maxPitch).
+	stage_check().
 }
 WAIT 1.
 IF bodyAtmosphere:EXISTS {	//liftoff

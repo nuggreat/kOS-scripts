@@ -42,7 +42,7 @@ FUNCTION impact_UTs {//returns the UTs of the ship's impact, NOTE: only works fo
 FUNCTION alt_to_ta {//returns a list of the true anomalies of the 2 points where the craft's orbit passes the given altitude
 	PARAMETER sma,ecc,bodyIn,altIn.
 	LOCAL rad IS altIn + bodyIn:RADIUS.
-	LOCAL taOfAlt IS ARCCOS((-sma * ecc ^2 + sma - rad) / (ecc * rad)).
+	LOCAL taOfAlt IS ARCCOS((-sma * ecc^2 + sma - rad) / (ecc * rad)).
 	RETURN LIST(taOfAlt,360-taOfAlt).//first true anomaly will be as orbit goes from PE to AP
 }
 

@@ -1,5 +1,5 @@
 PARAMETER endPoint,maxSpeed IS 25,minSpeed IS 5,closeToDist IS 450,roverAccel IS 0.05,turnCoeff IS 1,unitDist IS 200.
-FOR lib IN LIST("lib_geochordnate","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_geochordnate","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 LOCAL srfGrav IS SHIP:BODY:MU / SHIP:BODY:RADIUS^2.
 SET unitDist TO MIN(unitDist,closeToDist).
 CLEARSCREEN.
@@ -394,16 +394,11 @@ FUNCTION limited_back_check {
 FUNCTION calculate_curviture {
 	PARAMETER nodeGeo,northHeading.
 
-	LOCAL pointHeadingA TO deg_protect(northHeading).
-	LOCAL pointHeadingB TO deg_protect(northHeading + 45).
-	LOCAL pointHeadingC TO deg_protect(northHeading + 90).
-	LOCAL pointHeadingD TO deg_protect(northHeading + 135).
-
 	LOCAL nodeNormal IS surface_normal(nodeGeo).
-	LOCAL aVec IS normal_diff(pointHeadingA,nodeGeo,0.5).
-	LOCAL bVec IS normal_diff(pointHeadingB,nodeGeo,SQRT(0.5)).
-	LOCAL cVec IS normal_diff(pointHeadingC,nodeGeo,0.5).
-	LOCAL dVec IS normal_diff(pointHeadingD,nodeGeo,SQRT(0.5)).
+	LOCAL aVec IS normal_diff(deg_protect(northHeading),nodeGeo,0.5).
+	LOCAL bVec IS normal_diff(deg_protect(northHeading + 45),nodeGeo,SQRT(0.5)).
+	LOCAL cVec IS normal_diff(deg_protect(northHeading + 90),nodeGeo,0.5).
+	LOCAL dVec IS normal_diff(deg_protect(northHeading + 135),nodeGeo,SQRT(0.5)).
 	LOCAL sumVec IS aVec + bVec + cVec + dVec.
 	RETURN VANG(nodeNormal,sumVec).
 }

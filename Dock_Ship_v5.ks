@@ -1,6 +1,6 @@
 //intended to be used with lib_dock_v1
 PARAMETER transSpeed IS 5,stationMove IS FALSE.
-FOR lib IN LIST("lib_dock","lib_rocket_utilities","lib_orbital_math") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_dock","lib_rocket_utilities") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
 WAIT UNTIL active_engine().
 CLEARSCREEN.
@@ -30,17 +30,8 @@ LOCAL station IS TARGET.
 IF station:ISTYPE("part") {
 	SET station TO station:SHIP.
 }
-
-LOCAL closeData IS close_aproach_scan(SHIP,station,TIME:SECONDS,600).
-PRINT closeData["dist"].
-UNTIL closeData["dist"] < 1500 {
-	burn_closer(1400,station,120).
-	SET closeData TO close_aproach_scan(SHIP,station,TIME:SECONDS,600).
-	IF closeData["dist"] < 1500 {
-		relitave_stop(1000,station).
-	}
-}
-
+LOCAL stationPortListRaw IS port_scan_of(station).
+IF stationPortListRaw:LENGTH = 0 {SET stationPortListRaw TO port_scan_of(station).}
 SET NAVMODE TO "TARGET".
 LOCAL stationConect IS station:CONNECTION.
 PRINT "Waiting for Handshake.".
@@ -48,7 +39,6 @@ UNTIL NOT buffer:EMPTY {
 	IF buffer:EMPTY {stationConect:SENDMESSAGE("Handshake").}	//sending handshake
 	WAIT 1.
 }
-
 buffer:CLEAR().			//handshake receved
 stationConect:SENDMESSAGE("Docking Request").
 message_wait(buffer).
@@ -56,9 +46,6 @@ buffer:CLEAR().
 
 stationConect:SENDMESSAGE(stationMove).	//sending if station should move
 PRINT "Docking Requested".
-
-LOCAL stationPortListRaw IS port_scan_of(station).
-IF stationPortListRaw:LENGTH = 0 {SET stationPortListRaw TO port_scan_of(station).}
 
 message_wait(buffer).
 LOCAL signal IS buffer:POP().
@@ -75,21 +62,34 @@ LOCAL noFlyZone IS signal:CONTENT.	//receiving noFlyZone size
 
 LOCAL stationPort IS portLock["stationPort"].
 LOCAL craftPort IS portLock["craftPort"].
-SET noFlyZone TO noFlyZone + no_fly_zone(SHIP,craftPort).
 
 LOCAL axisSpeed IS axis_speed(SHIP,station).
 SAS OFF.
 RCS OFF.
-
 PRINT " ".
-IF axisSpeed[0]:MAG > 1 {
-	relitave_stop (noFlyZone * 1.25,station).
-	UNTIL (SHIP:POSITION - station:POSITION):MAG < MIN(noFlyZone * 5,500) {
-		burn_closer(noFlyZone,station,120).
-		relitave_stop(noFlyZone * 1.25,station).
+PRINT "Coming to 0/0 Relitave Stop.".
+IF axisSpeed[0]:MAG > 0.1 {
+	LOCK STEERING TO -axisSpeed[0]:NORMALIZED.
+	
+	steering_alinged_duration(TRUE,0.5,FALSE).
+	UNTIL (steering_alinged_duration() >= 2.5) OR ABORT {
+		SET axisSpeed TO axis_speed(SHIP,station).
 	}
-}
+	
+	ABORT OFF.
 
+	LOCAL done IS FALSE.
+	//SET done TO FALSE.
+	UNTIL done {
+		SET axisSpeed TO axis_speed(SHIP,station).
+		LOCAL stationSpeed IS -axisSpeed[1].
+		LOCAL shipAcceleration IS SHIP:AVAILABLETHRUST / SHIP:MASS.
+		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO MAX(MIN(ABS(stationSpeed) / (shipAcceleration * 1.25),1),0.01).
+		WAIT 0.01.
+		SET done TO stationSpeed < 0.05 OR ABORT.
+	}
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+}
 RCS OFF.
 ABORT OFF.
 PRINT "Ship at 0/0 Relitave to Target.".
@@ -138,93 +138,26 @@ RCS OFF.
 
 //end of core logic start of functions
 
-FUNCTION relitave_stop {
-	PARAMETER distTrigger,station.
-	PRINT "Coming to 0/0 Relative.".
-	LOCAL relitaveVel IS station:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
-	LOCAL engOff IS TRUE.
-	LOCK STEERING TO relitaveVel.
-	LOCK THROTTLE TO 0.
-	LOCAL shipAcc IS SHIP:AVAILABLETHRUST / SHIP:MASS.
-	LOCAL stopDist IS relitaveVel:SQRMAGNITUDE / (2 * shipAcc).
-	
-	LOCAL preDist IS ((SHIP:POSITION - relitaveVel:NORMALIZED * stopDist) - station:POSITION):MAG.
-	WAIT 0.
-	
-	UNTIL relitaveVel:MAG < 0.1 {
-		SET shipAcc TO SHIP:AVAILABLETHRUST / SHIP:MASS.
-		IF engOff {
-			SET stopDist TO relitaveVel:SQRMAGNITUDE / (2 * shipAcc).
-			LOCAL currenDist IS ((SHIP:POSITION - relitaveVel:NORMALIZED * stopDist) - station:POSITION):MAG.
-			IF (preDist < currenDist) OR (currenDist < distTrigger) {
-				LOCK THROTTLE TO MIN(MAX(2 - ABS(STEERINGMANAGER:ANGLEERROR),0),VDOT(relitaveVel,SHIP:FACING:FOREVECTOR) / shipAcc).
-				SET engOFF TO FALSE.
-			}
-			SET preDist TO currenDist.
-		}
-		SET relitaveVel TO station:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
-		WAIT 0.
-		//CLEARSCREEN.
-		//PRINT "relVel: " + relitaveVel:MAG.
-		//PRINT "steerError: " + ABS(STEERINGMANAGER:ANGLEERROR).
-	}
-	UNLOCK THROTTLE.
-	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-}
-
-FUNCTION burn_closer {
-	PARAMETER distTar,station,flipTime.
-	PRINT "Closing to " + distTar + "m".
-	LOCAL targetPoint IS station:POSITION + normal_of_orbit(station) * distTar.
-	LOCAL targetVec IS (targetPoint - SHIP:POSITION).
-	LOCAL targetSpeed IS MIN(targetVec:MAG / flipTime,(SHIP:AVAILABLETHRUST / SHIP:MASS * (flipTime/60))).
-	LOCAL targetVel IS targetVec:NORMALIZED * targetSpeed.
-	
-	LOCAL relitaveVel IS (station:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT).
-	LOCAL burnVec IS targetVel - relitaveVel.
-	LOCK STEERING TO burnVec.
-	WAIT 0.
-	
-	UNTIL (burnVec):MAG < 0.1 {
-		SET SHIP:CONTROL:PILOTMAINTHROTTLE TO MIN(MAX(1 - ABS(STEERINGMANAGER:ANGLEERROR),0),burnVec:MAG / (SHIP:AVAILABLETHRUST / SHIP:MASS)).
-		
-		SET targetPoint TO station:POSITION + normal_of_orbit(station) * distTar.
-		SET targetVec TO (targetPoint - SHIP:POSITION).
-		SET targetVel TO targetVec:NORMALIZED * targetSpeed.
-
-		SET relitaveVel TO (SHIP:VELOCITY:ORBIT - station:VELOCITY:ORBIT).
-		SET burnVec TO targetVel - relitaveVel.
-		WAIT 0.
-		//CLEARSCREEN.
-		//PRINT "tarVel: " + targetVel:MAG.
-		//PRINT "relVel: " + relitaveVel:MAG.
-		//PRINT "dif: " + burnVec:MAG.
-		//PRINT "steerError: " + ABS(STEERINGMANAGER:ANGLEERROR).
-	}
-	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-	LOCK STEERING TO (station:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT).
-}
-
 FUNCTION evade_trans {
-	PARAMETER noFlyZone,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
+	PARAMETER noFlyDist,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
 	//"Moving out of No Fly Zone of Station."
 
 	LOCAL evasionVec IS VXCL(stationPort:PORTFACING:FOREVECTOR,craftPort:POSITION - stationPort:POSITION).
-	LOCAL velVec IS evasionVec:NORMALIZED * maxTranslation.
+	LOCAL velVec IS evasionVector:NORMALIZED * maxTranslation.
 
 	translation_control(velVec,station,SHIP).
-	print_trans((evasionVec:MAG - noFlyZone),"Moving out of No Fly Zone of Station.",portSize).
+	print_trans((evasionVec:MAG - noFlyDist),"Moving out of No Fly Zone of Station.",portSize).
 
-	RETURN evasionVec:MAG > noFlyZone.
+	RETURN evasionVector:MAG > noFlyDist.
 }
 
 FUNCTION advance_trans {
-	PARAMETER noFlyZone,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
+	PARAMETER noFlyDist,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
 
 	LOCAL stationForeVec IS stationPort:PORTFACING:FOREVECTOR.
 
-	LOCAL sideVec IS VXCL(stationForeVec,craftPort:POSITION - stationPort:POSITION):NORMALIZED * noFlyZone.
-	LOCAL targetPoint IS stationPort:POSITION + stationForeVec * noFlyZone + sideVec.
+	LOCAL sideVec IS VXCL(stationForeVec,craftPort:POSITION - stationPort:POSITION):NORMALIZED * noFlyDist.
+	LOCAL targetPoint IS stationPort:POSITION + stationForeVec * noFlyDist + sideVec.
 
 	LOCAL distVec IS targetPoint - craftPort:POSITION.
 	LOCAL velVec IS dist_to_vel(distVec,accelLimit,maxTranslation).
@@ -236,10 +169,10 @@ FUNCTION advance_trans {
 }
 
 FUNCTION align_trans {
-	PARAMETER noFlyZone,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
+	PARAMETER noFlyDist,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
 	
 	LOCAL stationForeVec IS stationPort:PORTFACING:FOREVECTOR.
-	LOCAL targetPoint IS stationPort:POSITION + stationForeVec * noFlyZone.
+	LOCAL targetPoint IS stationPort:POSITION + stationForeVec * noFlyDist.
 
 	LOCAL distVec IS targetPoint - craftPort:POSITION.
 	LOCAL velVec IS dist_to_vel(distVec,accelLimit,maxTranslation).
@@ -251,11 +184,11 @@ FUNCTION align_trans {
 }
 
 FUNCTION close_trans {
-	PARAMETER noFlyZone,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
+	PARAMETER noFlyDist,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
 
 	LOCAL stationForeVec IS stationPort:PORTFACING:FOREVECTOR.
 	LOCAL errorVec IS stationPort:POSITION - craftPort:POSITION.
-	LOCAL sideError IS MIN(VXCL(stationForeVec,errorVec):MAG / noFlyZone,1).
+	LOCAL sideError IS MIN(VXCL(stationForeVec,errorVec):MAG / noFlyDist,1).
 	
 	LOCAL distAlong IS -VDOT(errorVec,stationForeVec).//dist to docking port only along facing vec
 	LOCAL targetPoint IS stationPort:POSITION + stationForeVec * distAlong * sideError.

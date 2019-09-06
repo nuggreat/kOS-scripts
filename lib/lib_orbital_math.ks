@@ -1,11 +1,5 @@
 @LAZYGLOBAL OFF.
 
-FUNCTION orbital_speed_at_altitude_from_ap_pe {
-	PARAMETER altitudeIn IS SHIP:ALTITUDE, APin IS SHIP:ORBIT:APOAPSIS, PEin IS SHIP:ORBIT:PERIAPSIS, localBody IS SHIP:BODY.
-	LOCAL sma IS (APin + PEin) / 2 + localBody:RADIUS.
-	RETURN orbital_speed_at_altitude_from_sma(altitudeIn,sma,localBody).
-}
-
 FUNCTION orbital_speed_at_altitude_from_sma {
 	PARAMETER altitudeIn IS SHIP:ALTITUDE, sma IS SHIP:ORBIT:SEMIMAJORAXIS, localBody IS SHIP:BODY.
 	LOCAL shipRadius IS altitudeIn + localBody:RADIUS.
@@ -111,17 +105,17 @@ FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to
 }
 
 FUNCTION normal_of_orbit {//returns the normal of a crafts/bodies orbit, will point north if orbiting clockwise on equator
-	PARAMETER craft.
-	RETURN VCRS(craft:VELOCITY:ORBIT:NORMALIZED, (craft:BODY:POSITION - craft:POSITION):NORMALIZED):NORMALIZED.
+	PARAMETER object.
+	RETURN VCRS(object:VELOCITY:ORBIT:NORMALIZED, (object:BODY:POSITION - object:POSITION):NORMALIZED):NORMALIZED.
 }
 
 FUNCTION phase_angle {
 	PARAMETER object1,object2.//measures the phase of object2 as seen from object 1
 	LOCAL localBodyPos IS object1:BODY:POSITION.
 	LOCAL vecBodyToC1 IS (object1:POSITION - localBodyPos):NORMALIZED.
-	LOCAL vecBodyToC2 IS VXCL(normal_of_orbit(object1),(object2:POSITION - localBodyPos):NORMALIZED):NORMALIZED.
+	LOCAL vecBodyToC2 IS VXCL(normal_of_orbit(object1),(object2:POSITION - localBodyPos):NORMALIZED):NORMALIZED.//orbit normal is excluded to remove any inclination from calculation
 	LOCAL phaseAngle IS VANG(vecBodyToC1,vecBodyToC2).
-	IF VDOT(vecBodyToC2,VCRS(vecBodyToC1,VCRS(vecBodyToC1,object1:VELOCITY:ORBIT)):NORMALIZED) > 0 {//corrects for if object2 is ahead or behind object1
+	IF VDOT(vecBodyToC2,VXCL(UP:VECTOR,object1:VELOCITY:ORBIT)) < 0 {//corrects for if object2 is ahead or behind object1
 		SET phaseAngle TO 360 - phaseAngle.
 	}
 	RETURN phaseAngle.
@@ -136,7 +130,7 @@ FUNCTION close_aproach_scan {//one method to try to find closest approach by che
 	PARAMETER object1, object2,//the orbitals to examine for close approach
 	startTime,//the start time (UTs) for the scan
 	scanTimeRange,//the max seconds after the startTime to check to 
-	scanSteps IS 32,//the of points of comparison for each level of resolution
+	scanSteps IS 36,//the of points of comparison for each level of resolution
 	minTime IS 1.//the smallest that time increment that will be checked
 	LOCAL bestAproach IS distance_at(object1,object2,startTime). 
 	LOCAL bestAproachTime IS startTime.
@@ -182,7 +176,7 @@ LOCAL FUNCTION solar_relitave_positionAt {//only works for for non hyperbolic or
 	}
 }
 
-FUNCTION ma_at {//calculates the mean anomaly at a given time
+FUNCTION ma_at {//calculates the mean anomaly at a given time for the current SHIP
 	PARAMETER t.
 	LOCAL localTime IS TIME:SECONDS.
 	LOCAL obtPer IS SHIP:ORBIT:PERIOD.

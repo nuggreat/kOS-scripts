@@ -1,6 +1,6 @@
 PARAMETER warping IS FALSE,landingTar IS FALSE,retroMargin IS 100.	//the distance above the gound that the ship will come to during the retroburn
 IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
-FOR lib IN LIST("lib_land_vac","lib_navball2","lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_land_vac","lib_navball2","lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
 SAS OFF.
 SET TERMINAL:WIDTH TO 60.
@@ -88,7 +88,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 		LOCAL leftVec IS VCRS(retrogradeVec,positionUpVec):NORMALIZED.//vector normal to retrograde and up
 		LOCAL retroVec IS VCRS(positionUpVec,leftVec):NORMALIZED.//retrograde vector parallel to the ground
 		LOCAL pitchOffsetRaw IS VDOT(distVec, retroVec).	//if positive then will land short, if negative than will land long
-		LOCAL PIDclamp IS MIN(stopGap / (retroMargin / 5),0).
+		LOCAL PIDclamp IS MAX(stopGap / (retroMargin / 5),0).
 		SET pitch_PID:MINOUTPUT TO MIN(MAX(-PIDclamp,-5),0).
 		SET heading_pid:MINOUTPUT TO MIN(MAX(-PIDclamp,-10),0).
 		SET heading_pid:MAXOUTPUT TO MIN(MAX(PIDclamp,0),10).
@@ -108,20 +108,21 @@ UNLOCK THROTTLE.
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 
 LOCAL shipThrust IS SHIP:AVAILABLETHRUST * 0.90.
+LOCAL srfGrav IS SHIP:BODY:MU/(SHIP:BODY:RADIUS)^2.
 LOCAL shipAcc IS (shipThrust / SHIP:MASS).
 LOCAL sucideMargin IS vertMargin + 7.5.
-LOCAL decentLex IS decent_math(shipThrust).
+LOCAL decentLex IS decent_math(shipThrust,srfGrav).
 LOCK STEERING TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR,SHIP:NORTH:FOREVECTOR).
 //SET landing_PID:SETPOINT TO sucideMargin - 0.1.
 LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 //LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,ALT:RADAR - decentLex["stopDist"]).
 UNTIL ALT:RADAR < sucideMargin {	//vertical suicide burn stopping at about 10m above surface
-	SET decentLex TO decent_math(shipThrust).
+	SET decentLex TO decent_math(shipThrust,srfGrav).
 	SET shipAcc TO decentLex["acc"].
 	SET landing_PID:SETPOINT TO MIN(-shipAcc * SQRT(ABS(2 * (ALT:RADAR - sucideMargin) / shipAcc)),-0.5).
 	CLEARSCREEN.
-	PRINT "setPoint:     " + landing_PID:SETPOINT.
-	PRINT "vSpeed:       " + VERTICALSPEED.
+	PRINT "setPoint:     " + ROUND(landing_PID:SETPOINT,2).
+	PRINT "vSpeed:       " + ROUND(VERTICALSPEED,2).
 	PRINT "Altitude:     " + ROUND(ALT:RADAR - sucideMargin,1).
 	PRINT "Stoping Dist: " + ROUND(decentLex["stopDist"],1).
 	PRINT "Stoping Time: " + ROUND(decentLex["stopTime"],1).
@@ -135,7 +136,7 @@ LOCK STEERING TO steeringTar.
 //LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 //LOCAL done IS FALSE.
 UNTIL STATUS = "LANDED" OR STATUS = "SPLASHED" {	//slow decent until touchdown
-	LOCAL decentLex IS decent_math(shipThrust).
+	LOCAL decentLex IS decent_math(shipThrust,srfGrav).
 
 	LOCAL vSpeedTar IS MIN(0 - (ALT:RADAR - vertMargin - (ALT:RADAR * decentLex["stopTime"])) / (11 - MIN(decentLex["twr"],10)),-0.5).
 	SET landing_PID:SETPOINT TO vSpeedTar.
@@ -172,16 +173,15 @@ LIGHTS OFF.
 
 //end of core logic start of functions
 FUNCTION decent_math {// the math needed for suicide burn and final decent
-	PARAMETER shipThrust.
-	LOCAL localGrav IS SHIP:BODY:MU/(SHIP:BODY:RADIUS)^2.		//calculates gravity of the body
-	LOCAL shipAcc IS shipThrust / SHIP:MASS.						//ship acceleration in m/s
-	LOCAL stopTime IS  ABS(VERTICALSPEED) / (shipAcc - localGrav).//time needed to neutralize vertical speed
-	LOCAL stopDist IS 1/2 * shipAcc * stopTime * stopTime.			//how much distance is needed to come to a stop
-	LOCAL twr IS shipAcc / localGrav.					//the TWR of the craft based on local gravity
+	PARAMETER shipThrust,localGrav.
+	LOCAL shipAcc IS (shipThrust / SHIP:MASS) - localGrav.	//ship acceleration in m/s
+	LOCAL stopTime IS  ABS(VERTICALSPEED) / shipAcc.		//time needed to neutralize vertical speed
+	LOCAL stopDist IS 1/2 * shipAcc * stopTime * stopTime.	//how much distance is needed to come to a stop
+	LOCAL twr IS (shipAcc / localGrav) + 1.						//the TWR of the craft based on local gravity
 	RETURN LEX("stopTime",stopTime,"stopDist",stopDist,"twr",twr,"acc",(shipAcc - localGrav)).
 }
 
-FUNCTION lowist_part {//returns the largest dist from the root part for a part in the retrograde direction
+FUNCTION lowist_part {//returns the largest dist from the root part for a part in the backward direction
 	PARAMETER craft IS SHIP.
 	LOCAL largest IS 0.
 	FOR par IN craft:PARTS {
@@ -194,9 +194,9 @@ FUNCTION lowist_part {//returns the largest dist from the root part for a part i
 }
 
 FUNCTION adjusted_retorgrade {
-	PARAMETER headingOffset,pitchOffset.//positive heading is yawing to the right, positive pitch is pitching up
+	PARAMETER yawOffset,pitchOffset.//positive yaw is yawing to the right, positive pitch is pitching up
 	LOCAL returnDir IS ANGLEAXIS(-pitchOffset,SHIP:SRFRETROGRADE:STARVECTOR) * SHIP:SRFRETROGRADE.
-	RETURN ANGLEAXIS(headingOffset,returnDir:TOPVECTOR) * returnDir.
+	RETURN ANGLEAXIS(yawOffset,returnDir:TOPVECTOR) * returnDir.
 }
 
 FUNCTION when_triger {

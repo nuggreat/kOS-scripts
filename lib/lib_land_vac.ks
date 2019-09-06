@@ -50,7 +50,7 @@ UNTIL FALSE {	//retroburn simulation
 //	LOCAL up_unit IS up_vec:NORMALIZED.//vector from craft pointing at craft from body you are around
 //	LOCAL r_square IS up_vec:SQRMAGNITUDE.//needed for gravity calculation
 //	LOCAL localGrav IS GM / r_square.//gravitational acceleration at current height
-//  LOCAL g_vec IS - up_unit*localGrav.//gravatational acceleration as a vector
+//	LOCAL g_vec IS - up_unit*localGrav.//gravitational acceleration as a vector
 //	LOCAL eng_a_vec IS (t_max / m) * (- vel:NORMALIZED).//velocity vector imparted by engines calculated from thrust and mass along the negative of current velocity vector (retrograde)
 //	LOCAL a_vec IS eng_a_vec + g_vec.//adding engine acceleration and grav acceleration vectors to create a vector for all acceleration acting on craft
 	LOCAL a_vec IS ((t_max / m) * (- vel:NORMALIZED)) - ((GM / up_vec:SQRMAGNITUDE) * up_vec:NORMALIZED).

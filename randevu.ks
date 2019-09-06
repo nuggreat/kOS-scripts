@@ -2,7 +2,7 @@
 COPYPATH("0:/lib/lib_orbital_math.ks","1:/lib/").
 COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/").
 PARAMETER incMatch IS TRUE,hohmann IS TRUE,refine IS TRUE,asap IS FALSE,skipConferms IS FALSE.
-FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities","lib_formating","lib_hill_climb") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities","lib_formating","lib_hill_climb") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 //control_point().
 //WAIT UNTIL active_engine().
 GLOBAL vecDrawList IS LIST().
@@ -69,14 +69,14 @@ IF hohmann {
 	LOCAL targetPeriod IS TARGET:ORBIT:PERIOD.
 	LOCAL shipPeriod IS SHIP:ORBIT:PERIOD.
 	LOCAL localTime IS TIME:SECONDS.
-	LOCAL angleToTarget IS phase_angle(SHIP,TARGET).
 	LOCAL periodOfTransfer IS orbital_period(smaOfTransfer,SHIP:BODY).
-	LOCAL angleForTransfer IS MOD(360 * ((periodOfTransfer / 2) / targetPeriod) + 180,360).//the angle between ship and target for at the start of the transfer
+	LOCAL angleForTransfer IS 360 - MOD(360 * ((periodOfTransfer / 2) / targetPeriod) + 180,360).//the angle between ship and target for at the start of the transfer
 	LOCAL phaseChange IS ((360 / targetPeriod) - (360 / shipPeriod)).//the change in angle between ship and target per second
 
-	LOCAL transferETA IS (MOD((360 - angleForTransfer) - angleToTarget + 360,360) / phaseChange).
+	LOCAL angleToTarget IS phase_angle(SHIP,TARGET).
+	LOCAL transferETA IS (MOD(angleForTransfer - angleToTarget + 360,360) / phaseChange).
 	IF transferETA < 0 {
-		SET transferETA TO (MOD((360 - angleForTransfer) - angleToTarget - 360,360) / phaseChange).
+		SET transferETA TO (MOD(angleForTransfer - angleToTarget - 360,360) / phaseChange).
 	}
 
 	LOCAL UTsOfTransfer IS transferETA + localTime.
@@ -93,33 +93,53 @@ IF hohmann {
 	//PRINT "etaOfTransfer:    " + (transferETA / 60).
 	ADD NODE(UTsOfTransfer,0,0,transferDv).
 	IF NOT refine {
-		RCS OFF.
-		SAS OFF.
-		PRINT "turn on sas to continue".
-		PRINT "trun on rcs to burn".
-		WAIT UNTIL SAS OR skipConferms.
-		IF RCS OR skipConferms {
-			RCS OFF.
-			RUNPATH("1:/node_burn",TRUE).
-			clear_all_nodes().
-		}
+		conferm_burn(skipConferms).
 	}
 }
 
 IF refine {
+	node_step_init(LIST("eta","pro","norm")).
 	LOCAL localBody IS SHIP:BODY.
 	
 	LOCAL orbitalSpeed IS SQRT(localBody:MU / SHIP:ORBIT:SEMIMAJORAXIS).
-	LOCAL refineData IS climb_init("first",4,orbitalSpeed / 10,refine_score(NEXTNODE),0.1,1).
+	LOCAL initialBurnData IS climb_init("first",3,orbitalSpeed / 10,refine_score(NEXTNODE),0.1,1).
 	LOCAL refined IS FALSE.
 	UNTIL refined {
-		SET refined TO climb_hill(NEXTNODE,refine_score@,node_step_full@,refineData).
-		PRINT "close dist: " + refineData["results"]["dist"].
+		SET refined TO climb_hill(NEXTNODE,refine_score@,node_step_full@,initialBurnData).
+		PRINT "close dist: " + initialBurnData["results"]["dist"].
 	}
+	conferm_burn(skipConferms).
+	
+	PRINT " ".
+	PRINT "Inital Transfer Burn Done".
+	
+	LOCAL burnResults IS close_aproach_scan(SHIP,TARGET,TIME:SECONDS,SHIP:ORBIT:PERIOD).
+	IF burnResults["dist"] > 500 {
+		PRINT "Correction Burn Needed, Calculating...".
+		LOCAL corectionBurnUTs IS (burnResults["UTs"] + TIME:SECONDS)/2.
+		ADD NODE(corectionBurnUTs,0,0,0).
+		
+		SET orbitalSpeed TO SQRT(localBody:MU / SHIP:ORBIT:SEMIMAJORAXIS).
+		node_step_init(LIST("pro","norm","rad")).
+		LOCAL correctionBurnData IS climb_init("first",3,orbitalSpeed / 10,refine_score(NEXTNODE),0.1,1).
+		LOCAL corrected IS FALSE.
+		UNTIL corrected {
+			SET corrected TO climb_hill(NEXTNODE,refine_score@,node_step_full@,correctionBurnData).
+			PRINT "close dist: " + correctionBurnData["results"]["dist"].
+		}
+		conferm_burn(skipConferms).
+	}
+}
+
+//WAIT UNTIL RCS.
+CLEARVECDRAWS().
+
+FUNCTION conferm_burn {
+	PARAMETER skipConferms.
 	RCS OFF.
 	SAS OFF.
 	PRINT "turn on sas to continue".
-	PRINT "trun on rcs to burn".
+	PRINT "turn on rcs to burn".
 	WAIT UNTIL SAS OR skipConferms.
 	IF RCS OR skipConferms {
 		RCS OFF.
@@ -127,9 +147,6 @@ IF refine {
 		clear_all_nodes().
 	}
 }
-
-//WAIT UNTIL RCS.
-CLEARVECDRAWS().
 
 FUNCTION node_from_vector {//only works if you are in the same SOI as the node
 	PARAMETER vecTarget,nodeTime,localBody IS SHIP:BODY.
@@ -167,24 +184,9 @@ FUNCTION burn_vector {//returns the burn vector to change orbit to new normal ve
 	RETURN vecBurn.//will be a vector of mag = DV of burn with chordates of burn direction
 }
 
-FUNCTION node_step_full { //manipulates the targetNode in one of 4 ways depending on manipType for a value of stepVal
-	PARAMETER targetNode,stepDir,stepMag.
-	IF stepDir < 0 {
-		SET stepMag TO -stepMag.
-		SET stepDir TO -stepDir.
-	}
-	IF stepDir <= 2 {
-		IF stepDir <=1 { SET targetNode:ETA TO targetNode:ETA + stepMag * 2.
-		} ELSE { SET targetNode:PROGRADE TO targetNode:PROGRADE + stepMag. }
-	} ELSE {
-		IF stepDir <=3 { SET targetNode:NORMAL TO targetNode:NORMAL + stepMag.
-		} ELSE { SET targetNode:RADIALOUT TO targetNode:RADIALOUT + stepMag. }
-	}
-}
-
 FUNCTION refine_score {
 	PARAMETER mNode.
-	LOCAL curentClose IS close_aproach_scan(SHIP,TARGET,mNode:ETA + TIME:SECONDS,mNode:ORBIT:PERIOD)["dist"].
-	LOCAL score IS ABS(curentClose - 200) + mNode:DELTAV:MAG.
-	RETURN LEX("score",score,"dist",curentClose).
+	LOCAL curentClose IS close_aproach_scan(SHIP,TARGET,mNode:ETA + TIME:SECONDS,mNode:ORBIT:PERIOD).
+	LOCAL score IS ABS(curentClose["dist"] - 200) + mNode:DELTAV:MAG.
+	RETURN LEX("score",score,"dist",curentClose["dist"]).
 }

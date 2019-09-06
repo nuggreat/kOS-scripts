@@ -6,7 +6,7 @@ CLEARGUIS().
 CLEARVECDRAWS().
 CLEARSCREEN.
 //IF NOT EXISTS ("1:/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/lib_mis_utilities.ks"). }
-FOR lib IN LIST("lib_dock","lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNONCEPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNONCEPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_dock","lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 LOCAL varConstants IS LEX("numList",LIST("0","1","2","3","4","5","6","7","8","9"),"translationPIDs",LIST("Fore","Star","Top")).
 
 LOCAL vecDrawLex IS LEX().
@@ -925,7 +925,8 @@ FUNCTION translate {
 		LOCK STEERING TO translateData["steerVec"].
 		steering_alinged_duration(TRUE,5,TRUE).
 		//LOCK THROTTLE TO 0.
-		FOR key IN varConstants["translationPIDs"] { PID[key]:RESET(). }
+		//FOR key IN varConstants["translationPIDs"] { PID[key]:RESET(). }
+		translation_control_init().
 		taskList:ADD(translate@:BIND((translateState + 1),shipPoint,targetPoint,isKlaw)).
 		RETURN TRUE.
 	} ELSE IF translateState = 1 {
@@ -1037,24 +1038,6 @@ FUNCTION translation_abort {
 	PRINT "stopping translation".
 	SET translateData["stop"] TO TRUE.
 }
-
-//FUNCTION translation_control {
-//	PARAMETER desiredVelocityVec,tar,craft.
-//	WAIT 0.
-//	LOCAL shipFacing IS SHIP:FACING.
-//	LOCAL axisSpeed IS axis_speed(craft,tar).
-//	//PRINT "velocityError: " + ROUND((desiredVelocityVec - axisSpeed[0]):MAG,2).
-//	SET PID["Fore"]:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:FOREVECTOR).
-//	SET PID["Top"]:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:TOPVECTOR).
-//	SET PID["Star"]:SETPOINT TO VDOT(desiredVelocityVec,shipFacing:STARVECTOR).
-//
-//	SET SHIP:CONTROL:FORE TO PID["Fore"]:UPDATE(TIME:SECONDS,axisSpeed[1]).
-//	SET SHIP:CONTROL:TOP TO PID["Top"]:UPDATE(TIME:SECONDS,axisSpeed[2]).
-//	SET SHIP:CONTROL:STARBOARD TO PID["Star"]:UPDATE(TIME:SECONDS,axisSpeed[3]).
-//	//pid_debug(PID["Fore"]).
-//	//pid_debug(PID["Top"]).
-//	//pid_debug(PID["Star"]).
-//}
 
 FUNCTION translation_new_target {
 	PARAMETER translateState,shipPoint,targetPoint,isKlaw.
@@ -1250,6 +1233,7 @@ FUNCTION field_to_numbers_only {
 	PARAMETER field,removeEndDP IS FALSE.
 	LOCAL didChange IS FALSE.
 	LOCAL localString IS field:TEXT.
+	//IF localString:MATCHESPATTERN("([A-z]?)\w") {
 	LOCAL dpLocation IS 0.
 	FROM {LOCAL i IS localString:LENGTH - 1.} UNTIL i < 0 STEP {SET i TO i - 1.} DO {
 		//IF NOT varConstants["numList"]:CONTAINS(localString[i]) {
@@ -1274,6 +1258,7 @@ FUNCTION field_to_numbers_only {
 		SET didChange TO TRUE.
 		SET localString TO "0".
 	}
+	//}
 	IF didChange {
 		RETURN localString.
 	} ELSE {
