@@ -43,16 +43,17 @@ PRINT "press E to end script".
 
 LOCAL smallestSpeed IS 2^10.
 LOCAL largestSpeed IS -2^10.
-FOR gpsData IN gpsLog {
-  LOCAL errorVal IS gpsData[3].
+FROM { LOCAL i IS 1. } UNTIL i >= gpsLogLength STEP { SET i TO i + 1. } DO {
+  LOCAL gpsDataNew IS gpsLog[i].
+  LOCAL gpsDataOld IS gpsLog[i - 1].
   LOCAL newPos IS LATLNG(gpsDataNew[0],gpsDataNew[1]):ALTITUDEPOSITION(gpsDataNew[2] + 1).
   LOCAL oldPos IS LATLNG(gpsDataOld[0],gpsDataOld[1]):ALTITUDEPOSITION(gpsDataOld[2] + 1).
-  LOCAL oldNewVec IS (newPos - oldPos):MAG.
-  IF oldNewVec > largestSpeed {
-    SET largestSpeed TO errorVal.
+  LOCAL segSpeed IS (newPos - oldPos):MAG.
+  IF segSpeed > largestSpeed {
+    SET largestSpeed TO segSpeed.
   }
-  IF oldNewVec < smallestSpeed {
-    SET smallestSpeed TO errorVal.
+  IF segSpeed < smallestSpeed {
+    SET smallestSpeed TO segSpeed.
   }
 }
 
@@ -68,7 +69,6 @@ FROM { LOCAL i IS 1. } UNTIL i >= gpsLogLength STEP { SET i TO i + 1. } DO {
   vecList:ADD(VECDRAW(oldPos,oldNewVec,rgb_gen(largestSpeed,smallestSpeed,oldNewVec:MAG),"",1,TRUE,1)).
   WAIT 0.
 }
-
 
 LOCAL widthCoef IS 0.
 LOCAL showVec IS TRUE.
