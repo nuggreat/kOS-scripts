@@ -28,6 +28,7 @@ UNTIL wasLpressed {
   
   PRINT "lng: " + ROUND(lngVal,4) + "      " AT(0,2).
   
+  LOCAL altVar IS ALTITUDE.
   PRINT "alt: " + ROUND(altVal,4) + "      " AT(0,3).
   
   gpsLog:ADD(LIST(latVal,lngVal,altVal)).
