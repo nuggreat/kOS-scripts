@@ -20,15 +20,14 @@ SET wasLpressed TO FALSE.
 SET markTime TO TIME:SECONDS.
 UNTIL wasLpressed {
   LOCAL geoPos IS SHIP:GEOPOSITION.
+  LOCAL altVal IS SHIP:ALTITUDE.
   
-  LOCAL latVal IS geoPos:LNG.
+  LOCAL latVal IS geoPos:LAT.
   PRINT "lat: " + ROUND(latVal,4) + "      " AT(0,1).
   
   LOCAL lngVal IS geoPos:LNG.
-  
   PRINT "lng: " + ROUND(lngVal,4) + "      " AT(0,2).
   
-  LOCAL altVar IS ALTITUDE.
   PRINT "alt: " + ROUND(altVal,4) + "      " AT(0,3).
   
   gpsLog:ADD(LIST(latVal,lngVal,altVal)).
@@ -44,6 +43,7 @@ PRINT "press E to end script".
 
 LOCAL smallestSpeed IS 2^10.
 LOCAL largestSpeed IS -2^10.
+LOCAL gpsLogLength IS gpsLog:LENGTH.
 FROM { LOCAL i IS 1. } UNTIL i >= gpsLogLength STEP { SET i TO i + 1. } DO {
   LOCAL gpsDataNew IS gpsLog[i].
   LOCAL gpsDataOld IS gpsLog[i - 1].
@@ -58,15 +58,13 @@ FROM { LOCAL i IS 1. } UNTIL i >= gpsLogLength STEP { SET i TO i + 1. } DO {
   }
 }
 
-LOCAL gpsLogLength IS gpsLog:LENGTH.
 LOCAL vecList IS LIST().
 FROM { LOCAL i IS 1. } UNTIL i >= gpsLogLength STEP { SET i TO i + 1. } DO {
   LOCAL gpsDataNew IS gpsLog[i].
   LOCAL gpsDataOld IS gpsLog[i - 1].
-  LOCAL newPos IS LATLNG(gpsDataNew[0],gpsDataNew[1]):ALTITUDEPOSITION(gpsDataNew[2] + 1).
-  LOCAL oldPos IS LATLNG(gpsDataOld[0],gpsDataOld[1]):ALTITUDEPOSITION(gpsDataOld[2] + 1).
+  LOCAL newPos IS LATLNG(gpsDataNew[0],gpsDataNew[1]):ALTITUDEPOSITION(gpsDataNew[2] + 2).
+  LOCAL oldPos IS LATLNG(gpsDataOld[0],gpsDataOld[1]):ALTITUDEPOSITION(gpsDataOld[2] + 2).
   LOCAL oldNewVec IS newPos - oldPos.
-  LOCAL errorVal IS (gpsDataNew[3] + gpsDataOld[3]) / 2.
   vecList:ADD(VECDRAW(oldPos,oldNewVec,rgb_gen(largestSpeed,smallestSpeed,oldNewVec:MAG),"",1,TRUE,1)).
   WAIT 0.
 }
@@ -139,7 +137,7 @@ FUNCTION rgb_gen {  //returns a color for vecDraw
   PARAMETER maxVal,minVal,val.
   LOCAL divisor IS maxVal - minVal.
   LOCAL adjustedVal IS val - minVal.
-  LOCAL re IS MIN(ROUND((1 - adjustedVal / divisor) * 2),1).
-  LOCAL gr IS MIN(ROUND((adjustedVal / divisor) * 2),1).
+  LOCAL re IS MIN((1 - adjustedVal / divisor) * 2,1).
+  LOCAL gr IS MIN((adjustedVal / divisor) * 2,1).
   RETURN RGB(re,gr,0).
 }
