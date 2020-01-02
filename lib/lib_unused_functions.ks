@@ -125,7 +125,18 @@ FUNCTION burn_along_vector {//needs libs formating, rocker utilities
 		IF stage_check(doStage) { SET shipISP TO isp_calc(). }//if i stage recalculate the ISP
 	}
 }
-```
+
+FUNCTION burn_vec_constructor {
+	PARAMETER burnTime,burnRadial,burnNormal,burnPrograde,localBody IS SHIP:BODY.
+	
+	LOCAL vecUp IS (POSITIONAT(SHIP,nodeTime) - localBody:POSITION):NORMALIZED.
+	LOCAL vecNodePrograde IS VELOCITYAT(SHIP,nodeTime):ORBIT:NORMALIZED.
+	LOCAL vecNodeNormal IS VCRS(vecNodePrograde,vecUp):NORMALIZED.
+	LOCAL vecNodeRadial IS VCRS(vecNodeNormal,vecNodePrograde):NORMALIZED.
+	
+	RETURN vecNodeRadial * burnRadial + vecNodeNormal * burnNormal + vecNodePrograde * burnPrograde.
+}
+
 FUNCTION pid_debug {
 	PARAMETER pidToDebug.
 	//CLEARSCREEN.
@@ -139,7 +150,7 @@ FUNCTION pid_debug {
 	PRINT "     min: " + ROUND(pidToDebug:MINOUTPUT,2) + "     " AT(0,7).
 //	LOG (pidToDebug:SETPOINT + "," + pidToDebug:ERROR + "," + pidToDebug:PTERM + "," + pidToDebug:ITERM + "," + pidToDebug:DTERM + "," + pidToDebug:MAXOUTPUT + "," + pidToDebug:OUTPUT +  "," + pidToDebug:MINOUTPUT) TO PATH("0:/pidLog.txt").
 }
-```
+
 FUNCTION impact_eta { //returns the impact time in UT from after the next node, note only works on airless bodies
   PARAMETER posTime IS TIME:SECONDS. //posTime must be in UT seconds (TIME:SECONDS)
   LOCAL stepVal IS 100.
@@ -208,6 +219,27 @@ FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time
   IF newLNG > 180 { SET newLNG TO newLNG - 360. }
   RETURN LATLNG(posLATLNG:LAT,newLNG).
 }//function used but included for easy of reference for impact_eta function
+
+FUNCTION warp_control {
+	PARAMETER timeIn,easeFactor is 1,warpBase is KUNIVERSE:TIMEWARP,maxRate is KUNIVERSE:TIMEWARP:RAILSRATELIST:LENGTH - 1,railRateList is KUNIVERSE:TIMEWARP:RAILSRATELIST.
+	IF ABORT OR (timeIn < easeFactor) {
+		IF warpBase:WARP <> 0 {
+			SET warpBase:WARP TO 0.
+		}
+		RETURN TRUE.
+	}
+	SET easeFactor TO MAX(1,easeFactor).
+
+	IF warpBase:ISSETTLED {
+		IF timeIn / railRateList[warpBase:WARP] < easeFactor {
+			SET warpBase:WARP TO warpBase:WARP - 1.
+		} ELSE IF timeIn / railRateList[warpBase:WARP + 1] > easeFactor {
+			SET warpBase:WARP TO MAX(warpBase:WARP + 1,maxRate).
+		}
+	}
+
+	RETURN FALSE.
+}
 
 FUNCTION BURN_TIME_CALC{//need to reformat to remove unneeded *1000 elements as well as change var names to make sense to me
     PARAMETER CMAS,					//Current Mass
@@ -488,15 +520,9 @@ FUNCTION remove_by_vlaue {
 	}
 }
 
-FUNCTION remove_by_vlaue {
-	PARAMETER listA, listB.
-	LOCAL returnList IS LIST().
-	FOR item IN listA {
-		IF NOT listB:CONTAINS(item) {
-			returnList:ADD(item).
-		}
-	}
-	RETURN returnList.
+FUNCTION current_mach_number {
+	LOCAL currentPresure IS MAX(BODY:ATM:ALTITUDEPRESSURE(SHIP:ALTITUDE),0.0000001).
+	RETURN SQRT(2 / BODY:ATM:ADIABATICINDEX * SHIP:Q / currentPresure).
 }
 
 FUNCTION kill {
@@ -565,6 +591,37 @@ FUNCTION message_ques {
 	}
 	RETURN qQueue.
 }
+
+FUNCTION interp_z_val {//takes in 5 vectors
+	PARAMETER p0,p1,p2,p3,pSeak.
+	
+	LOCAL xRangeA IS p1:x - p0:X.
+	LOCAL xRangeB IS p3:X - p2:X.
+	LOCAL xFracDistA IS (p1:x - pSeak:x) / xRangeA.
+	LOCAL xFracDistB IS (p3:x - pSeak:x) / xRangeB.
+	LOCAL xHeightA IS xFracDistA * p0:z + (1 - xFracDistA) * p1:z.
+	LOCAL xHeightB IS xFracDistB * p2:z + (1 - xFracDistB) * p3:z.
+	
+	LOCAL yRangeA IS p2:y - p0:y.
+	LOCAL yRangeB IS p3:y - p1:y.
+	LOCAL yFracDistA IS (p2:y - pSeak:y) / yRangeA.
+	LOCAL yFracDistB IS (p3:y - pSeak:y) / yRangeB.
+	LOCAL yHeightA IS yFracDistA * xHeightA + (1 - yFracDistA) * xHeightB.
+	LOCAL yHeightB IS yFracDistB * xHeightA + (1 - yFracDistB) * xHeightB.
+	
+	RETURN (yHeightA + yHeightB) / 2.
+}
+
+//points are assumed to be in this configuration with p0 having the lowest x/y values and p3 having the largest x/y values
+// points are assumed to be in a reteculangular formation
+// 5th vector is the point who's z is being interpolated from the others and is assumed to fall within the shape defined by the other 4
+//  the * represents the point
+//
+//  p2     p3
+//    *      *
+//
+//  p0     p1
+//    *      *
 
 //"I am the Bone of my Research Knowledge is my Body and Grants are my Blood.
 //I have written over a Thousand Papers, Unknown to Emeritus, Nor known to Tenure.

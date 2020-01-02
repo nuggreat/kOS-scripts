@@ -1,5 +1,7 @@
 @LAZYGLOBAL OFF.
 LOCAL lib_rocket_utilities_lex IS LEX().
+LOCAL gg0 IS CONSTANT:g0.//defining local copies of constants so they don't need to be looked up at run time
+LOCAL ee IS CONSTANT:E.
 
 FUNCTION isp_calc {	//returns the average isp of all of the active engines on the ship
 	LOCAL engineList IS LIST().
@@ -8,14 +10,14 @@ FUNCTION isp_calc {	//returns the average isp of all of the active engines on th
 	LIST ENGINES IN engineList.
 	FOR engine IN engineList {
 		IF engine:IGNITION AND NOT engine:FLAMEOUT {
-			SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / (engine:ISP * 9.80665)).
+			SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / (engine:ISP * gg0)).
 			SET totalThrust TO totalThrust + engine:AVAILABLETHRUST.
 		}
 	}
-	IF totalThrust = 0 {
+	IF totalThrust = 0 {//avoid div0 errors later
 		RETURN 1.
 	}
-	RETURN (totalThrust / (totalFlow * 9.80665)).
+	RETURN (totalThrust / (totalFlow * gg0)).
 }
 
 lib_rocket_utilities_lex:ADD("nextStageTime",TIME:SECONDS).
@@ -94,8 +96,8 @@ FUNCTION active_engine { // check for a active engine on ship
 
 FUNCTION burn_duration {	//from isp and dv using current mass of the ship returns the amount of time needed for the provided DV
 	PARAMETER ISPs, DV, wMass IS SHIP:MASS, sThrust IS SHIP:AVAILABLETHRUST.
-	LOCAL dMass IS wMass / (CONSTANT:E^ (DV / (ISPs * 9.80665))).
-	LOCAL flowRate IS sThrust / (ISPs * 9.80665).
+	LOCAL dMass IS wMass / (ee^ (DV / (ISPs * gg0))).
+	LOCAL flowRate IS sThrust / (ISPs * gg0).
 	RETURN (wMass - dMass) / flowRate.
 }
 
@@ -143,5 +145,13 @@ FUNCTION steering_alinged_duration {//wait until steering is aligned with what i
 			SET dataLex["alignedTime"] TO localTime.
 		}
 		RETURN localTime - dataLex["alignedTime"].
+	}
+}
+
+FUNCTION signed_eta_ap {
+	IF ETA:APOAPSIS <= ETA:PERIAPSIS {
+		RETURN ETA:APOAPSIS.
+	} ELSE {
+		RETURN ETA:APOAPSIS - SHIP:ORBIT:PERIOD.
 	}
 }

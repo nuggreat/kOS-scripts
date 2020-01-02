@@ -32,7 +32,7 @@ IF station:ISTYPE("part") {
 }
 
 LOCAL closeData IS close_aproach_scan(SHIP,station,TIME:SECONDS,600).
-PRINT closeData["dist"].
+PRINT "closets approach " + ROUND(closeData["dist"],2) + "m".
 UNTIL closeData["dist"] < 1500 {
 	burn_closer(1400,station,120).
 	SET closeData TO close_aproach_scan(SHIP,station,TIME:SECONDS,600).
@@ -83,9 +83,9 @@ RCS OFF.
 
 PRINT " ".
 IF axisSpeed[0]:MAG > 1 {
-	relitave_stop (noFlyZone * 1.25,station).
+	relitave_stop(noFlyZone * 1.25,station).
 	UNTIL (SHIP:POSITION - station:POSITION):MAG < MIN(noFlyZone * 5,500) {
-		burn_closer(noFlyZone,station,120).
+		burn_closer(noFlyZone * 1.1,station,120).
 		relitave_stop(noFlyZone * 1.25,station).
 	}
 }
@@ -140,7 +140,7 @@ RCS OFF.
 
 FUNCTION relitave_stop {
 	PARAMETER distTrigger,station.
-	PRINT "Coming to 0/0 Relative.".
+	PRINT "Coming to 0m/s Relative.".
 	LOCAL relitaveVel IS station:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
 	LOCAL engOff IS TRUE.
 	LOCK STEERING TO relitaveVel.
@@ -152,6 +152,7 @@ FUNCTION relitave_stop {
 	WAIT 0.
 	
 	UNTIL relitaveVel:MAG < 0.1 {
+		SET relitaveVel TO station:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
 		SET shipAcc TO SHIP:AVAILABLETHRUST / SHIP:MASS.
 		IF engOff {
 			SET stopDist TO relitaveVel:SQRMAGNITUDE / (2 * shipAcc).
@@ -174,7 +175,7 @@ FUNCTION relitave_stop {
 
 FUNCTION burn_closer {
 	PARAMETER distTar,station,flipTime.
-	PRINT "Closing to " + distTar + "m".
+	PRINT "Closing to " + ROUND(distTar,1) + "m".
 	LOCAL targetPoint IS station:POSITION + normal_of_orbit(station) * distTar.
 	LOCAL targetVec IS (targetPoint - SHIP:POSITION).
 	LOCAL targetSpeed IS MIN(targetVec:MAG / flipTime,(SHIP:AVAILABLETHRUST / SHIP:MASS * (flipTime/60))).

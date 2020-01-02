@@ -14,13 +14,15 @@ CLEARVECDRAWS().
 
 FUNCTION solar_relitave_positionAt {
   PARAMETER orbital,t,firstRun IS TRUE.
-  IF firstRun {
-    RETURN POSITIONAT(orbital,t) + solar_relitave_positionAt(orbital:BODY,t,FALSE).
-  } ELSE {
+  //IF firstRun {
+  //  RETURN POSITIONAT(orbital,t) + solar_relitave_positionAt(orbital:BODY,t,FALSE).
+  //} ELSE {
     IF orbital:HASBODY {
-      RETURN (POSITIONAT(orbital,t) - orbital:POSITION) + solar_relitave_positionAt(orbital:BODY,t,FALSE).
+      RETURN (POSITIONAT(orbital,t) - orbital:BODY:POSITION) + solar_relitave_positionAt(orbital:BODY,t,FALSE).
+      //RETURN (POSITIONAT(orbital,t) - orbital:POSITION) + solar_relitave_positionAt(orbital:BODY,t,FALSE).
     } ELSE {
-      RETURN v(0,0,0).
+      //RETURN v(0,0,0).
+      RETURN orbital:POSITION.
     }
-  }
+  //}
 }

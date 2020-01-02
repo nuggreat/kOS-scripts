@@ -16,17 +16,20 @@ LOCAL go IS TRUE.
 IF NOT tar:ISTYPE("VESSEL") { SET go TO FALSE. }
 
 IF go {
-	LOCAL targetHeight IS SHIP:BODY:ATM:HEIGHT / 1000 + 25.
+	LOCAL targetHeight IS SHIP:BODY:ATM:HEIGHT / 1000 + 26.
 	IF doLiftOff {
-		RUN lift_off(targetHeight,90,TRUE).
+		IF EXISTS("1:/lift_off_vac.ks") OR EXISTS("1:/lift_off_vac.ksm") {
+			RUN lift_off_vac(targetHeight,TRUE,TARGET,TRUE).
+		} ELSE {
+			RUN lift_off(targetHeight,90,TRUE).
+		}
 	}
 	RUN randevu(TRUE,TRUE,TRUE,FALSE,TRUE).
 	warp_to_closest(300).//warps to 5min before closest approach
 	warp_to_closest(60).//warps to 60 seconds before closest approach
 	PRINT "done with warp".
 	LOCK STEERING TO TARGET:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
-	//WAIT 40.//additional 40 sec wait for final alignment 
-	//some wait logic for the close to target, with additional stops for alignment checks
+	PANELS OFF.
 	RUN dock_ship.
 }
 

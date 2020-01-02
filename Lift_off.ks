@@ -255,11 +255,3 @@ FUNCTION pitch_target {	//decreases pitch if craft is close to etatarget
 	LOCAL downPitch IS MAX((signed_eta_ap() + (deviationPos * gradent)) - etaTarget, deviationNeg) / gradent.
 	RETURN MIN(MAX(vecPitch - downPitch,0),80).
 }
-
-FUNCTION signed_eta_ap {
-	IF ETA:APOAPSIS <= ETA:PERIAPSIS {
-		RETURN ETA:APOAPSIS.
-	} ELSE {
-		RETURN ETA:APOAPSIS - SHIP:ORBIT:PERIOD.
-	}
-}

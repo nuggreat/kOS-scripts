@@ -7,7 +7,6 @@ PARAMETER landingTar IS defautlTar,doWarp IS FALSE,setDefault IS FALSE.
 IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
 FOR lib IN LIST("lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 
-
 IF landingTar:ISTYPE("boolean") {
 	SET doWarp TO landingTar.
 	SET landingTar TO defautlTar.
@@ -32,6 +31,8 @@ IF NOT ABORT {
 		RUN landing_vac(TRUE,landingTar).
 		IF landingTar = defautlTar AND (SHIP:MODULESNAMED("ModuleResourceHarvester"):LENGTH > 0) {
 			DEPLOYDRILLS ON.
+			PANELS ON.
+			RADIATORS ON.
 			WAIT 10.
 			DRILLS ON.
 		}

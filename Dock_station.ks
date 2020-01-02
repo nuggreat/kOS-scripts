@@ -113,12 +113,12 @@ FUNCTION screenUpdate {
 	PRINT "     Speed: " + ROUND(relSpeed[0]:MAG,2).
 	PRINT " ".
 	PRINT " For  Dist: " + ROUND(relDist[1],2).
-	PRINT " For Speed: " + ROUND(relSpeed[1],2).
+	PRINT " For Speed: " + ROUND(-relSpeed[1],2).
 	PRINT " ".
 	PRINT " Top  Dist: " + ROUND(relDist[2],2).
-	PRINT " Top Speed: " + ROUND(relSpeed[2],2).
+	PRINT " Top Speed: " + ROUND(-relSpeed[2],2).
 	PRINT " ".
 	PRINT "Star  Dist: " + ROUND(relDist[3],2).
-	PRINT "Star Speed: " + ROUND(relSpeed[3],2).
+	PRINT "Star Speed: " + ROUND(-relSpeed[3],2).
 	RETURN relDist[0].
 }

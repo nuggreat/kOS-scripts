@@ -1,7 +1,7 @@
 //COPYPATH("0:/lib/lib_formating.ks","1:/lib/").
 COPYPATH("0:/lib/lib_orbital_math.ks","1:/lib/").
 COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/").
-PARAMETER incMatch IS TRUE,hohmann IS TRUE,refine IS TRUE,asap IS FALSE,skipConferms IS FALSE.
+PARAMETER incMatch IS TRUE,hohmann IS TRUE,refine IS TRUE,asap IS FALSE,skipConfirms IS FALSE.
 FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities","lib_formating","lib_hill_climb") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 //control_point().
 //WAIT UNTIL active_engine().
@@ -93,7 +93,7 @@ IF hohmann {
 	//PRINT "etaOfTransfer:    " + (transferETA / 60).
 	ADD NODE(UTsOfTransfer,0,0,transferDv).
 	IF NOT refine {
-		conferm_burn(skipConferms).
+		conferm_burn(skipConfirms).
 	}
 }
 
@@ -108,7 +108,7 @@ IF refine {
 		SET refined TO climb_hill(NEXTNODE,refine_score@,node_step_full@,initialBurnData).
 		PRINT "close dist: " + initialBurnData["results"]["dist"].
 	}
-	conferm_burn(skipConferms).
+	conferm_burn(skipConfirms).
 	
 	PRINT " ".
 	PRINT "Inital Transfer Burn Done".
@@ -127,7 +127,7 @@ IF refine {
 			SET corrected TO climb_hill(NEXTNODE,refine_score@,node_step_full@,correctionBurnData).
 			PRINT "close dist: " + correctionBurnData["results"]["dist"].
 		}
-		conferm_burn(skipConferms).
+		conferm_burn(skipConfirms).
 	}
 }
 
@@ -135,20 +135,20 @@ IF refine {
 CLEARVECDRAWS().
 
 FUNCTION conferm_burn {
-	PARAMETER skipConferms.
+	PARAMETER skipConfirms.
 	RCS OFF.
 	SAS OFF.
 	PRINT "turn on sas to continue".
 	PRINT "turn on rcs to burn".
-	WAIT UNTIL SAS OR skipConferms.
-	IF RCS OR skipConferms {
+	WAIT UNTIL SAS OR skipConfirms.
+	IF RCS OR skipConfirms {
 		RCS OFF.
 		RUNPATH("1:/node_burn",TRUE).
 		clear_all_nodes().
 	}
 }
 
-FUNCTION node_from_vector {//only works if you are in the same SOI as the node
+FUNCTION node_from_vector {//have not tested for different SOIs
 	PARAMETER vecTarget,nodeTime,localBody IS SHIP:BODY.
 	LOCAL vecNodePrograde IS VELOCITYAT(SHIP,nodeTime):ORBIT.
 	LOCAL vecNodeNormal IS VCRS(vecNodePrograde,POSITIONAT(SHIP,nodeTime) - localBody:POSITION).

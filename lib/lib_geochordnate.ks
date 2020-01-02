@@ -162,7 +162,7 @@ FUNCTION surface_normal {
 	LOCAL basePos IS p1:POSITION.
 
 	LOCAL upVec IS (basePos - localBody:POSITION):NORMALIZED.
-	LOCAL northVec IS VXCL(upVec,LATLNG(90,0):POSITION - basePos):NORMALIZED * 3.
+	LOCAL northVec IS VXCL(upVec,localBody:GEOPOSITIONLATLNG(90,0):POSITION - basePos):NORMALIZED * 3.
 	LOCAL sideVec IS VCRS(upVec,northVec):NORMALIZED * 3.//is east
 
 	LOCAL aPos IS localBody:GEOPOSITIONOF(basePos - northVec + sideVec):POSITION - basePos.
