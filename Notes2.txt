@@ -1,0 +1,37 @@
+r   = distance from center of body
+sma = semi-major axis
+ecc = eccentricity
+ta  = true anomaly
+
+r = sma * ((1-ecc^2) / (1 + ecc * cos(ta)))
+
+1/r = ( 1 + ecc * cos(trueAnon)) / (sma * (1 - ecc ^2 ))
+
+may solve for a height to a location
+
+cos-1 ((((sma * (1 - ecc ^2 )) / r) - 1) / ecc) = trueAnon
+
+(2 * π * n?) + cos-1 ((-sma * ecc ^2 + sma - r) / (ecc * r)) = trueAnon
+(2 * π * n?) - cos-1 ((-sma * ecc ^2 + sma - r) / (ecc * r)) = trueAnon
+
+
+
+a=sma
+b=ecc
+cos-1 ((((a * (1 - b ^2 )) / r) - 1) / b) = x
+
+
+((((a * (1 - z ^2 )) / y) -1) / z) =z * cos(x)
+
+a = d * ((1-b^2) / (1 + b * cos(c)))
+
+
+
+
+r = sma * ((1-ecc^2) / (1 + ecc * cos(trueAnon)))		//starting equation
+1 / r = (1 + ecc * cos(trueAnon)) / (sma * (1-ecc^2))	//flip both sides
+(sma * ((1-ecc^2)) / r = 1 + ecc * cos(trueAnon))		//multiply both sides by (sma * ((1-ecc^2))
+((sma * ((1-ecc^2)) / r) - 1 =  ecc * cos(trueAnon))	//subtract 1
+((sma * ((1-ecc^2)) / r) - 1)/ecc = cos(trueAnon)		//devide by ecc
+cos-1((((sma * (1-ecc^2)) / r) - 1) / ecc) = trueAnon	//take cos-1 of both sides
+

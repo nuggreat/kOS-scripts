@@ -1,0 +1,36 @@
+PARAMETER maxI is 10.
+LOCAL nounListSource IS LIST().
+LOCAL adjListSource IS LIST().
+
+LOCAL nounListWorking IS nounListSource:COPY().
+LOCAL adjListWorking IS adjListSource:COPY().
+
+FROM { LOCAL i IS 0. } UNTIL i >= maxI STEP { SET i TO i + 1. } DO {
+  LOCAL rnd1 IS rnd_num(nounListWorking).
+  LOCAL rnd2 IS rnd_num(adjListWorking).
+  
+  PRINT adjListWorking[rnd2] + nounListWorking[rnd1].
+  
+  IF list_step(rnd1,nounListWorking) {
+    SET nounListWorking TO nounListSource:COPY().
+  }
+  IF list_step(rnd2,adjListWorking) {
+    SET adjListWorking TO adjListSource:COPY().
+  }
+  WAIT 1.
+}
+
+FUNCTION rnd_num {
+  PARAMETER listWorking.
+  LOCAL rnd IS listWorking:LENGTH.
+  UNTIL rnd < listWorking:LENGTH {//loop used to avoid edge case where random() returns a 1
+    SET rnd TO FLOOR(RANDOM() * listWorking:LENGTH).
+  }
+  RETURN rnd.
+}
+
+FUNCTION list_step {
+  PARAMETER idx,listWorking.
+  listWorking:REMOVE(idx).
+  RETURN listWorking:LENGTH = 0.
+}

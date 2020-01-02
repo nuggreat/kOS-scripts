@@ -1,0 +1,3 @@
+m*a=1/2*pressure*speed^2*coef*area
+m*a*2=pressure*speed^2*coef*area
+(m*a*2)/(pressure*speed^2)=coef*area

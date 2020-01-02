@@ -1,0 +1,65 @@
+init
+	load the navball lib
+	get parameters 
+		AP height
+		heading for launch or target inclination
+		launching along a heading(FALSE) or inclination(TRUE))
+		NOTE: inclination for v2
+	check for a atmosphere
+	turn off RCS
+	
+start launch
+	go no go check 
+		RCS on for go
+		print target height
+		print target inclination (soulth or north) or heading
+		print body atmosphere
+	throttle to full
+	count down?
+	stage
+
+start flight for set heading
+	lock controls 
+		to pitch of 90		
+		to heading of heading heading parameter
+	when vertical speed is between 50 and 100 / if there is no atmosphere 25 NOTE: need testing 
+		SET pitch to 80 OR 85 / if there is no atmosphere 45 posably lower NOTE: need testing
+	next step after a wait of 5 to 10 seconds NOTE: need testing
+	
+main flight for set heading
+	lock controls to surface prograde / if there is no atmosphere lock to orbit prograde
+	start throttle PID
+		throttle PID looking at time to AP trying to keep at 60s NOTE: might want to lower # of seconds need testing
+			KP of 1
+			KI of 0.1
+			KD of 0.1
+	run until AP height is the same as the AP parameter
+	
+circulise orbit 
+	try to get prograde heading
+	lock controls to pitch PID and prograde heading (constent check)
+		pitch PID looking to keep AP height at parameter pitch down if it is high up if low
+		keep runing throttle PID keeping time to AP (AP - PE) / 1000 NOTE: need testing
+	run until PE is close to AP with in 1000 NOTE: need to test for a good number
+
+Done with program
+
+
+start flight for inclination set
+	lock controls 
+		to pitch of 90		
+		to inclination
+			for inclination set 90 - inclination parameter (include degree wrap) + headingPID 
+				headingPID how far off inclination, KP about 0.1, KI about 0.01, KD about 0.01
+	when vertical speed is between 50 and 100 / if there is no atmosphere 25 NOTE: need testing 
+		SET pitch to 80 OR 85 / if there is no atmosphere 45 posably lower NOTE: need testing
+	next step after a wait of 5 to 10 seconds NOTE: need testing
+				
+main flight for inclination set
+	lock controlls
+		heading to +/- 5 baced on how far off from inclination the craft is
+			NOTE: include logic for high latitude flight
+		pitch to surface prograde pitch
+		once inclination is less than 5 deg lock heading to the heading of orbital prograde +/-5 baced on how far off from inclination the craft is
+			NOTE: may need inversion logic for if the trejectory is a soulth launch
+				
