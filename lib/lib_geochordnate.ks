@@ -122,11 +122,10 @@ FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time
 FUNCTION dist_between_coordinates { //returns the dist between p1 and p2 on the localBody, assumes perfect sphere with radius of the body + what ever gets passed in to atAlt
 	PARAMETER p1,p2,atAlt IS 0.
 	LOCAL localBody IS p1:BODY.
-	LOCAL localBodyCirc IS CONSTANT:PI * (localBody:RADIUS + atAlt).//half the circumference of body
-	LOCAL bodyPos IS localBody:POSITION.
-	LOCAL bodyToP1Vec IS p1:POSITION - bodyPos.
-	LOCAL bodyToP2Vec IS p2:POSITION - bodyPos.
-	RETURN VANG(bodyToP1Vec,bodyToP2Vec) / 180 * localBodyCirc.
+	LOCAL bodyToP1Vec IS p1:POSITION - localBody:POSITION.
+	LOCAL bodyToP2Vec IS p2:POSITION - localBody:POSITION.
+	LOCAL bodyRad IS localBody:RADIUS + atAlt.
+	RETURN VANG(bodyToP1Vec,bodyToP2Vec) * CONSTANT:DEGTORAD() * bodyRad.
 }
 
 FUNCTION inital_heading { //returns the initial heading for shortest distance between p1 and p2 going from p1 to p2

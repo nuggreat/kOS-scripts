@@ -19,12 +19,21 @@ lock steering to -ship:velocity:surface + up:vector * 5.
 on ship:status { if ship:status = "landed" { lock throttle to 0. lock steering to up} else return true. }
 lock acc to ship:availablethrust / ship:mass * 0.95 - gra.
 
-
 set box to ship:bounds.
 on time:second {print box:bottomaltradar + " " at(0,0). return ship:status <> "landed".}
 
+//circ code
+LOCK circVel TO SQRT(BODY:MU / (SHIP:ORBIT:APOAPSIS + BODY:RADIUS)).
+LOCK velAtAP TO SQRT((BODY:MU * (2 * SHIP:ORBIT:SEMIMAJORAXIS - (SHIP:APOAPSIS + BODY:RADIUS))) / (SHIP:ORBIT:SEMIMAJORAXIS * (SHIP:APOAPSIS + BODY:RADIUS))).
+LOCK dv TO circVel - velAtAP.
+LOCK tgtTime TO dv / (SHIP:AVAILABLETHRUST / SHIP:MASS).
+LOCK STEERING TO PROGRADE.
+LOCK THROTTLE TO tgtTime - (ETA:APOAPSIS - 1).
+WHEN dv < 0 THEN { LOCK THROTTLE TO 0. }
+WARPTO(TIME:SECONDS - THROTTLE + 60).
+
 //for closing with a target at a fixed speed
-//to set the desired rate of closure, positave is towards the target
+//to set the desired rate of closure, positive is towards the target
 set tarSpeed to 10.
 lock tarVel to target:position:normalized * tarSpeed.
 lock relvel to ship:velocity:orbit - target:velocity:orbit.
@@ -127,7 +136,7 @@ hudtext("I beep at you sir" + char(7), min(prm,10), 2, 40, rgb(random()/2+.5,ran
 
 set wl to lex(3,"fiz",5,"buzz"). set i to 1. on time:seconds { local ps is "". for key in wl:keys { if mod(i,key) = 0 set ps to ps + wl[key]. } if ps = "" { print i. } else {  print ps. } set i to i + 1. return i < 1001. }
 
-/me global hl is list(). for par in ship:parts { hl:add(highlight(par,rgba(random(),random(),random(),1))). } for h in hl {set h:enabled to true. }. set keep to true. on time:second { set hl[floor(random() * hl:length)]:color to rgba(random(),random(),random(),1). return keep. }
+/me global hl is list(). for par in ship:parts { hl:add(highlight(par,rgba(random(),random(),random(),1))). } for h in hl {set h:enabled to true. }. set keephl to true. on time:second { set hl[floor(random() * hl:length)]:color to rgba(random(),random(),random(),1). return keephl. }
 
 /me set keep to false. for h in hl {set h:enabled to false.}
 

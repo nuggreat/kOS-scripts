@@ -48,7 +48,7 @@ UNTIL done {	//waiting for a node to exist or be locked in
 		SET pData[10] TO warpState.
 		SET shipISP TO isp_calc().
 		LOCAL burnDuration IS burn_duration(shipISP,NEXTNODE:DELTAV:MAG).
-		LOCAL burnStart IS NEXTNODE:ETA - burn_duration(shipISP,NEXTNODE:DELTAV:MAG / 2).
+		LOCAL burnStart IS NEXTNODE:ETA - burn_duration(shipISP,NEXTNODE:DELTAV:MAG/2).
 		SET vecTar TO ANGLEAXIS(degreesOfRotation,NEXTNODE:BURNVECTOR:NORMALIZED) * LOOKDIRUP(NEXTNODE:BURNVECTOR:NORMALIZED,SHIP:UP:FOREVECTOR).
 //		SET vecTar TO NEXTNODE:BURNVECTOR:NORMALIZED.
 		SET pData[6] TO "( Burn Start In:" + time_formating(burnStart) + ")".

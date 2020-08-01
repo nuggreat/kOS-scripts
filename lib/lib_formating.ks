@@ -22,6 +22,7 @@ LOCAL FUNCTION time_converter {
 		IF localTime = 0 { BREAK. }
 		SET place TO place + 1.
 		IF place = places { BREAK. }
+		
 	}
 	IF localTime > 0 { returnList:ADD(localTime). }
 	RETURN returnList.
@@ -105,12 +106,13 @@ FUNCTION si_formating {
 	}
 }
 
+
 FUNCTION padding {
 	PARAMETER num,	//number to pad
-	leadingLenght,	//min length to the left of the decimal point
+	leadingLength,	//min length to the left of the decimal point
 	trailingLength,	// length to the right of the decimal point
 	positiveLeadingSpace IS TRUE,//if when positive should there be a space before the returned string
-	roundType IS 0.	// 0 for normal rounding, 1 for floor, 2 for cieling
+	roundType IS 0.	// 0 for normal rounding, 1 for floor, 2 for ceiling
 	LOCAL returnString IS "".
 	//LOCAL returnString IS ABS(ROUND(num,trailingLength)):TOSTRING.
 	IF roundType = 0 {
@@ -126,9 +128,9 @@ FUNCTION padding {
 			SET returnString TO returnString + ".0".
 		}
 		UNTIL returnString:SPLIT(".")[1]:LENGTH >= trailingLength { SET returnString TO returnString + "0". }
-		UNTIL returnString:SPLIT(".")[0]:LENGTH >= leadingLenght { SET returnString TO "0" + returnString. }
+		UNTIL returnString:SPLIT(".")[0]:LENGTH >= leadingLength { SET returnString TO "0" + returnString. }
 	} ELSE {
-		UNTIL returnString:LENGTH >= leadingLenght { SET returnString TO "0" + returnString. }
+		UNTIL returnString:LENGTH >= leadingLength { SET returnString TO "0" + returnString. }
 	}
 
 	IF num < 0 {

@@ -43,7 +43,7 @@ IF incMatch {
 	}
 
 	LOCAL vecSpeedAtNode IS VELOCITYAT(SHIP,nodesUTs[highNode]):ORBIT.
-	LOCAL vecBurn IS burn_vector(vecSpeedAtNode,normal_of_orbit(TARGET)).
+	LOCAL vecBurn IS burn_vector(vecSpeedAtNode,normal_of_orbit(TARGET),nodesUTs[highNode]).
 	//LOCAL vecTarget IS VXCL(vecSpeedAtNode:NORMALIZED,normal_of_orbit(TARGET):NORMALIZED):NORMALIZED * vecSpeedAtNode:MAG.
 	//LOCAL vecBurn IS vecTarget - vecSpeedAtNode.//will be a vector of mag = DV of burn with chordates of burn direction
 	//PRINT "burnVec: " + ROUND(vecBurn:MAG,2).
@@ -60,6 +60,8 @@ IF incMatch {
 	LOCAL baseNode IS node_from_vector(vecBurn,nodesUTs[highNode]).
 	ADD baseNode.
 	RUNPATH("1:/node_burn",TRUE).
+//	RCS OFF.
+//	WAIT UNTIL RCS.
 	WAIT 1.
 }
 
@@ -80,8 +82,8 @@ IF hohmann {
 	}
 
 	LOCAL UTsOfTransfer IS transferETA + localTime.
-	LOCAL speedAtBurn IS orbital_speed_at_altitude_from_sma(SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,UTsOfTransfer)),smaOfTransfer).
-	LOCAL transferDv IS speedAtBurn - VELOCITYAT(SHIP,UTsOfTransfer):ORBIT:MAG.
+	LOCAL speedAfterBurn IS orbital_speed_at_altitude_from_sma(SHIP:BODY:ALTITUDEOF(POSITIONAT(SHIP,UTsOfTransfer)),smaOfTransfer).
+	LOCAL transferDv IS speedAfterBurn - VELOCITYAT(SHIP,UTsOfTransfer):ORBIT:MAG.
 
 	//PRINT "angleToTarget:    " + angleToTarget.
 	//PRINT "period of ship:   " + shipPeriod.
@@ -97,7 +99,7 @@ IF hohmann {
 	}
 }
 
-IF refine {
+IF refine AND hohmann {
 	node_step_init(LIST("eta","pro","norm")).
 	LOCAL localBody IS SHIP:BODY.
 	
@@ -111,7 +113,7 @@ IF refine {
 	conferm_burn(skipConfirms).
 	
 	PRINT " ".
-	PRINT "Inital Transfer Burn Done".
+	PRINT "Initial Transfer Burn Done".
 	
 	LOCAL burnResults IS close_aproach_scan(SHIP,TARGET,TIME:SECONDS,SHIP:ORBIT:PERIOD).
 	IF burnResults["dist"] > 500 {
@@ -138,13 +140,16 @@ FUNCTION conferm_burn {
 	PARAMETER skipConfirms.
 	RCS OFF.
 	SAS OFF.
-	PRINT "turn on sas to continue".
+	PRINT "turn on sas to exit execution".
 	PRINT "turn on rcs to burn".
-	WAIT UNTIL SAS OR skipConfirms.
+	WAIT UNTIL SAS OR RCS OR skipConfirms.
 	IF RCS OR skipConfirms {
 		RCS OFF.
 		RUNPATH("1:/node_burn",TRUE).
 		clear_all_nodes().
+	} ELSE IF SAS {
+		PRINT "abborting execution".
+		PRINT 1/0.
 	}
 }
 
@@ -164,23 +169,33 @@ FUNCTION node_from_vector {//have not tested for different SOIs
 }
 
 FUNCTION burn_vector {//returns the burn vector to change orbit to new normal vector.
-	PARAMETER vecCurentVel,vecNormal.
+	PARAMETER vecCurentVel,vecNormal,timeOfManuver.
+	LOCAL vecDown IS (BODY:POSITION - POSITIONAT(SHIP,timeOfManuver)):NORMALIZED.
 //	LOCAL vecEast IS VCRS(vecCurentVel,vecNormal).
-	LOCAL vecEast IS VCRS(vecNormal,vecCurentVel).
-	LOCAL vecTargetVel IS VCRS(vecEast,vecNormal):NORMALIZED * vecCurentVel:MAG.
+//	LOCAL vecEast IS VCRS(vecNormal,vecCurentVel:NORMALIZED):NORMALIZED.//not radial in
+//	LOCAL vecTargetVelx IS VCRS(vecEast,vecNormal):NORMALIZED * vecCurentVel:MAG.
+	LOCAL inc IS VANG(normal_of_orbit(SHIP),vecNormal).
+	LOCAL signedInc IS CHOOSE inc IF VDOT(vecNormal,vecCurentVel) > 0 ELSE -inc.
+	LOCAL vecTargetVel IS ANGLEAXIS(signedInc,vecDown) * vecCurentVel.
+//	LOCAL vecTargetVel IS VCRS(vecDown,vecNormal):NORMALIZED * vecCurentVel:MAG.
 //	LOCAL vecTargetVel IS VXCL(vecNormal,vecCurentVel):NORMALIZED * vecCurentVel:MAG
-	IF VANG(normal_of_orbit(SHIP),vecNormal) > 90 {//inverts vecTargetVel because inclination would be 180 otherwise
-		SET vecTargetVel TO -vecTargetVel.
-		PRINT "inverting".
-	}
+	// IF VANG(normal_of_orbit(SHIP),vecNormal) > 90 {//inverts vecTargetVel because inclination would be 180 otherwise
+		// SET vecTargetVel TO -vecTargetVel.
+		// PRINT "inverting".
+	// }
 	LOCAL vecBurn IS vecTargetVel - vecCurentVel.
-//	PRINT "speedAt: " + ROUND(vecCurentVel:MAG,2).
-//	PRINT "speedTa: " + ROUND(vecTargetVel:MAG,2).
-//	PRINT "angle:   " + ROUND(VANG(vecCurentVel,vecTargetVel),2).
-//	vecDrawList:ADD(VECDRAW(SHIP:POSITION,vecCurentVel / 10,GREEN,"curent speed",1,TRUE,0.2)).
-//	vecDrawList:ADD(VECDRAW(SHIP:POSITION,vecNormal * 10,WHITE,"normal",1,TRUE,0.2)).
-//	vecDrawList:ADD(VECDRAW(SHIP:POSITION,vecTargetVel / 10,RED,"desired speed",1,TRUE,0.2)).
-//	vecDrawList:ADD(VECDRAW(vecCurentVel / 10,vecBurn / 10,BLUE,"burnVec",1,TRUE,0.2)).
+	// LOCAL vecBurn/ IS vecTargetVelx - vecCurentVel.
+	// PRINT "speedAt: " + ROUND(vecCurentVel:MAG,2).
+	// PRINT "speedTa: " + ROUND(vecTargetVel:MAG,2).
+	// PRINT "angle:   " + ROUND(VANG(vecCurentVel,vecTargetVel),2).
+	// PRINT (vecTargetVel - vecTargetVelx):MAG.
+	// vecDrawList:ADD(VECDRAW(SHIP:POSITION,vecCurentVel / 10,GREEN,"curent speed",1,TRUE,0.2)).
+	// vecDrawList:ADD(VECDRAW(SHIP:POSITION,vecEast * 10,WHITE,"vecEast",1,TRUE,0.2)).
+	// vecDrawList:ADD(VECDRAW(SHIP:POSITION,vecNormal * 10,WHITE,"tgt normal",1,TRUE,0.2)).
+	// vecDrawList:ADD(VECDRAW(SHIP:POSITION,normal_of_orbit(SHIP) * 10,WHITE,"ves normal",1,TRUE,0.2)).
+	// vecDrawList:ADD(VECDRAW(SHIP:POSITION,vecTargetVel / 10,RED,"desired speed",1,TRUE,0.2)).
+	// vecDrawList:ADD(VECDRAW(SHIP:POSITION,vecTargetVelx / 10,RED,"desired speedx",1,TRUE,0.2)).
+	// vecDrawList:ADD(VECDRAW(vecCurentVel / 10,vecBurn / 10,BLUE,"burnVec",1,TRUE,0.2)).
 	RETURN vecBurn.//will be a vector of mag = DV of burn with chordates of burn direction
 }
 

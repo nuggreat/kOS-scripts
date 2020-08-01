@@ -23,11 +23,13 @@ FUNCTION uts_of_nodes {//will return the UTs of the ascending and descending nod
 	LOCAL refVec IS normal_of_orbit(craft2).//vector to check if craft1 is going up or down against
 	IF craft2:ISTYPE("BODY") { IF craft1:BODY = craft2 { SET refVec TO -craft2:NORTH. } }//use south vector if in orbit around craft2
 
-	IF VDOT(VELOCITYAT(craft1,UTsOfNode1):ORBIT,refVec) < 0 {//checks if node1 is the ascending node
-		RETURN LEX("an",UTsOfNode1,"dn",UTsOFnode2).
-	} ELSE {
-		RETURN LEX("an",UTsOfNode2,"dn",UTsOFnode1).
-	}
+	//IF VDOT(VELOCITYAT(craft1,UTsOfNode1):ORBIT,refVec) < 0 {//checks if node1 is the ascending node
+	RETURN LEX("an",UTsOfNode1,"dn",UTsOFnode2).
+	//} ELSE {
+	//	PRINT "n1 isDN".
+	//	WAIT 10.
+	//	RETURN LEX("an",UTsOfNode2,"dn",UTsOFnode1).
+	//}
 }
 
 FUNCTION alt_to_ta {//returns a list of the true anomalies of the 2 points where the craft's orbit passes the given altitude
@@ -66,7 +68,7 @@ FUNCTION time_betwene_two_ta {//returns the difference in time between 2 differe
 
 FUNCTION ta_to_ma {//converts a true anomaly(degrees) to the mean anomaly (degrees) NOTE: only works for non hyperbolic orbits
 	PARAMETER ecc,taDeg.
-	LOCAL eaDeg IS ARCTAN2( SQRT(1-ecc^2)*SIN(taDeg), ecc + COS(taDeg)).
+	LOCAL eaDeg IS ARCTAN2( SQRT(1 - ecc^2) * SIN(taDeg), ecc + COS(taDeg)).
 	LOCAL maDeg IS eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG).
 	RETURN MOD(maDeg + 360,360).
 }
@@ -89,11 +91,12 @@ FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to
 	LOCAL vecC2Normal IS normal_of_orbit(craft2).//normal of craft 2 orbit
 	IF craft2:ISTYPE("BODY") {//check to see if craft1 is in orbit of craft2
 		IF craft1:BODY = craft2 {
-			SET vecC2Normal TO -craft2:NORTH.
+			//SET vecC2Normal TO -craft2:NORTH.
+			SET vecC2Normal TO v(0,1,0).
 		}
 	}
 
-	LOCAL vecBodyToNode IS VCRS(vecC1Normal,vecC2Normal).//vector from body to node
+	LOCAL vecBodyToNode IS VCRS(vecC1Normal,vecC2Normal).//vector from body to node, will be an of obt1 relitave to obt2
 	LOCAL vecBodyToC1 IS craft1:POSITION - craft1:BODY:POSITION.//vector from body to craft 1
 	LOCAL relitiveAnomaly IS VANG(vecBodyToNode,vecBodyToC1).//the angle between the node and craft 1
 

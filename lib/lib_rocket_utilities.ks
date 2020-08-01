@@ -51,16 +51,19 @@ FUNCTION stage_check {	//a check for if the rocket needs to stage
 
 lib_rocket_utilities_lex:ADD("nextDropTime",TIME:SECONDS).
 FUNCTION drop_tanks {
-	PARAMETER tankTag IS "dropTank".
+	PARAMETER tankTag IS "dropTank", threshold IS 0.01.
 	LOCAL tankList IS SHIP:PARTSTAGGED(tankTag).
 	IF (tankList:LENGTH > 0) AND STAGE:READY AND lib_rocket_utilities_lex["nextDropTime"] < TIME:SECONDS {
 		LOCAL drop IS FALSE.
 		FOR tank IN tankList {
 			FOR res IN tank:RESOURCES {
-				IF res:AMOUNT < 0.01 {
+				IF res:AMOUNT < threshold {
 					SET drop TO TRUE.
-					BREAK. BREAK.
+					BREAK.
 				}
+			}
+			IF drop {
+				BREAK.
 			}
 		}
 		IF drop {

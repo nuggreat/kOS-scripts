@@ -480,19 +480,59 @@ FUNCTION number_concatnation {
 	}
 }
 
-LOCAL oldThings IS LEX().
-FUNCTION print_delta {
-	PARAMETER thing,key.
-	IF oldThings:KEYS:CONTAINS(key) {
-		LOCAL localTime IS TIME:SECONDS.
-		LOCAL deltaTime IS localTime - oldThings[key]["time"].
-		LOCAL delta is (oldThings[key]["thing"] - thing) / deltaTime.
-		SET oldThings[key]["time"] TO localTime.
-		SET oldThings[key]["thing"] TO thing.
-		PRINT key + ": " + delta.
+FUNCTION terminal_concatnation {
+	PARAMETER curentString,cha,enterFunction IS { PARAMETER str. }.
+	IF cha:MATCHESPATTERN("[ -~]") {
+		IF curentString:LENGTH < 30 {
+			RETURN curentString + cha.
+		} ELSE {
+			PRINT CHAR(7) AT(4,4).
+			RETURN curentString.
+		}
+	} ELSE IF (cha = TERMINAL:INPUT:BACKSPACE) {
+		IF (curentString:LENGTH > 0) {
+			RETURN curentString:REMOVE(curentString:LENGTH - 1,1).
+		} ELSE {
+			RETURN curentString.
+		}
+	} ELSE IF (cha = TERMINAL:INPUT:ENTER) {
+		enterFunction(curentString).
+		RETURN "".
 	} ELSE {
-		oldThings:ADD(key,LEX("thing",thing,"time",TIME:SECONDS)).
+		RETURN curentString.
 	}
+}
+
+FUNCTION delta_init {
+    PARAMETER initalVal.
+    LOCAL oldTime IS TIME:SECONDS.
+    LOCAL oldVal IS initalVal.
+    LOCAL oldDelta IS initalVal - initalVal.
+    RETURN {
+        PARAMETER newVal.
+        LOCAL newTime IS TIME:SECONDS.
+        LOCAL deltaT IS newTime - oldTime.
+        IF deltaT = 0 {
+            RETURN oldDelta.
+        } ELSE {
+            LOCAL deltaVal IS newVal - oldVal.
+            SET oldTime TO newTime.
+            SET oldVal TO newVal.
+            SET oldDelta TO deltaVal / deltaT.
+            RETURN oldDelta.
+        }
+    }.
+}
+
+FUNCTION inerta_vector {
+    LOCAL am IS SHIP:ANGULARMOMENTUM.
+    LOCAL av TO SHIP:ANGULARVEL * -SHIP:FACING.//x = pitch(w = pos, s = neg), y = yaw(d = pos, a = neg), z  = roll(q = pos, e = neg)
+    
+    //PRINT "pitch inertia: " +  (am:X / av:X).
+    //PRINT "yaw   inertia: " + (-am:Z / av:Y).
+    //PRINT "roll  inertia: " +  (am:Y / av:Z).
+    //WAIT 0.
+	RETURN v((am:X / av:X),(-am:Z / av:Y),(am:Y / av:Z)).//x = pitch, y = yaw, z = roll
 }
 
 FUNCTION circularize_at_UT {
@@ -518,6 +558,45 @@ FUNCTION remove_by_vlaue {
 			listA:REMOVE(i).
 		}
 	}
+}
+
+FUNCTION better_write {//verify data is written to a json file
+	PARAMETER writePath,writeData.
+	WRITEJSON(writePath,writeData).
+	IF EXISTS(writePath) {
+		LOCAL writtenData IS READJSON(writePath).
+		RETURN is_equal(writtenData,writeData).
+	} ELSE {
+		RETURN FALSE.
+	}
+}
+
+FUNCTION is_equal {//recursive by value equality test.
+	PARAMETER a,b.
+	IS a:ISTYPE("lexicon") AND b:ISTYPE("lexicon") {
+		IF is_equal(a:KEYS,b:KEYS) {
+			FOR key in a:KEYS {
+				IF NOT is_equal(a[key],b[key]) {
+					RETURN FALSE.
+				}
+			}
+			RETURN TRUE.
+		}
+	} ELSE IF a:ISTYPE("enumerable") AND b:ISTYPE("enumerable") {
+		IF a:LENGTH = b:LENGTH {
+			LOCAL iA is a:ITTERATOR.
+			LOCAL iB IS b:ITTERATOR.
+			UNTIL NOT(iA:NEXT AND iB:NEXT) {
+				IF NOT is_equal(iA:VALUE,iB:VALUE) {
+					RETURN FALSE.
+				}
+			}
+			RETURN TRUE.
+		}
+	} ELSE IF a:TYPENAME = b:TYPENAME {
+		RETURN a = b.
+	}
+	RETURN FALSE.
 }
 
 FUNCTION current_mach_number {
@@ -590,6 +669,31 @@ FUNCTION message_ques {
 		mQueue:PUSH(shipM:POP()).
 	}
 	RETURN qQueue.
+}
+
+FUNCTION better_trigger {//an improvment to the builtin when then trigger of kOS
+	PARAMETER condition,
+	codeBody,
+	shouldPersist.
+	LOCAL conLex IS LEX().
+	conLex:ADD("clear",FALSE).
+	conLex:ADD("notSuspended",TRUE)
+	conLex:ADD("persist",shouldPersist).
+	conLex:ADD("alive",TRUE)
+	
+	WHEN conLex:clear or (conLex:notSuspended AND condition()) {
+		IF conLex:clear {
+			SET conLex:alive TO FALSE.
+		} ELSE {
+			codeBody().
+			IF shouldPersist {
+				PRESERVE.
+			} ELSE {
+				SET conLex:alive TO FALSE.
+			}
+		}
+	}
+	RETURN conLex.
 }
 
 FUNCTION interp_z_val {//takes in 5 vectors

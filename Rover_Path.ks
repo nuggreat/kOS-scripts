@@ -488,7 +488,7 @@ FUNCTION new_node_chord {
 	LOCAL sinDegTcosOldNlat IS SIN(degTravle)*COS(oldNode:LAT).
 	LOCAL sinOldNlat IS SIN(oldNode:LAT).
 	LOCAL newLat IS ARCSIN(sinOldNlat*codDegT + sinDegTcosOldNlat*COS(nodeHeading)).
-	IF newLat <> 90 {
+	IF ABS(newLat) <> 90 {
 		LOCAL newLng IS oldNode:LNG + ARCTAN2(SIN(nodeHeading)*sinDegTcosOldNlat,codDegT-sinOldNlat*SIN(newLat)).
 		RETURN LATLNG(newLat,newLng).
 	} ELSE {

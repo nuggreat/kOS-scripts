@@ -10,58 +10,67 @@ FUNCTION warp_control_init {
 	LOCAL railRateList IS warpBase:RAILSRATELIST.
 
 	LOCAL warpConLex IS LEX().
-	warpConLex:ADD("warpState","eval_0").
+	warpConLex:ADD("warpState","eval_settled").
 	warpConLex:ADD("maxDelay",maxDelay).
 	warpConLex:ADD("crashedTimeing",TIME:SECONDS).
+	warpConLex:ADD("nextIncrease",TIME:SECONDS).
 	warpConLex:ADD("expectedWarp",warpBase:WARP).
 
 	warpConLex:ADD("execute", {
 		PARAMETER timeIn,//the time in seconds until the target event
 		maxRate IS defaultMaxRate.//max number of times function is allowed to increase the warp rate
-		RETURN warpConLex[warpConLex["warpState"]]:CALL(timeIn,MIN(maxRate,maxPossibleRate)).
-	}).
-	warpConLex:ADD("eval_0", {
-		PARAMETER timeIn,maxRate.
 		IF warpBase:WARP <> warpConLex["expectedWarp"] {
 			SET warpConLex["warpState"] TO "crashing".
-		} ELSE IF warpBase:ISSETTLED {
-			SET warpConLex["warpState"] TO "eval_1".
+		}
+		RETURN stateLex[warpConLex["warpState"]]:CALL(timeIn,MIN(maxRate,maxPossibleRate)).
+	}).
+	LOCAL stateLex IS LEX().
+	stateLex:ADD("eval_settled", {
+		PARAMETER timeIn,maxRate.
+		IF warpBase:ISSETTLED {
+			SET warpConLex["warpState"] TO "eval_decrease".
 		}
 		RETURN FALSE.
 	}).
-	warpConLex:ADD("eval_1", {
+	stateLex:ADD("eval_decrease", {
 		PARAMETER timeIn,maxRate.
-		SET warpConLex["warpState"] TO "eval_0".
 		IF ((timeIn / railRateList[warpBase:WARP]) < easeFactor) OR (warpBase:WARP > maxRate) {
-			IF warpBase:WARP <> 0 {
-				SET warpConLex["warpState"] TO "warpDecrease".
+			IF warpBase:WARP > 0 {
+				SET warpConLex["warpState"] TO "warp_dec".
 			} ELSE {
 				RETURN TRUE.
 			}
 		} ELSE {
-			IF warpBase:WARP < maxRate {
-				IF (timeIn / railRateList[warpBase:WARP + 1]) > easeFactor {
-					SET warpConLex["warpState"] TO "warpIncrease".
-				}
+			SET warpConLex["warpState"] TO "eval_increase".
+		}
+		RETURN FALSE.
+	}).
+	stateLex:ADD("eval_increase", {
+		PARAMETER timeIn,maxRate.
+		SET warpConLex["warpState"] TO "eval_decrease".
+		IF (warpBase:WARP < maxRate) AND (TIME:SECONDS > warpConLex["nextIncrease"]) {
+			IF (timeIn / railRateList[warpBase:WARP + 1]) > easeFactor {
+				SET warpConLex["warpState"] TO "warp_inc".
 			}
 		}
 		RETURN FALSE.
 	}).
-	warpConLex:ADD("warpIncrease", {
+	stateLex:ADD("warp_inc", {
 		PARAMETER timeIn,maxRate.
 		SET warpBase:WARP TO warpBase:WARP + 1.
 		SET warpConLex["expectedWarp"] TO warpBase:WARP.
-		SET warpConLex["warpState"] TO "eval_0".
+		SET warpConLex["nextIncrease"] TO TIME:SECONDS + railRateList[warpBase:WARP].
+		SET warpConLex["warpState"] TO "eval_settled".
 		RETURN FALSE.
 	}).
-	warpConLex:ADD("warpDecrease", {
+	stateLex:ADD("warp_dec", {
 		PARAMETER timeIn,maxRate.
 		SET warpBase:WARP TO warpBase:WARP - 1.
 		SET warpConLex["expectedWarp"] TO warpBase:WARP.
-		SET warpConLex["warpState"] TO "eval_0".
+		SET warpConLex["warpState"] TO "eval_settled".
 		RETURN FALSE.
 	}).
-	warpConLex:ADD("crashing", {
+	stateLex:ADD("crashing", {
 		PARAMETER timeIn,maxRate.
 		IF warpBase:ISSETTLED {
 			IF warpBase:WARP = 0 {
@@ -74,10 +83,11 @@ FUNCTION warp_control_init {
 		}
 		RETURN FALSE.
 	}).
-	warpConLex:ADD("delay", {
+	stateLex:ADD("delay", {
 		PARAMETER timeIn,maxRate.
 		IF TIME:SECONDS >= warpConLex["crashedTimeing"] {
-			SET warpConLex["warpState"] TO "eval_0".
+			SET warpConLex["nextIncrease"] TO TIME:SECONDS.
+			SET warpConLex["warpState"] TO "eval_settled".
 		}
 		RETURN FALSE.
 	}).
