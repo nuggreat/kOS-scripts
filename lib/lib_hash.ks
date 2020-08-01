@@ -19,8 +19,8 @@ FUNCTION hash_string {//the pre-processing for SHA_1 and SHA_2 functions
     hexReturn IS TRUE,
     doPrint IS FALSE,
     reduced IS FALSE.
-  LOCAL oldIPU IS CONFIG:IPU.
-  SET CONFIG:IPU TO 2000.
+  // LOCAL oldIPU IS CONFIG:IPU.
+  // SET CONFIG:IPU TO 2000.
   
   LOCAL bitsPerChar IS 0.
   LOCAL bitThreshold IS 0.
@@ -64,7 +64,7 @@ FUNCTION hash_string {//the pre-processing for SHA_1 and SHA_2 functions
       SET result TO SHA_2(bitStr,reduced,hashType).
 	}
   }
-  SET CONFIG:IPU TO oldIPU.
+  // SET CONFIG:IPU TO oldIPU.
   RETURN (CHOOSE bin_to_hex(result) IF hexReturn ELSE result).
 }
 
@@ -743,12 +743,12 @@ LOCAL FUNCTION hex_to_bin {
   RETURN returnStr.
 }
 
-WAIT 0.
-LOCAL st IS TIME:SECONDS.
+// WAIT 0.
+// LOCAL st IS TIME:SECONDS.
 // PRINT hash_string("The quick red fox jumped over the lazy brown dog!").
 // PRINT "895F37AE412219693E7030CFCCE2AE1CA1556184".
-PRINT hash_file("0:/lib/lib_hash.ks","SHA-512").
+// PRINT hash_file("0:/lib/lib_hash.ks","SHA-512").
 //PRINT hash_string("","SHA-512/256").
 //PRINT "C672B8D1EF56ED28AB87C3622C5114069BDD3AD7B8F9737498D0C01ECEF0967A".
-PRINT ROUND(TIME:SECONDS - st,2).
-SET CONFIG:IPU TO 200.
+// PRINT ROUND(TIME:SECONDS - st,2).
+// SET CONFIG:IPU TO 200.
