@@ -5,3 +5,5 @@
 **number formating contains a library for formating numbers into strings for display**
 
 **impact ETA contains a script for calculating a craft's impact time**
+
+**staging examples contains many different methods for detecting that staging is required**
