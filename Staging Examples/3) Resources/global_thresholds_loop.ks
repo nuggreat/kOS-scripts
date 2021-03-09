@@ -1,6 +1,6 @@
-    - gets passed a list items alternating between strings and scalars starting with the strings
-    - the string is the resource name the scalar is the threshold
-    - list must start with the first threshold
+    // - gets passed a list items alternating between strings and scalars starting with the strings
+    // - the string is the resource name the scalar is the threshold
+    // - list must start with the first threshold
 
 FUNCTION staging_start {
   PARAMETER sequenceList.
@@ -9,7 +9,7 @@ FUNCTION staging_start {
     sequenceData:ADD(sequenceList[0 + i]).
     sequenceData:ADD(MAX(sequenceList[1 + i],0)).
   }
-  SET sequenceData[0] TO getResource(sequenceData[0]).
+  SET sequenceData[0] TO get_resource(sequenceData[0]).
   RETURN sequenceData.
 }
 
@@ -22,7 +22,7 @@ FUNCTION staging_check {
       sequenceData:REMOVE(0).
       sequenceData:REMOVE(0).
       IF sequenceData:LENGTH > 0 {
-        SET sequenceData[0] TO getResource(sequenceData[0]).
+        SET sequenceData[0] TO get_resource(sequenceData[0]).
       }
       RETURN TRUE.
     }

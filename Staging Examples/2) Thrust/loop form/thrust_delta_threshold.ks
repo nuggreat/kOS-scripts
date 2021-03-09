@@ -5,19 +5,19 @@ FUNCTION staging_start {
   RETURN LEX(
     "shouldStage", {
       LOCAL newThrust IS SHIP:AVAILABLETHRUSTAT(0).
-      LOCAL shouldStage IS (oldThrust - newThrust) <= threshold.
+      LOCAL shouldStage IS (oldThrust - newThrust) >= stageThreshold.
       SET oldThrust TO newThrust.
       RETURN shouldStage.
     },
     "tReset", {
-      SET threshold TO SHIP:AVAILABLETHRUSTAT(0).
+      SET oldThrust TO SHIP:AVAILABLETHRUSTAT(0).
     }
   ).
 }
 
 FUNCTION staging_check {
   PARAMETER stagingStruct.
-  IF stagingStruct:shouldStage {
+  IF stagingStruct:shouldStage() {
     IF NOT STAGE:READY {
       WAIT UNTIL STAGE:READY.
     }

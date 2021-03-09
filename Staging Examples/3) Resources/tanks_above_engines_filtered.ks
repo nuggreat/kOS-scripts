@@ -1,21 +1,23 @@
 FUNCTION staging_start {//construct engine UID to first parent part with the a matching resource mapping
-  PARAMETER threshold.
+  PARAMETER threshold IS 0.01.
   LOCAL stagingData IS LEX("threshold",threshold).
   LOCAL engList IS LIST().
   LIST ENGINES IN engList.
   FOR eng IN engList {
     LOCAL engResData IS eng:CONSUMEDRESOURCES.
 	LOCAL foundPart IS FALSE.
-    FOR key IN engResData {
+    FOR key IN engResData:KEYS {
 	  LOCAL resName IS engResData[key]:NAME.
       LOCAL walkResults IS walk_for_resources(eng,resName).
 	  IF walkResults:ISTYPE("Resource") {
 		SET foundPart TO TRUE.
 		stagingData:ADD(eng:UID,walkResults).
+        BREAK.
 	  }
     }
-    stagingData:ADD("engList",get_engine_list()).
   }
+  stagingData:ADD("engList",get_engine_list()).
+  RETURN stagingData.
 }
 
 FUNCTION walk_for_resources {
@@ -51,10 +53,10 @@ FUNCTION staging_check {
   IF STAGE:READY {
     IF stagingData:engList:LENGTH > 0 {
       FOR eng IN stagingData:engList {
-        IF stagingData:CONTAINS(eng:UID) {
+        IF stagingData:HASKEY(eng:UID) {
           IF stagingData[eng:UID]:AMOUNT < stagingData:threshold {
             SET shouldStage TO TRUE.
-            PRINT "staging due to " + stagingData[eng:UID]:NAME + " is below threshold."
+		    PRINT "staging due to resource: " + stagingData[eng:UID]:NAME + " below threshold.".
             BREAK.
           }
         }

@@ -12,7 +12,7 @@ FUNCTION get_engine_list {
 }
 
 FUNCTION staging_check {
-  PARAMETER engList, threshold IS 1.
+  PARAMETER engList, threshold IS 0.01.
   LOCAL shouldStage IS FALSE.
   IF STAGE:READY {
     IF engList:LENGTH > 0 {
@@ -21,7 +21,7 @@ FUNCTION staging_check {
         FOR key IN engRes:KEYS {
           IF engRes[key]:AMOUNT < threshold {
             SET shouldStage TO TRUE.
-            PRINT "staging due to resource: " + engRes[key]:NAME + " is below threshold".
+            PRINT "staging due to resource: " + engRes[key]:NAME + " below threshold".
             BREAK.
           }
         }

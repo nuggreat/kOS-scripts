@@ -18,5 +18,5 @@ FUNCTION staging_start {
       PRESERVE.
     }
   }
-  RETURN LEX("clear",{ SET keepStaging TO FALSE. }).
+  RETURN LEX("clearTrigger",{ SET keepStaging TO FALSE. PRINT "removed thrust delta threshold trigger". }).
 }

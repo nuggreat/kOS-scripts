@@ -1,32 +1,32 @@
 staging methods
 
   1. check for flamed out engines
-     - unfiltered engine list
      - filtered engine list
+     - unfiltered engine list
   1. thrust
      - loop form
+       - lack of thrust
        - thrust delta fraction
        - thrust delta threshold
-       - lack of thrust
      - trigger form
+       - lack of thrust
        - thrust delta fraction
        - thrust delta threshold
-       - lack of thrust
   1. resource
      - global thresholds
-       -  loop form
+       - loop form
        - trigger form
      - tagged tanks
      - above engines
-       - unfiltered engine list
        - filtered engine list
+       - unfiltered engine list
      - engines to resource cast
-       - unfiltered engine list
        - filtered engine list
+       - unfiltered engine list
   1. time
      - loop form
-       - elapsed time since start
        - time delta between staging events
+       - elapsed time since start
      - trigger form
        - time delta between staging events
        - elapsed time since start

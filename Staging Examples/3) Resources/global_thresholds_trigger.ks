@@ -1,6 +1,6 @@
-    - gets passed a list items alternating between strings and scalars starting with the strings
-    - the string is the resource name the scalar is the threshold
-    - list must start with the first threshold
+    // - gets passed a list items alternating between strings and scalars starting with the strings
+    // - the string is the resource name the scalar is the threshold
+    // - list must start with the first threshold
 
 FUNCTION staging_start {
   PARAMETER sequenceList.
@@ -10,16 +10,18 @@ FUNCTION staging_start {
     sequenceData:ADD(MAX(sequenceList[1 + i],0)).
   }
   LOCAL clearStageing IS FALSE.
-  SET sequenceData[0] TO getResource(sequenceData[0]).
-  WHEN clearStageing OR sequenceData[0]:AMOUNT <= sequenceData[1] THEN {
+  LOCAL currentRes IS get_resource(sequenceData[0]).
+  LOCAL currentThreshold IS sequenceData[1].
+  WHEN clearStageing OR (currentRes:AMOUNT <= currentThreshold) THEN {
     IF NOT clearStageing {
       IF STAGE:READY {
-        PRINT "Staging due to " + sequenceData[0]:NAME + " below the threshold of " + sequenceData[1] + ".".
+        PRINT "Staging due to " + currentRes:NAME + " below the threshold of " + currentThreshold + ".".
         STAGE.
         sequenceData:REMOVE(0).
         sequenceData:REMOVE(0).
         IF sequenceData:LENGTH > 0 {
-          SET sequenceData[0] TO getResource(sequenceData[0]).
+          SET currentRes TO get_resource(sequenceData[0]).
+          SET currentThreshold TO sequenceData[1].
           PRESERVE.
         }
       } ELSE {
@@ -27,7 +29,7 @@ FUNCTION staging_start {
       }
     }
   }
-  RETURN LEX("clear",{ SET clearStageing TO TRUE. }).
+  RETURN LEX("clearTrigger",{ SET clearStageing TO TRUE. PRINT "removed global resource trigger". }).
 }
 
 FUNCTION get_resource {

@@ -1,28 +1,28 @@
 FUNCTION staging_start {
-  PARAMETER threshold, sDelay, stableDelay.
+  PARAMETER threshold IS 0, sDelay IS 1, stableDelay IS 1..
   RETURN LEX(
     "threshold",threshold,
     "betweenDelay",sDelay,
-    "nextStageTime",TIME,
+    "nextStageTime",TIME:SECONDS,
     "stableDelay",stableDelay,
-    "stableTime",TIME
+    "stableTime",TIME:SECONDS
   ).
 }
 
 FUNCTION staging_check {
   PARAMETER stagingData.
-  IF STAGE:DELTAV < stagingData:threshold {
+  IF STAGE:DELTAV:CURRENT <= stagingData:threshold {
 	IF STAGE:READY {
-	  IF TIME >= stagingData:stableTime {
-        IF TIME >= stagingData:nextStageTime {
+	  IF TIME:SECONDS >= stagingData:stableTime {
+        IF TIME:SECONDS >= stagingData:nextStageTime {
 		  PRINT "Staging because the deltaV of the current stage is below threshold".
 		  STAGE.
-		  SET stagingData:nextStageTime TO TIME + stageData:sDelay.
+		  SET stagingData:nextStageTime TO TIME:SECONDS + stagingData:betweenDelay.
 		}
       }
     }
   } ELSE {
-    SET stageData:stableTime TO TIME + stageData:stableDelay.
+    SET stagingData:stableTime TO TIME:SECONDS + stagingData:stableDelay.
   }
   RETURN FALSE.
 }

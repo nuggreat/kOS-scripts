@@ -17,13 +17,13 @@ FUNCTION staging_start {
 
 FUNCTION staging_check {
   PARAMETER stagingStruct.
-  IF stagingStruct:shouldStage {
+  IF stagingStruct:shouldStage() {
     IF NOT STAGE:READY {
       WAIT UNTIL STAGE:READY.
     }
     PRINT "Staging due to thrust decrease".
     STAGE.
-    stagingStruct:tReset.
+    stagingStruct:tReset().
     RETURN TRUE.
   }
   RETURN FALSE.
