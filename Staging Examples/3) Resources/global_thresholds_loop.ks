@@ -1,7 +1,3 @@
-    // - gets passed a list items alternating between strings and scalars starting with the strings
-    // - the string is the resource name the scalar is the threshold
-    // - list must start with the first threshold
-
 FUNCTION staging_start {
   PARAMETER sequenceList.
   LOCAL sequenceData IS LIST().
