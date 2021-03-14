@@ -15,6 +15,7 @@ LOCAL throt IS 1.
 LOCK STEERING TO HEADING(90,tarPitch).
 LOCK THROTTLE TO MAX(MIN(CHOOSE throt IF throt > 0.01 ELSE 0,1),0).
 LOCAL stagingStruct IS staging_start().
+STAGE.
 
 PRINT "inital pitch manuver".
 UNTIL VERTICALSPEED > vMax AND VANG(SRFPROGRADE:VECTOR,UP:VECTOR) > initalPitch {
