@@ -138,11 +138,11 @@ FUNCTION impact_ETA {//returns the seconds between maDeg1 and terrain impact
 	LOCAL sma IS orbitIn:SEMIMAJORAXIS.
 	LOCAL rad IS varConstants["landingAlt"] + orbitIn:BODY:RADIUS.
 	LOCAL taOfAlt IS 360 - ARCCOS((-sma * ecc ^2 + sma - rad) / (ecc * rad)).
-	
+
 	LOCAL maDeg2 IS ta_to_ma(ecc,taOfAlt).
-	
+
 	LOCAL timeDiff IS orbPer * ((maDeg2 - maDeg1) / 360).
-	
+
 	RETURN MOD(timeDiff + orbPer, orbPer).
 }
 

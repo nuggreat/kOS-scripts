@@ -9,13 +9,8 @@ PRINT "logging to " + logPath.
 LOG ("time(s),altitude(m),vel(m/s),Q(kPa),force(kN),press(kPa),atmDencity(kg/m^3),dragCoef(m^2),mg/J,temp(K),mach(m/s),body: " + localBody:NAME) TO logPath.
 
 
-LOCAL jPerKgK IS (8.3144598/0.00042).//this is ideal gas constant dived by the molecular mass of the bodies atmosphere
-LOCAL heatCapacityRatio IS 1.2.
-IF localBody = KERBIN {
-	SET jPerKgK TO (8.3144598/0.0289644).
-	SET heatCapacityRatio TO 1.4.
-	PRINT "local Body is Kerbin".
-}
+LOCAL jPerKgK IS CONSTANT:IDEALGAS() / localAtm:MOLARMASS.//this is ideal gas constant dived by the molecular mass of the bodies atmosphere
+LOCAL heatCapacityRatio IS localAtm:ADIABATICINDEX.
 
 WAIT UNTIL ALTITUDE < SHIP:BODY:ATM:HEIGHT * 0.9.
 
@@ -90,12 +85,7 @@ UNTIL RCS {
 
 FUNCTION log_data {
 	PARAMETER logData,logPath.
-	LOCAL logString IS "".
-	FOR data IN logData {
-		SET logString TO logString + data + ",".
-	}
-	logString:REMOVE((logString:LENGTH - 1),1).
-	LOG logString TO logPath.
+	LOG logData:JOIN(",") TO logPath.
 }
 
 FUNCTION average_grav {

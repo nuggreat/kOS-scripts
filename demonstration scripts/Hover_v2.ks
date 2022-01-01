@@ -55,6 +55,17 @@ FUNCTION ramp_accel {
 		RETURN (baseAcc * fullDuration + rampSpeed) / (rampDuration + fullDuration).//average accel
 		//RETURN (baseAcc * fullDuration + rampSpeed).
 		
+		// d = total - ramp
+		// x = initalVel
+		// v = rampVel
+		// 2ad + x^2 = v^2
+		// x^2 = v^2 - 2ad
+		// x = SQRT(v^2 - 2ad)
+		
+		// x - v / a = t
+		
+		//SQRT(2 * a * (d - b) + s^2) - s)
+		
 		//PRINT 1 / ((rampDuration / SQRT( baseAcc * (8 * dError - baseAcc * rampDuration^2))) + (1 / baseAcc)).
 		
 		

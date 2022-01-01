@@ -1,6 +1,7 @@
 PARAMETER targetAP IS 26,doInclined IS FALSE,targetInclination IS 0,skipConfirm IS FALSE.
 FOR lib IN LIST("lib_navball2","lib_rocket_utilities","lib_formating","lib_warp_control") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 SET targetAP TO targetAP * 1000.
+LOCAL northReff IS LATLNG(90,0).
 SAS OFF.
 ABORT OFF.
 CLEARSCREEN.
@@ -43,11 +44,11 @@ IF doInclined {
 			LOCAL southRangeData IS LEX().
 			IF launchMode = 1 OR launchMode = 0 {
 				LOCAL launchRangeNorth IS launch_range(targetOrbit:INCLINATION,targetAP,rangeSafty).
-				SET northRangeData TO range_scan(launchRangeNorth,0,"North Launch Window Analysis:").
+				SET northRangeData TO range_scan(launchRangeNorth,0,"North Launch Window Analysis:",FALSE).
 			}
 			IF (launchMode = 2) OR (launchMode = 0) {
 				LOCAL launchRangeSouth IS launch_range(-targetOrbit:INCLINATION,targetAP,rangeSafty).
-				SET southRangeData TO range_scan(launchRangeSouth,1,"South Launch Window Analysis:").
+				SET southRangeData TO range_scan(launchRangeSouth,1,"South Launch Window Analysis:",TRUE).
 			}
 			IF launchMode = 1 OR ((launchMode = 0) AND (northRangeData["slope"] <= southRangeData["slope"])) {
 				SET rangeData TO northRangeData.
@@ -82,7 +83,7 @@ IF doInclined {
 			UNTIL (crossTime - TIME:SECONDS) < 0.1 {
 				LOCAL crossETA IS crossTime - TIME:SECONDS.
 				warpConObj["execute"]:CALL(crossETA - 10).
-				PRINT time_formating(crossETA,0,0,TRUE) + "     " AT(19,warpPrintHeight).
+				PRINT time_formating(-crossETA,0,0,TRUE) + "     " AT(19,warpPrintHeight).
 				WAIT 0.
 			}
 		}
@@ -108,7 +109,6 @@ IF GEAR {
 	WAIT 0.
 }
 
-//WHEN ALTITUDE > slopeHigh THEN { SET launchSlope TO 0. }
 LOCAL bodyMU IS SHIP:BODY:MU.
 
 LOCAL slopeAcc IS 0.
@@ -116,13 +116,15 @@ LOCAL tgtVspd IS 0.
 UNTIL APOAPSIS > targetAP {//launch
 	LOCAL radVec IS BODY:POSITION - SHIP:POSITION.
 	LOCAL shipAcc IS MAX(SHIP:AVAILABLETHRUST/SHIP:MASS,0.00001).//the max is a catch for a no thrust case to prevent divide by 0 crash
-	LOCAL localGrav IS bodyMU / radVec:SQRMAGNITUDE.
 	LOCAL shipVel IS SHIP:VELOCITY:ORBIT.
 	LOCAL shipHorVel IS VXCL(UP:VECTOR,shipVel).
 	LOCAL shipVertSpd IS SHIP:VERTICALSPEED.
+	
+	LOCAL localGrav IS bodyMU / radVec:SQRMAGNITUDE.
 	LOCAL centrifugalAcc IS shipHorVel:SQRMAGNITUDE / radVec:MAG.
 	LOCAL compositGrav IS localGrav - centrifugalAcc.
 	LOCAL altAcc IS shipAcc * MAX(1 - ((ALT:RADAR - 25)/100),0).//must have a minimum altitude before pitch over can happen
+	
 	IF ALTITUDE < slopeHigh {
 		//slopeAcc equation derives from the a^2 + b^2 = c^2 relationship with c = shipAcc, a = grav + requiredVertAcc and b = requiredVertAcc / slope
 		//this is done to account require a minimum slope to the launch angle as calculated by
@@ -178,12 +180,12 @@ UNTIL done {//assumes only a single stage is needed for circularization
 	LOCAL currentAPspd IS SQRT((bodyMU * (2 * SMA - apRad)) / (SMA * apRad)).
 	LOCAL burnDv IS circVel - currentAPspd.
 	LOCAL etaAP IS signed_eta_ap().
-	LOCAL burnDuration IS burn_duration(currentISP,burnDv).
-	SET circThrottlePID:SETPOINT TO burnDuration + 1.
+	LOCAL burnDuration IS burn_duration(currentISP,burnDv) + 1.
+	SET circThrottlePID:SETPOINT TO burnDuration.
 	SET throt TO circThrottlePID:UPDATE(TIME:SECONDS,etaAP).
 	WAIT 0.
 	CLEARSCREEN.
-	IF warpConObj["execute"]:CALL(etaAP - 30 - burnDuration) AND burnDv < 0.1 {
+	IF warpConObj["execute"]:CALL(etaAP - 30 - burnDuration) AND burnDv < (SHIP:AVAILABLETHRUST / (SHIP:MASS * 100)) {
 		SET done TO TRUE.
 	}
 	PRINT "burnDv: " + ROUND(burnDv,2).
@@ -305,7 +307,7 @@ FUNCTION azimuth {
 
 	LOCAL lanVec IS (LATLNG(0,sufaceLAN):POSITION - BODY:POSITION):NORMALIZED.//vector pointing to the LAN
 	//LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * (LATLNG(-90,0):POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
-	LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * V(0,-1,0).//computing the normal vector of the desired orbit
+	LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * -(northReff:POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
 	LOCAL radVec IS SHIP:POSITION - BODY:POSITION.//current radius as a vector
 	LOCAL currentVel IS SHIP:VELOCITY:ORBIT.
 
@@ -323,7 +325,7 @@ FUNCTION azimuth {
 
 FUNCTION speed_given_ap {
 	PARAMETER currentRad,ap.
-	LOCAL sma IS (PERIAPSIS + targetAP) / 2 + BODY:RADIUS.
+	LOCAL sma IS (PERIAPSIS + ap) / 2 + BODY:RADIUS.
 	RETURN SQRT((BODY:MU * (2 * sma - currentRad)) / (sma * currentRad)).
 }
 
@@ -337,14 +339,14 @@ FUNCTION launch_range {
 }
 
 FUNCTION range_scan {
-	PARAMETER launchData,printHeight IS 0,printPrefix IS "".
+	PARAMETER launchData,printHeight IS 0,printPrefix IS "",scanSouth IS FALSE.
 	//LOCAL startTime IS TIME:SECONDS.
 
 	LOCAL myLng IS SHIP:GEOPOSITION:LNG.
 	LOCAL myLat IS SHIP:GEOPOSITION:LAT.
 	LOCAL startHeight IS SHIP:GEOPOSITION:TERRAINHEIGHT.
 	IF myLat < 0 { SET myLng TO myLng + 180. }
-	LOCAL halfCirc IS BODY:RADIUS * CONSTANT:PI().//1/2 the circumference of the body
+	LOCAL halfCirc IS (BODY:RADIUS + startHeight) * CONSTANT:PI().//1/2 the circumference of the body
 	LOCAL distToDegConstant IS 180 / halfCirc.
 	LOCAL degToDistConstant IS halfCirc / 180.
 
@@ -365,7 +367,11 @@ FUNCTION range_scan {
 	LOCAL equitoralLng IS ARCSIN(MAX(MIN(TAN(myLat) / TAN(tarInc),1),-1)).
 	LOCAL sufaceLAN IS CHOOSE myLng - equitoralLng IF tarInc <= 0 ELSE (myLng + equitoralLng) + 180.
 	LOCAL lanGeoPos IS LATLNG(0,sufaceLAN).
-
+	IF scanSouth {
+		SET tarInc TO -tarInc.
+	}
+	// SET vd TO VECDRAW(BODY:POSITION,(SHIP:POSITION - BODY:POSITION) * 1.1,RED,"",1,TRUE,1).
+	
 	//the scan arcs are derived from the desired launch orbit
 	//scans the projected launch range to determine the steepest slope
 	//arcRot loop determines the angle along which to scan
@@ -375,7 +381,7 @@ FUNCTION range_scan {
 		LOCAL ts IS TIME:SECONDS.
 		LOCAL lanVec IS (lanGeoPos:POSITION - BODY:POSITION):NORMALIZED.//vector pointing to the LAN
 		LOCAL radVec IS (SHIP:POSITION - BODY:POSITION):NORMALIZED.
-		LOCAL arcNormal IS ANGLEAXIS(arcRot,radVec) * (ANGLEAXIS(-tarInc,lanVec) * V(0,-1,0)).//computing the normal to the arc to scan along
+		LOCAL arcNormal IS ANGLEAXIS(arcRot,radVec) * (ANGLEAXIS(tarInc,lanVec) * V(0,-1,0)).//computing the normal to the arc to scan along
 
 		LOCAL outerProg IS ROUND((arcRot - arcRotStart) / (arcRotStep)) / totalSteps.//percentage progress of outer loop
 		PRINT (printPrefix + padding((outerProg * 100),2,3) + "%"):PADRIGHT(TERMINAL:WIDTH) AT(0,printHeight).
@@ -385,10 +391,14 @@ FUNCTION range_scan {
 			IF TIME:SECONDS > ts {//only recalculate the vectors when there is a physics tick
 				SET ts TO TIME:SECONDS.
 				SET lanVec TO (lanGeoPos:POSITION - BODY:POSITION):NORMALIZED.//vector pointing to the LAN
+				// SET vd:START TO BODY:POSITION.
 				SET radVec TO (SHIP:POSITION - BODY:POSITION).
-				SET arcNormal TO ANGLEAXIS(arcRot,radVec) * (ANGLEAXIS(-tarInc,lanVec) * V(0,-1,0)).//computing the normal to the arc to scan along
+				SET arcNormal TO ANGLEAXIS(arcRot,radVec) * (ANGLEAXIS(tarInc,lanVec) * V(0,-1,0)).//computing the normal to the arc to scan along
 			}
 			
+			// LOCAL geoPos IS BODY:GEOPOSITIONOF(ANGLEAXIS(deg,arcNormal) * radVec - radVec).
+			// LOCAL newPosHeight IS geoPos:TERRAINHEIGHT.
+			// SET vd:VECTOR TO (geoPos:POSITION - BODY:POSITION) * 1.1.
 			LOCAL newPosHeight IS BODY:GEOPOSITIONOF(ANGLEAXIS(deg,arcNormal) * radVec - radVec):TERRAINHEIGHT.
 			IF newPosHeight > highest {
 				SET highest TO newPosHeight.

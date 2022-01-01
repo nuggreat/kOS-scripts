@@ -1,7 +1,7 @@
 @LAZYGLOBAL OFF.
 LOCAL lib_rocket_utilities_lex IS LEX().
-LOCAL gg0 IS CONSTANT:g0.//defining local copies of constants so they don't need to be looked up at run time
-LOCAL ee IS CONSTANT:E.
+LOCAL gg0 IS CONSTANT:g0().//defining local copies of constants so they don't need to be looked up at run time
+LOCAL ee IS CONSTANT:E().
 
 FUNCTION isp_calc {	//returns the average isp of all of the active engines on the ship
 	LOCAL engineList IS LIST().

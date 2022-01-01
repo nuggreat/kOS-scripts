@@ -37,7 +37,7 @@ FUNCTION alt_to_ta {//returns a list of the true anomalies of the 2 points where
 	LOCAL sma IS orbitIn:SEMIMAJORAXIS.
 	LOCAL ecc IS orbitIn:ECCENTRICITY.
 	LOCAL rad IS altIn + orbitIn:BODY:RADIUS.
-	LOCAL taOfAlt IS ARCCOS((-sma * ecc ^2 + sma - rad) / (ecc * rad)).
+	LOCAL taOfAlt IS ARCCOS((-sma * ecc^2 + sma - rad) / (ecc * rad)).
 	RETURN LIST(taOfAlt,360-taOfAlt).//first true anomaly will be as orbit goes from PE to AP
 }
 
@@ -45,7 +45,7 @@ FUNCTION ta_to_time_from_pe {//converts a true anomaly to a time (seconds) after
 	PARAMETER orbitIn, taDeg. //orbit to predict for, true anomaly in degrees
 	LOCAL ecc IS orbitIn:ECCENTRICITY.
 	LOCAL orbPer IS orbitIn:PERIOD.
-	
+
 	LOCAL maDeg IS ta_to_ma(ecc,taDeg).
 
 	LOCAL rawTime IS orbPer * (maDeg / 360).
@@ -57,25 +57,25 @@ FUNCTION time_betwene_two_ta {//returns the difference in time between 2 differe
 	PARAMETER orbitIn,taDeg1,taDeg2.
 	LOCAL ecc IS orbitIn:ECCENTRICITY.
 	LOCAL orbPer IS orbitIn:PERIOD.
-	
+
 	LOCAL maDeg1 IS ta_to_ma(ecc,taDeg1).
 	LOCAL maDeg2 IS ta_to_ma(ecc,taDeg2).
-	
+
 	LOCAL timeDiff IS orbPer * ((maDeg2 - maDeg1) / 360).
-	
+
 	RETURN MOD(timeDiff + orbPer, orbPer).
 }
 
 FUNCTION ta_to_ma {//converts a true anomaly(degrees) to the mean anomaly (degrees) NOTE: only works for non hyperbolic orbits
 	PARAMETER ecc,taDeg.
-	LOCAL eaDeg IS ARCTAN2( SQRT(1 - ecc^2) * SIN(taDeg), ecc + COS(taDeg)).
-	LOCAL maDeg IS eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG).
+	LOCAL eaDeg IS ARCTAN2( SQRT(1 - ecc^2) * SIN(taDeg), ecc + COS(taDeg)).//eccentric anomaly
+	LOCAL maDeg IS eaDeg - ((ecc * SIN(eaDeg)) * CONSTANT:RADtoDEG()).
 	RETURN MOD(maDeg + 360,360).
 }
 
 //FUNCTION ea_to_ma { //converts a eccentric anomaly(degrees) to the mean anomaly(degrees)
 //	PARAMETER ecc,eaDeg.
-//	LOCAL maDeg IS eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG).
+//	LOCAL maDeg IS eaDeg - (ecc * SIN(eaDeg) * CONSTANT:RADtoDEG()).
 //	RETURN maDeg.
 //}
 //
@@ -92,15 +92,15 @@ FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to
 	IF craft2:ISTYPE("BODY") {//check to see if craft1 is in orbit of craft2
 		IF craft1:BODY = craft2 {
 			//SET vecC2Normal TO -craft2:NORTH.
-			SET vecC2Normal TO v(0,1,0).
+			SET vecC2Normal TO v(0,-1,0).
 		}
 	}
 
-	LOCAL vecBodyToNode IS VCRS(vecC1Normal,vecC2Normal).//vector from body to node, will be an of obt1 relitave to obt2
+	LOCAL vecBodyToAN IS VCRS(vecC1Normal,vecC2Normal).//vector from body to node, will be an of obt1 relitave to obt2
 	LOCAL vecBodyToC1 IS craft1:POSITION - craft1:BODY:POSITION.//vector from body to craft 1
-	LOCAL relitiveAnomaly IS VANG(vecBodyToNode,vecBodyToC1).//the angle between the node and craft 1
+	LOCAL relitiveAnomaly IS VANG(vecBodyToAN,vecBodyToC1).//the angle between the node and craft 1
 
-	IF VDOT(vecBodyToNode,VCRS(vecC1Normal,vecBodyToC1):NORMALIZED) < 0 {//adjusts relative Anomaly for it it is ahead or behind of craft 1
+	IF VDOT(vecBodyToAN,VCRS(vecC1Normal,vecBodyToC1):NORMALIZED) < 0 {//adjusts relative Anomaly for it it is ahead or behind of craft 1
 		SET relitiveAnomaly TO 360 - relitiveAnomaly.
 	}
 
@@ -109,7 +109,7 @@ FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to
 
 FUNCTION normal_of_orbit {//returns the normal of a crafts/bodies orbit, will point north if orbiting clockwise on equator
 	PARAMETER object.
-	RETURN VCRS(object:VELOCITY:ORBIT:NORMALIZED, (object:BODY:POSITION - object:POSITION):NORMALIZED):NORMALIZED.
+	RETURN VCRS(object:ORBIT:VELOCITY:ORBIT:NORMALIZED, (object:BODY:POSITION - object:POSITION):NORMALIZED):NORMALIZED.
 }
 
 FUNCTION phase_angle {
@@ -118,7 +118,7 @@ FUNCTION phase_angle {
 	LOCAL vecBodyToC1 IS (object1:POSITION - localBodyPos):NORMALIZED.
 	LOCAL vecBodyToC2 IS VXCL(normal_of_orbit(object1),(object2:POSITION - localBodyPos):NORMALIZED):NORMALIZED.//orbit normal is excluded to remove any inclination from calculation
 	LOCAL phaseAngle IS VANG(vecBodyToC1,vecBodyToC2).
-	IF VDOT(vecBodyToC2,VXCL(UP:VECTOR,object1:VELOCITY:ORBIT)) < 0 {//corrects for if object2 is ahead or behind object1
+	IF VDOT(vecBodyToC2,VXCL(vecBodyToC1,object1:ORBIT:VELOCITY:ORBIT)) < 0 {//corrects for if object2 is ahead or behind object1
 		SET phaseAngle TO 360 - phaseAngle.
 	}
 	RETURN phaseAngle.

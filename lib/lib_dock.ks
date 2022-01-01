@@ -148,6 +148,12 @@ FUNCTION message_wait {
 	WAIT UNTIL (NOT buffer:EMPTY).
 }
 
+FUNCTION dist_to_vel {
+	PARAMETER distVec,accel,maxVel.
+	LOCAL targetVel IS MIN(SQRT(2 * distVec:MAG * accel),maxVel).
+	RETURN distVec:NORMALIZED * targetVel.
+}
+
 FUNCTION axis_speed {
 	PARAMETER craft,		//the craft to calculate the speed of (craft using RCS)
 	station.				//the target the speed is relative  to

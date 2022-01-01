@@ -5,6 +5,7 @@ control_point().
 SAS OFF.
 SET TERMINAL:WIDTH TO 60.
 SET TERMINAL:HEIGHT TO 20.
+LOCAL gg0 IS CONSTANT:g0().
 WAIT UNTIL active_engine().
 LOCAL vertMargin IS lowist_part(SHIP) + 2.5.	//Sets the margin for the Sucide Burn and Final Decent
 SET retroMargin TO retroMargin + vertMargin.
@@ -65,7 +66,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 	SET throt TO MIN(100 / MAX((stopGap - retroMarginLow), 100),1).
 	CLEARSCREEN.
 	PRINT "Terrain Gap:    " + ROUND(stopGap).
-	PRINT "Dv Needed:      " + ROUND(shipISP*9.80665*LN(initalMass/simResults["mass"])).
+	PRINT "Dv Needed:      " + ROUND(shipISP*gg0*LN(initalMass/simResults["mass"])).
 	PRINT " ".
 	PRINT "time to Stop:   " + ROUND(simResults["seconds"],1).
 	PRINT "Time Per Sim:   " + ROUND(deltaTime,2).

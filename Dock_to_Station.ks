@@ -73,9 +73,10 @@ FUNCTION warp_to_closest {
 				SET done TO TRUE.
 			}
 		}
+		LOCAL etaString IS "targetETA: " + time_formating((targetTime + timeGap) - TIME:SECONDS).
 		WAIT 0.
 		CLEARSCREEN.
-		PRINT "targetETA: " + time_formating((targetTime + timeGap) - TIME:SECONDS).
+		PRINT etaString.
 		PRINT "State " + warpState.
 	}
 }

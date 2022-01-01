@@ -13,9 +13,9 @@ FUNCTION pid_init_1 {
 	
 	LOCAL pidLex IS LEX().
 	pidLex:ADD("LASTSAMPLETIME",{ RETURN lastSampleTime.}).
-	pidLex:ADD("kP",kP).
-	pidLex:ADD("kI",kI).
-	pidLex:ADD("kD",kD).
+	pidLex:ADD("kP",{PARAMETER newkP IS kP. SET kP TO newkP. RETURN kP.}).
+	pidLex:ADD("kI",{PARAMETER newkI IS kI. SET kI TO newkI. RETURN kI.}).
+	pidLex:ADD("kD",{PARAMETER newkD IS kD. SET kD TO newkD. RETURN kD.}).
 	pidLex:ADD("INPUT",{ RETURN lastInput.}).
 	pidLex:ADD("SETPOINT",v(0,0,0)).
 	pidLex:ADD("ERROR",{ RETURN lastError.}).

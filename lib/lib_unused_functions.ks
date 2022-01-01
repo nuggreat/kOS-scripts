@@ -90,6 +90,11 @@ FUNCTION pseudo_throttle_config { //creates config file for pseudo_throttle
 	RETURN tConfig.
 }
 
+FUNCTION engine_torque {
+	PARAMETER eng.
+	RETURN VCRS((SHIP:POSITION - eng:POSITION),(eng:FACING:VECTOR * eng:AVAILABLETHRUST)).
+}
+
 FUNCTION burn_along_vector {//needs libs formating, rocker utilities
 	PARAMETER DVvector,startTime IS TIME:SECONDS,doStage IS TRUE.
 	ABORT OFF.
@@ -219,6 +224,14 @@ FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time
   IF newLNG > 180 { SET newLNG TO newLNG - 360. }
   RETURN LATLNG(posLATLNG:LAT,newLNG).
 }//function used but included for easy of reference for impact_eta function
+
+FUNCTION ground_track2 {	//returns the geocoordinates of the vector at a given time(UTs) adjusting for planetary rotation over time, only works for non tilted spin on bodies 
+	PARAMETER pos,posTime,localBody IS SHIP:BODY.
+	LOCAL timeDif IS  posTime - TIME:SECONDS.
+	LOCAL degShift IS (-360 / localBody:ROTATIONPERIOD) * timeDif.
+	LOCAL newPos IS ANGLEAXIS(degShift,localBody:ANGULARVEL) * (pos - localBody:POSITION).
+	RETURN localBody:GEOPOSITIONOF(newPos + localBody:POSITION).
+}
 
 FUNCTION warp_control {
 	PARAMETER timeIn,easeFactor is 1,warpBase is KUNIVERSE:TIMEWARP,maxRate is KUNIVERSE:TIMEWARP:RAILSRATELIST:LENGTH - 1,railRateList is KUNIVERSE:TIMEWARP:RAILSRATELIST.
@@ -454,52 +467,70 @@ FUNCTION parts_with_module_near {//returns a list of parts containing the named 
 	//RETURN returnList.
 }
 
-FUNCTION number_concatnation {
-	PARAMETER string,cha.//expects " " as the base string to start with
-	LOCAL returnString TO string.
-	IF cha:MATCHESPATTERN("[0-9-.]") {
-		IF cha:MATCHESPATTERN("[0-9]") {
-			RETURN returnString + cha.
-		} ELSE IF cha = "-" {
-			IF returnString:CONTAINS("-"){
-				RETURN " " + returnString:REMOVE(0,1).
+FUNCTION string_cat2 {
+	PARAMETER inStr.
+	SET inStr TO " " + inStr + " ".
+	SET spltStr TO inStr:SPLIT("{}").
+	LOCAL retStr IS "".
+	SET i TO 0.
+	LOCAL iMax IS spltStr:LENGTH - 1.
+	LOCAL done IS FALSE.
+	LOCAL terminator IS LEX().
+	UNTIL done {
+		PARAMETER arg IS terminator.
+		IF arg <> terminator {
+			IF i < iMax { 
+				SET retStr TO retStr + spltStr[i] + arg.
 			} ELSE {
-				RETURN cha + returnString:REMOVE(0,1).
+				SET retStr TO retStr + arg.
 			}
-		} ELSE IF cha = "." {
-			IF returnString:CONTAINS(".") {
-				RETURN returnString.
-			} ELSE {
-				RETURN returnString + cha.
-			}
+		} ELSE {
+			SET retStr TO retStr + spltStr[i].
+			SET done TO TRUE.
 		}
-	} ELSE IF (cha = TERMINAL:INPUT:BACKSPACE) AND (returnString:LENGTH > 1)  {
-		RETURN returnString:REMOVE(returnString:LENGTH - 1,1).
-	} ELSE {
-		RETURN returnString.
+		SET i TO i + 1.
 	}
+	SET retStr TO retStr:REMOVE(0,1).
+	SET retStr TO retStr:REMOVE(retStr:LENGTH - 1,1).
+	RETURN retStr.
 }
 
-FUNCTION terminal_concatnation {
-	PARAMETER curentString,cha,enterFunction IS { PARAMETER str. }.
-	IF cha:MATCHESPATTERN("[ -~]") {
-		IF curentString:LENGTH < 30 {
-			RETURN curentString + cha.
+FUNCTION string_cat {
+	PARAMETER inStr.
+	LOCAL i IS 0.
+	LOCAL terminator IS LEX().
+	LOCAL escapeChar IS CHAR(0).
+	LOCAL escapeStr IS "{" + escapeChar.
+	UNTIL FALSE {
+		PARAMETER arg IS terminator.
+		LOCAL repStr IS "{" + i + "}".
+		IF arg <> terminator {
+			IF inStr:CONTAINS(repStr) {
+				SET inStr TO inStr:REPLACE(repStr,escapeChar + (arg:TOSTRING():REPLACE("{",escapeStr))).
+				SET i TO i + 1.
+			} ELSE {
+				BREAK.
+			}
 		} ELSE {
-			PRINT CHAR(7) AT(4,4).
-			RETURN curentString.
+			BREAK.
 		}
-	} ELSE IF (cha = TERMINAL:INPUT:BACKSPACE) {
-		IF (curentString:LENGTH > 0) {
-			RETURN curentString:REMOVE(curentString:LENGTH - 1,1).
+	}
+	RETURN inStr:REPLACE(escapeChar,"").
+}
+
+FUNCTION ternary_search {
+	PARAMETER f, left, right, absPrecision.
+	UNTIL FALSE {
+		IF ABS(right - left) < absPrecision {
+			RETURN (left + right) / 2.
+		}
+		LOCAL leftThird IS left + (right - left) / 3.
+		LOCAL rightThird IS right - (right - left) / 3.
+		IF f(leftThird) < f(rightThird) {
+			SET left TO leftThird.
 		} ELSE {
-			RETURN curentString.
+			SET right TO rightThird.
 		}
-	} ELSE IF (cha = TERMINAL:INPUT:ENTER) {
-		enterFunction(curentString).
-		RETURN "".
-	} ELSE {
-		RETURN curentString.
 	}
 }
 
@@ -509,8 +540,7 @@ FUNCTION delta_init {
     LOCAL oldVal IS initalVal.
     LOCAL oldDelta IS initalVal - initalVal.
     RETURN {
-        PARAMETER newVal.
-        LOCAL newTime IS TIME:SECONDS.
+        PARAMETER newVal, newTime IS TIME:SECONDS.
         LOCAL deltaT IS newTime - oldTime.
         IF deltaT = 0 {
             RETURN oldDelta.
@@ -535,18 +565,84 @@ FUNCTION inerta_vector {
 	RETURN v((am:X / av:X),(-am:Z / av:Y),(am:Y / av:Z)).//x = pitch, y = yaw, z = roll
 }
 
+FUNCTION moi_getter_init {
+	PARAMETER lowPassCoef IS 50.
+	LOCAL warpStruct IS KUNIVERSE:TIMEWARP.
+	LOCAL lowPassHighVal IS (lowPassCoef - 1) / lowPassCoef.
+	LOCAL lowPassLowVal IS 1 - lowPassHighVal.
+	LOCAL angVel IS SHIP:ANGULARVEL * -SHIP:FACING.
+	LOCAL angMom IS SHIP:ANGULARMOMENTUM.
+	UNTIL (angVel:X * angVel:Y * angVel:Z * angMom:X * angMom:Y * angMom:Z) <> 0 {
+		WAIT 0.
+		SET angVel TO SHIP:ANGULARVEL * -SHIP:FACING.
+		SET angMom TO SHIP:ANGULARMOMENTUM.
+	}
+	LOCAL MoIvec IS v(
+		(angMom:X / angVel:X), //pitch axis
+		(-angMom:Z / angVel:Y),//yaw   axis
+		(angMom:Y / angVel:Z)  //roll  axis
+	).
+	RETURN {
+		PARAMETER newAngVel IS SHIP:ANGULARVEL, newAngMom IS SHIP:ANGULARMOMENTUM.
+		IF	(warpStruct:WARP = 0) AND
+			(warpStruct:MODE <> "RAILS") AND
+			((angVel:X * angVel:Y * angVel:Z * angMom:X * angMom:Y * angMom:Z) <> 0)
+		{
+			LOCAL newMoIvec IS v(
+				(angMom:X / angVel:X), //pitch axis
+				(-angMom:Z / angVel:Y),//yaw   axis
+				(angMom:Y / angVel:Z)  //roll  axis
+			).
+			SET MoIvec TO MoIvec * lowPassHighVal + newMoIvec * lowPassLowVal.
+		}
+		RETURN LEX (
+			"Pitch",MoIvec:X,
+			"Yaw",MoIvec:Y,
+			"Roll",MoIvec:Z,
+		).
+	}
+}
+
+FUNCTION circ_at_pe {
+	LOCAL nodeTime IS TIME:SECONDS + ETA:PERIAPSIS.
+	LOCAL rad IS BODY:RADIUS + SHIP:ORBIT:PERIAPSIS.
+    LOCAL velAtPE IS SQRT(BODY:MU * (2 / rad - 1 / SHIP:ORBIT:SEMIMAJORAXIS)).
+	LOCAL circularVel IS SQRT(BODY:MU / rad).
+	RETURN NODE(nodeTime,0,0,circularVel - velAtPE).
+}
+
+FUNCTION circ_at_ap {
+    LOCAL nodeTime IS TIME:SECONDS + ETA:APOAPSIS.
+	LOCAL rad IS BODY:RADIUS + SHIP:ORBIT:APOAPSIS.
+    LOCAL velAtAP IS SQRT(BODY:MU * (2 / rad - 1 / SHIP:ORBIT:SEMIMAJORAXIS)).
+    LOCAL circularVel IS SQRT(BODY:MU / rad).
+    RETURN NODE(nodeTime,0,0,circularVel - velAtAP).
+}
+
+FUNCTION circ_node_at {
+	PARAMETER atAP.
+	LOCAL nodeTime IS TIME:SECONDS + (CHOOSE ETA:APOAPSIS IF atAP ELSE ETA:PERIAPSIS).
+	LOCAL radAt IS BODY:RADIUS + CHOOSE SHIP:ORBIT:APOAPSIS IF atAP ELSE SHIP:ORBIT:PERIAPSIS.
+	LOCAL spdAt IS VELOCITYAT(SHIP,nodeTime):ORBIT:MAG.
+    LOCAL spdAt IS SQRT(BODY:MU * (2 / radAt - 1 / SHIP:ORBIT:SEMIMAJORAXIS)).
+	LOCAL circularVel IS SQRT(SHIP:BODY:MU / (radAt)).
+	RETURN NODE(nodeTime,0,0,circularVel - spdAt).
+}
+
 FUNCTION circularize_at_UT {
   PARAMETER UTs.
-  LOCAL upVec IS (POSITIONAT(SHIP,UTs) - SHIP:BODY:POSITION).
-  LOCAL vecNodePrograde IS VELOCITYAT(SHIP,UTs):ORBIT:NORMALIZED.
-  LOCAL vecNodeNormal IS VCRS(vecNodePrograde,upVec):NORMALIZED.
+  LOCAL localBody IS ORBITAT(SHIP,UTs):BODY.
+  LOCAL upVec IS (POSITIONAT(SHIP,UTs) - localBody:POSITION).
+  LOCAL vecCurrentVel IS VELOCITYAT(SHIP,UTs):ORBIT.
+  LOCAL vecNodePrograde IS vecCurrentVel:NORMALIZED.
+  LOCAL vecNodeNormal IS VCRS(vecNodePrograde,upVec:NORMALIZED):NORMALIZED.
   LOCAL vecNodeRadial IS VCRS(vecNodeNormal,vecNodePrograde):NORMALIZED.
   
-  LOCAL velTarget IS SQRT(SHIP:BODY:MU / upVec:MAG).
-  LOCAL vecTarget IS (VXCL(upVec,vecNodePrograde):NORMALIZED * velTarget) - vecNodePrograde.
+  LOCAL speedTarget IS SQRT(localBody:MU / upVec:MAG).
+  LOCAL vecTarget IS (VXCL(upVec,vecNodePrograde):NORMALIZED * speedTarget) - vecCurrentVel.
   
-  LOCAL nodePrograde IS VDOT(vecTarget,vecNodePrograde:NORMALIZED).
-  LOCAL nodeRadial IS VDOT(vecTarget,vecNodeRadial:NORMALIZED).
+  LOCAL nodePrograde IS VDOT(vecTarget,vecNodePrograde).
+  LOCAL nodeRadial IS VDOT(vecTarget,vecNodeRadial).
   
   RETURN NODE(UTs,nodeRadial,0,nodePrograde).
 }
@@ -572,36 +668,101 @@ FUNCTION better_write {//verify data is written to a json file
 }
 
 FUNCTION is_equal {//recursive by value equality test.
-	PARAMETER a,b.
-	IS a:ISTYPE("lexicon") AND b:ISTYPE("lexicon") {
-		IF is_equal(a:KEYS,b:KEYS) {
-			FOR key in a:KEYS {
-				IF NOT is_equal(a[key],b[key]) {
+	PARAMETER j,k.
+	IF j:ISTYPE("lexicon") AND k:ISTYPE("lexicon") {
+		FOR key IN j:KEYS {
+			IF NOT k:HASKEY(key) {
+				RETURN FALSE.
+			}
+		}
+		FOR key IN k:KEYS {
+			IF NOT (j:HASKEY(key) AND is_equal(a[key],b[key])){
+				RETURN FALSE.
+			}
+		}
+	} ELSE IF j:ISTYPE("enumerable") AND k:ISTYPE("enumerable") {
+		IF j:LENGTH = k:LENGTH {
+			LOCAL iJ is j:ITERATOR.
+			LOCAL iK IS k:ITERATOR.
+			UNTIL NOT(iJ:NEXT AND iK:NEXT) {
+				IF NOT is_equal(iJ:VALUE,iK:VALUE) {
 					RETURN FALSE.
 				}
 			}
 			RETURN TRUE.
 		}
-	} ELSE IF a:ISTYPE("enumerable") AND b:ISTYPE("enumerable") {
-		IF a:LENGTH = b:LENGTH {
-			LOCAL iA is a:ITTERATOR.
-			LOCAL iB IS b:ITTERATOR.
-			UNTIL NOT(iA:NEXT AND iB:NEXT) {
-				IF NOT is_equal(iA:VALUE,iB:VALUE) {
-					RETURN FALSE.
-				}
-			}
-			RETURN TRUE.
-		}
-	} ELSE IF a:TYPENAME = b:TYPENAME {
+	} ELSE IF j:TYPENAME = k:TYPENAME {
 		RETURN a = b.
 	}
 	RETURN FALSE.
 }
 
+FUNCTION deep_copy {
+	PARAMETER thing, depth IS 5.
+	IF depth > 0 {
+		IF thing:ISTYPE("Lexicon") {
+			LOCAL newLex IS LEX().
+				FOR key IN thing:KEYS {
+					newLex:ADD(key,deep_copy(thing[key],depth - 1)).
+				}
+			RETURN newLex.
+		} ELSE IF thing:ISTYPE("List") {
+			LOCAL newList IS LIST().
+				FOR i IN thing {
+					newList:ADD(deep_copy(i,depth - 1)).
+				}
+			RETURN newList.
+		} ELSE IF thing:ISTYPE("Queue") {
+			LOCAL newQueue IS QUEUE().
+			LOCAL i IS thing:ITERATOR.
+			UNTIL NOT i:NEXT {
+				newQueue:PUSH(deep_copy(i,depth - 1)).
+			}
+			RETURN newQueue.
+		} ELSE IF thing:ISTYPE("Stack") {
+			LOCAL newStack IS STACK().
+			LOCAL i IS thing:REVERSEITERATOR.
+			UNTIL NOT i:NEXT {
+				newStack:PUSH(deep_copy(i,depth - 1)).
+			}
+			RETURN newStack.
+		} ELSE IF thing:ISTYPE("Uniqueset") {
+			LOCAL newUniqueset IS UNIQUESET().
+			LOCAL i IS thing:ITERATOR.
+			UNTIL NOT i:NEXT {
+				newUniqueset:ADD(deep_copy(i,depth - 1)).
+			}
+			RETURN newUniqueset.
+		}
+	}
+	RETURN thing.
+}
+
+FUNCTION static_atm_temp {
+	LOCAL jPerKgK IS (CONSTANT:IDEALGAS() / BODY:ATM:MOLARMASS).
+	LOCAL atmDencity IS (SHIP:Q * 2) / VELOCITY:SURFACE:SQRMAGNITUDE.
+	LOCAL atmTemp IS (BODY:ATM:ALTITUDEPRESSURE(ALTITUDE)) / (jPerKgK * atmDencity).
+	RETURN atmTemp.
+}
+
 FUNCTION current_mach_number {
-	LOCAL currentPresure IS MAX(BODY:ATM:ALTITUDEPRESSURE(SHIP:ALTITUDE),0.0000001).
-	RETURN SQRT(2 / BODY:ATM:ADIABATICINDEX * SHIP:Q / currentPresure).
+	LOCAL currentPresure IS BODY:ATM:ALTITUDEPRESSURE(SHIP:ALTITUDE).
+	RETURN CHOOSE SQRT(2 / BODY:ATM:ADIABATICINDEX * SHIP:Q / currentPresure) IF currentPresure > 0 ELSE 0.
+}
+
+FUNCTION get_primary {
+	PARAMETER startingBody.
+	LOCAL tmpBody IS startingBody.
+	UNTIL NOT tmpBody:HASBODY {
+		SET tmpBody TO tmpBody:BODY.
+	}
+	RETURN tmpBody.
+	
+	IF startingBody:HASBODY {
+		RETURN get_primary(startingBody:BODY).
+	} ELSE {
+		RETURN startingBody.
+	}
 }
 
 FUNCTION kill {
@@ -612,7 +773,6 @@ FUNCTION kill {
 	LOCK STEERING to "kill".
 	UNLOCK THROTTLE.
 	UNLOCK STEERING.
-	UNLOCK ALL.
 	SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 	CLEARVECDRAWS().
 	CLEARGUIS().
@@ -644,20 +804,6 @@ FUNCTION thrust_balancer {
 	}
 }
 
-FUNCTION circ_at_pe {
-	LOCAL nodeTime IS TIME:SECONDS + ETA:PERIAPSIS.
-	LOCAL velAtPE IS VELOCITYAT(SHIP,nodeTime):ORBIT:MAG.
-	LOCAL circularVel IS SQRT(BODY:MU / (SHIP:ORBIT:PERIAPSIS + BODY:RADIUS)).
-	RETURN NODE(nodeTime,0,0,velAtPE - circularVel).
-}
-
-FUNCTION circ_at_ap {
-	LOCAL nodeTime IS TIME:SECONDS + ETA:APOAPSIS.
-	LOCAL velAtPE IS VELOCITYAT(SHIP,nodeTime):ORBIT:MAG.
-	LOCAL circularVel IS SQRT(BODY:MU / (SHIP:ORBIT:APOAPSIS + BODY:RADIUS)).
-	RETURN NODE(nodeTime,0,0,velAtPE - circularVel).
-}
-
 FUNCTION message_ques {
 	LOCAL mQueue IS QUEUE().
 	LOCAL coreM IS CORE:MESSAGES.
@@ -671,29 +817,29 @@ FUNCTION message_ques {
 	RETURN qQueue.
 }
 
-FUNCTION better_trigger {//an improvment to the builtin when then trigger of kOS
-	PARAMETER condition,
-	codeBody,
-	shouldPersist.
-	LOCAL conLex IS LEX().
-	conLex:ADD("clear",FALSE).
-	conLex:ADD("notSuspended",TRUE)
-	conLex:ADD("persist",shouldPersist).
-	conLex:ADD("alive",TRUE)
-	
-	WHEN conLex:clear or (conLex:notSuspended AND condition()) {
-		IF conLex:clear {
-			SET conLex:alive TO FALSE.
-		} ELSE {
-			codeBody().
-			IF shouldPersist {
-				PRESERVE.
-			} ELSE {
-				SET conLex:alive TO FALSE.
-			}
-		}
-	}
-	RETURN conLex.
+FUNCTION better_trigger {//an improvement to the builtin when then trigger of kOS
+    PARAMETER condition,
+    codeBody,
+    shouldPersist.
+    LOCAL conLex IS LEX().
+    conLex:ADD("triggerClear",FALSE).
+    conLex:ADD("triggerNotSuspended",TRUE).
+    conLex:ADD("triggerPersist",shouldPersist).
+    conLex:ADD("triggerAlive",TRUE).
+
+    WHEN conLex:triggerClear OR (conLex:triggerNotSuspended AND condition()) THEN {
+        IF conLex:triggerClear {
+            SET conLex:triggerAlive TO FALSE.
+        } ELSE {
+            codeBody().
+            IF shouldPersist {
+                PRESERVE.
+            } ELSE {
+                SET conLex:triggerAlive TO FALSE.
+            }
+        }
+    }
+    RETURN conLex.
 }
 
 FUNCTION interp_z_val {//takes in 5 vectors

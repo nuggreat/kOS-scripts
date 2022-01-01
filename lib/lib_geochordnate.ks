@@ -106,10 +106,10 @@ LOCAL FUNCTION contains_str_list { //checks if the name of a thing contains the 
 	RETURN validThing.
 }
 
-FUNCTION ground_track {	//returns the geocoordinates of the ship at a given time(UTs) adjusting for planetary rotation over time, only works for non tilted spin on bodies 
+FUNCTION ground_track {	//returns the geocoordinates of the vector at a given time(UTs) adjusting for planetary rotation over time, only works for non tilted spin on bodies 
 	PARAMETER pos,posTime,localBody IS SHIP:BODY.
 	LOCAL bodyNorth IS v(0,1,0).//using this instead of localBody:NORTH:VECTOR because in many cases the non hard coded value is incorrect
-	LOCAL rotationalDir IS VDOT(bodyNorth,localBody:ANGULARVEL) * CONSTANT:RADTODEG. //the number of degrees the body will rotate in one second
+	LOCAL rotationalDir IS VDOT(bodyNorth,localBody:ANGULARVEL) * CONSTANT:RADTODEG(). //the number of degrees the body will rotate in one second
 	LOCAL posLATLNG IS localBody:GEOPOSITIONOF(pos).
 	LOCAL timeDif IS posTime - TIME:SECONDS.
 	LOCAL longitudeShift IS rotationalDir * timeDif.
@@ -137,7 +137,7 @@ FUNCTION inital_heading { //returns the initial heading for shortest distance be
 
 FUNCTION distance_heading_to_latlng {//takes in a heading, distance, and start point and returns the latlng at the end of the greater circle
 	PARAMETER head,dist,p1 IS SHIP:GEOPOSITION.
-	LOCAL degTravle IS (dist*180) / (p1:BODY:RADIUS * CONSTANT:PI).//degrees around the body, might make as constant
+	LOCAL degTravle IS (dist*180) / (p1:BODY:RADIUS * CONSTANT:PI()).//degrees around the body, might make as constant
 	LOCAL sinP1lat IS SIN(p1:LAT).
 	LOCAL sinDegTcosP1lat IS SIN(degTravle)*COS(p1:LAT).
 	LOCAL newLat IS ARCSIN(sinP1lat*COS(degTravle) + sinDegTcosP1lat*COS(head)).

@@ -116,7 +116,7 @@ translation_control_init().
 IF NOT stationMove {
 	IF axis_distance(craftPort,stationPort)[1] < noFlyZone {
 		IF VXCL(craftPort:PORTFACING:FOREVECTOR,craftPort:POSITION - stationPort:POSITION):MAG < noFlyZone {
-			UNTIL evade_trans(noFlyZone,craftPort,stationPort,station,transSpeed,accelLimit,portSize).
+			UNTIL avoid_trans(noFlyZone,craftPort,stationPort,station,transSpeed,accelLimit,portSize).
 		}
 		RCS ON.
 		UNTIL advance_trans(noFlyZone,craftPort,stationPort,station,transSpeed,accelLimit,portSize).
@@ -124,9 +124,9 @@ IF NOT stationMove {
 	RCS ON.
 	UNTIL align_trans(noFlyZone,craftPort,stationPort,station,transSpeed,accelLimit,portSize).
 	RCS ON.
-	UNTIL close_trans(noFlyZone,craftPort,stationPort,station,transSpeed,accelLimit,portSize).
+	UNTIL aquire_trans(noFlyZone,craftPort,stationPort,station,transSpeed,accelLimit,portSize).
 } ELSE {
-	UNTIL close_trans(noFlyZone,craftPort,stationPort,station,transSpeed,accelLimit,portSize).
+	UNTIL aquire_trans(noFlyZone,craftPort,stationPort,station,transSpeed,accelLimit,portSize).
 }
 
 } ELSE {
@@ -206,7 +206,7 @@ FUNCTION burn_closer {
 	LOCK STEERING TO (station:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT).
 }
 
-FUNCTION evade_trans {
+FUNCTION avoid_trans {
 	PARAMETER noFlyZone,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
 	//"Moving out of No Fly Zone of Station."
 
@@ -214,7 +214,7 @@ FUNCTION evade_trans {
 	LOCAL velVec IS evasionVec:NORMALIZED * maxTranslation.
 
 	translation_control(velVec,station,SHIP).
-	print_trans((evasionVec:MAG - noFlyZone),"Moving out of No Fly Zone of Station.",portSize).
+	print_trans((evasionVec:MAG - noFlyZone),"Avoiding the No Fly Zone of Station.",portSize).
 
 	RETURN evasionVec:MAG > noFlyZone.
 }
@@ -231,7 +231,7 @@ FUNCTION advance_trans {
 	LOCAL velVec IS dist_to_vel(distVec,accelLimit,maxTranslation).
 
 	translation_control(velVec,station,SHIP).
-	print_trans(distVec:MAG,"Translating Infront of Target Port.",portSize).
+	print_trans(distVec:MAG,"Advancing Infront of Target Port.",portSize).
 
 	RETURN distVec:MAG < 1.
 }
@@ -251,7 +251,7 @@ FUNCTION align_trans {
 	RETURN distVec:MAG < 1.
 }
 
-FUNCTION close_trans {
+FUNCTION aquire_trans {
 	PARAMETER noFlyZone,craftPort,stationPort,station,maxTranslation,accelLimit,portSize.
 
 	LOCAL stationForeVec IS stationPort:PORTFACING:FOREVECTOR.
@@ -278,12 +278,6 @@ FUNCTION print_trans {
 	PRINT " ".
 	PRINT "Port Size: " + portSize.
 	PRINT "Distance:  " + ROUND(distDif,1).
-}
-
-FUNCTION dist_to_vel {
-	PARAMETER distVec,accel,maxVel.
-	LOCAL targetVel IS MIN(SQRT(2 * distVec:MAG / accel) * accel,maxVel).
-	RETURN distVec:NORMALIZED * targetVel.
 }
 
 FUNCTION port_lock {

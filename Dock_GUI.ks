@@ -12,12 +12,12 @@ LOCAL varConstants IS LEX("numList",LIST("0","1","2","3","4","5","6","7","8","9"
 LOCAL vecDrawLex IS LEX().
 
 LOCAL scriptData IS LEX("done",FALSE).
-LOCAL burnData IS LEX("stop",FALSE,"steerVec",SHIP:FACING:FOREVECTOR,"throttle",0).//lexicon for burn function
+LOCAL burnData IS LEX("stop",FALSE,"steerTar",SHIP:FACING:FOREVECTOR,"throttle",0).//lexicon for burn function
 
 LOCAL portData IS LEX("matchingSize",LIST(),"shipList",LIST(),"targetList",LIST(),//lexicon for docking port selection
 "highlighting",LIST(),"targetPorts",LIST(),"changedTarget",FALSE,"isKlaw",FALSE).
 
-LOCAL translateData IS LEX("steerVec",SHIP:FACING:FOREVECTOR,//lexicon of needed to run translation function
+LOCAL translateData IS LEX("steerTar",SHIP:FACING:FOREVECTOR,//lexicon of needed to run translation function
 "foreVal",0,"topVal",0,"starVal",0,
 "pitch",0,"yaw",0,"roll",0,"topSpeed",5,"accel",0.05,
 "stop",FALSE,"targetIsType",TRUE,"targetPorts",FALSE,"oldTarget",LIST(TRUE,TRUE)
@@ -500,7 +500,7 @@ FUNCTION burn {
 		//PRINT "state: " + burnData["state"] AT(0,0).
 	}
 
-	SET burnData["steerVec"] TO burnVec - (targetVelocityVec:NORMALIZED * vecMod).
+	SET burnData["steerTar"] TO burnVec - (targetVelocityVec:NORMALIZED * vecMod).
 	IF statusData["dispOn"] {
 		SET statusData["data"][1] TO burnState.
 		SET statusData["data"][2] TO tarSpeed.
@@ -511,7 +511,7 @@ FUNCTION burn {
 
 	}
 	IF statusData["showVectors"] {
-		vec_draw_add(vecDrawLex,SHIP:POSITION,burnData["steerVec"],GREEN,"steerVec",1,TRUE,0.2).
+		vec_draw_add(vecDrawLex,SHIP:POSITION,burnData["steerTar"],GREEN,"steerTar",1,TRUE,0.2).
 		vec_draw_add(vecDrawLex,SHIP:POSITION,targetVelocityVec,YELLOW,"targetVel",1,TRUE,0.2).
 		vec_draw_add(vecDrawLex,SHIP:POSITION,relitaveVelocityVec,RED,"relitveVel",1,TRUE,0.2).
 	}
@@ -519,9 +519,9 @@ FUNCTION burn {
 	IF burnState = 0 {
 		SAS OFF.
 		RCS OFF.
-		//SET burnData["steerVec"] TO SHIP:FACING:FOREVECTOR.
+		//SET burnData["steerTar"] TO SHIP:FACING:FOREVECTOR.
 		SET burnData["throttle"] TO 0.
-		LOCK STEERING TO LOOKDIRUP(burnData["steerVec"],SHIP:FACING:TOPVECTOR).
+		LOCK STEERING TO LOOKDIRUP(burnData["steerTar"],SHIP:FACING:TOPVECTOR).
 		LOCK THROTTLE TO burnData["throttle"].
 		steering_alinged_duration(TRUE,1,FALSE).
 		taskList:ADD(burn@:BIND((burnState + 1),localTarget,targetSpeed,targetDist)).
@@ -772,7 +772,7 @@ FUNCTION update_translate { IF have_valid_target() {
 	PRINT "updating translation data".
 	LOCAL targetPoint IS target_craft(TARGET).
 	LOCAL shipPoint IS SHIP.
-	SET translateData["steerVec"] TO SHIP:FACING:FOREVECTOR.
+	SET translateData["steerTar"] TO SHIP:FACING:FOREVECTOR.
 
 	LOCAL steerType IS "".
 	SET translateData["Roll"] TO MOD(get_number(itmnfl2Roll,0),360).
@@ -888,7 +888,7 @@ FUNCTION translate {
 		SET targetFacingFor TO targetFacing:FOREVECTOR.
 		SET targetFacingTop TO targetFacing:TOPVECTOR.
 		SET targetFacingStar TO targetFacing:STARVECTOR.
-		SET translateData["steerVec"] TO ANGLEAXIS(translateData["Roll"],-targetFacingFor) * LOOKDIRUP(-targetFacingFor, targetFacingTop).
+		SET translateData["steerTar"] TO ANGLEAXIS(translateData["Roll"],-targetFacingFor) * LOOKDIRUP(-targetFacingFor, targetFacingTop).
 		IF shipPoint:STATE:CONTAINS("Docked") {
 			taskList:ADD(shutdown_stack@).
 			RETURN TRUE.
@@ -897,14 +897,14 @@ FUNCTION translate {
 	} ELSE IF translateData["targetIsType"] = "craft" {
 		LOCAL steerDir IS ANGLEAXIS(-translateData["Pitch"],targetFacingStar) * targetFacing.
 		SET steerDir TO ANGLEAXIS(translateData["Yaw"],steerDir:TOPVECTOR) * steerDir.
-		SET translateData["steerVec"] TO ANGLEAXIS(translateData["Roll"],steerDir:FOREVECTOR) * steerDir.
+		SET translateData["steerTar"] TO ANGLEAXIS(translateData["Roll"],steerDir:FOREVECTOR) * steerDir.
 		SET statusData["data"][0] TO 1.
 	} ELSE IF translateData["targetIsType"] = "com" {
 		SET targetFacing TO SHIP:FACING.
 		SET targetFacingFor TO targetFacing:FOREVECTOR.
 		SET targetFacingTop TO targetFacing:TOPVECTOR.
 		SET targetFacingStar TO targetFacing:STARVECTOR.
-		SET translateData["steerVec"] TO LOOKDIRUP(targetPoint:POSITION - shipPoint:POSITION,SHIP:FACING:TOPVECTOR).
+		SET translateData["steerTar"] TO LOOKDIRUP(targetPoint:POSITION - shipPoint:POSITION,SHIP:FACING:TOPVECTOR).
 		SET statusData["data"][0] TO 2.
 	}
 	IF statusData["dispOn"] {
@@ -922,7 +922,7 @@ FUNCTION translate {
 	IF translateState = 0 {
 		SET statusData["data"][5] TO V(0,0,0).
 		SAS OFF.
-		LOCK STEERING TO translateData["steerVec"].
+		LOCK STEERING TO translateData["steerTar"].
 		steering_alinged_duration(TRUE,5,TRUE).
 		//LOCK THROTTLE TO 0.
 		//FOR key IN varConstants["translationPIDs"] { PID[key]:RESET(). }
@@ -982,8 +982,7 @@ FUNCTION translate {
 			}
 
 			SET vecToTarget TO targetPosition - shipPoint:POSITION.
-			LOCAL speedCoeficent IS accel_dist_to_speed(translateData["accel"],vecToTarget:MAG,translateData["topSpeed"],0).
-			SET desiredVelocityVec TO desiredVelocityVec + vecToTarget:NORMALIZED * speedCoeficent.
+			SET desiredVelocityVec TO desiredVelocityVec + dist_to_vel(vecToTarget,translateData["accel"],translateData["topSpeed"]).
 
 			IF desiredVelocityVec:MAG > translateData["topSpeed"] {
 				SET desiredVelocityVec TO desiredVelocityVec:NORMALIZED * translateData["topSpeed"].

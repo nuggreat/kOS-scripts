@@ -55,8 +55,8 @@ LOCAL startDist IS localNode["distToDest"].
 LOCAL endID IS "0,0".
 LOCAL closestDist IS startDist - 0.01.
 PRINT "   closest Dist: " + ROUND(closestDist) AT(0,3).
-LOCAL vecWidth IS CHOOSE 0.5 IF MAPVIEW ELSE 1.
-
+LOCAL vecWidth IS 500.
+IF MAPVIEW { SET vecWidth TO 0.5. }
 LOCAL bestVec IS VECDRAW(SHIP:POSITION,SHIP:UP:VECTOR * 2000, GREEN,"",1,TRUE,vecWidth).
 LOCAL nodeVec IS VECDRAW(SHIP:POSITION,SHIP:UP:VECTOR * 2000, YELLOW,"",1,TRUE,vecWidth).
 LOCAL endVecDraw IS VECDRAW(dest:POSITION,(dest:POSITION - SHIP:BODY:POSITION):NORMALIZED * 2000,RED,"",1,TRUE,vecWidth).
@@ -66,9 +66,8 @@ LOCAL startTime IS TIME:SECONDS.
 
 ON MAPVIEW {
 	IF NOT done {
-		LOCAL vecWidth IS CHOOSE 0.5 IF MAPVIEW ELSE 1.
-		// LOCAL vecWidth IS 500.
-		// IF MAPVIEW { SET vecWidth TO 0.5. }
+		LOCAL vecWidth IS 500.
+		IF MAPVIEW { SET vecWidth TO 0.5. }
 		SET bestVec:WIDTH TO vecWidth.
 		SET nodeVec:WIDTH TO vecWidth.
 		SET endVecDraw:WIDTH TO vecWidth.
@@ -111,9 +110,8 @@ LOCAL vecDrawList IS LIST().
 SET done TO FALSE.
 ON MAPVIEW {
 	IF NOT done {
-		LOCAL vecWidth IS CHOOSE 0.05 IF MAPVIEW ELSE 0.1.
-		// LOCAL vecWidth IS 200.
-		// IF MAPVIEW { SET vecWidth TO 0.05. }
+		LOCAL vecWidth IS 200.
+		IF MAPVIEW { SET vecWidth TO 0.05. }
 		LOCAL drawLength IS vecDrawList:LENGTH.
 		FROM {LOCAL i IS 0. } UNTIL i >= drawLength STEP { SET i TO i + 1. } DO { 
 			SET vecDrawList[i]:WIDTH TO vecWidth.
@@ -170,9 +168,8 @@ FUNCTION render_points  {
 		LOCAL adjustPos IS pointPos + ((pointPos - SHIP:BODY:POSITION):NORMALIZED * 20).
 		LOCAL prePos IS prevousPoint:POSITION.
 		LOCAL adjPrePos IS prePos + ((prePos - SHIP:BODY:POSITION):NORMALIZED * 20).
-		LOCAL vecWidth IS CHOOSE 0.05 IF MAPVIEW ELSE 0.1.
-		// LOCAL vecWidth IS 200.
-		// IF MAPVIEW { SET vecWidth TO 0.05. }
+		LOCAL vecWidth IS 200.
+		IF MAPVIEW { SET vecWidth TO 0.05. }
 		vecDrawList:ADD(VECDRAW(adjPrePos,(adjustPos - adjPrePos),green,"",1,TRUE,vecWidth)).
 		SET totalDist to totalDist + dist_between_coordinates(prevousPoint,point).
 		SET prevousPoint TO point.
@@ -404,7 +401,6 @@ FUNCTION calculate_curviture {
 	LOCAL dVec IS normal_diff(deg_protect(northHeading + 135),nodeGeo,SQRT(0.5)).
 	LOCAL sumVec IS aVec + bVec + cVec + dVec.
 	RETURN VANG(nodeNormal,sumVec).
-	// RETURN 0.
 }
 
 FUNCTION normal_diff {
@@ -418,14 +414,6 @@ FUNCTION deg_protect {
 }
 
 FUNCTION remove_from_que {
-	PARAMETER nodeID,nodeScore.
-	IF nodeQue:CONTAINS(nodeID) {
-		LOCAL nodeIndex IS nodeQue:FIND(nodeID).
-		nodeQue:REMOVE(nodeIndex).
-	}
-}
-
-FUNCTION remove_from_que_old {
 	PARAMETER nodeID,nodeScore.
 	IF nodeQue:CONTAINS(nodeID) {
 		LOCAL queLength IS nodeQue:LENGTH.
@@ -453,7 +441,7 @@ FUNCTION remove_from_que_old {
 				}
 			} ELSE {
 				IF queHighScan < queLength {
-					// PRINT "checking high: " + nodeQue[queHighScan] AT(0,7).
+					//PRINT "checking high: " + nodeQue[queHighScan] AT(0,7).
 					IF nodeQue[queHighScan] = nodeID {
 
 						nodeQue:REMOVE(queHighScan).
@@ -463,7 +451,7 @@ FUNCTION remove_from_que_old {
 					}
 				}
 				IF queLowScan >= 0 {
-					// PRINT "checking low: " + nodeQue[queHighScan] AT(0,8).
+					//PRINT "checking low: " + nodeQue[queHighScan] AT(0,8).
 					IF nodeQue[queLowScan] = nodeID {
 						nodeQue:REMOVE(queLowScan).
 						BREAK.

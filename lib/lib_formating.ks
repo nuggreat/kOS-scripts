@@ -1,136 +1,121 @@
 @LAZYGLOBAL OFF.
 
-LOCAL lib_formating_lex IS LEX().
-{
-	LOCAL hoursInDay IS KUNIVERSE:HOURSPERDAY.
-	LOCAL daysInYear IS 365.
-	IF hoursInDay = 6 { SET daysInYear TO 426. }
-	lib_formating_lex:ADD("timeModList",LIST(60,60,hoursInDay,daysInYear)).
-}
-
 LOCAL FUNCTION time_converter {
-	PARAMETER timeValue,places.
-	LOCAL returnList IS LIST().
-	LOCAL localTime IS timeValue.
+	PARAMETER timeValue, places.
+	SET timeValue TO TIMESPAN(timeValue).
 
-	LOCAL place IS 1.
-	FOR modValue IN lib_formating_lex["timeModList"] {
-		LOCAL returnValue IS MOD(localTime,modValue).
-		returnList:ADD(returnValue).
+	IF timeValue:MINUTES < 1 OR places = 1 {
+		RETURN LIST(ROUND(timeValue:SECONDS,2)).
 
-		SET localTime TO FLOOR(localTime / modValue).
-		IF localTime = 0 { BREAK. }
-		SET place TO place + 1.
-		IF place = places { BREAK. }
-		
+	} ELSE IF timeValue:HOURS < 1 OR places = 2 {
+		RETURN LIST(ROUND(MOD(timeValue:SECONDS,60),2), timeValue:MINUTES).
+
+	} ELSE IF timeValue:DAYS < 1 OR places = 3 {
+		RETURN LIST(ROUND(MOD(timeValue:SECONDS,60),2), timeValue:MINUTE, timeValue:HOURS).
+
+	} ELSE IF timeValue:YEARS < 1 OR places = 4 {
+		RETURN LIST(ROUND(MOD(timeValue:SECONDS,60),2), timeValue:MINUTE, timeValue:HOUR, timeValue:DAYS).
+
+	} ELSE {
+		RETURN LIST(ROUND(MOD(timeValue:SECONDS,60),2), timeValue:MINUTE, timeValue:HOUR, timeValue:DAY, timeValue:YEARS).
 	}
-	IF localTime > 0 { returnList:ADD(localTime). }
-	RETURN returnList.
 }
 
-lib_formating_lex:ADD("leading0List",LIST(2,2,2,3,3)).
-LOCAL FUNCTION time_string {
-	PARAMETER timeSec, fixedPlaces, stringList, roundingList, tMinus.
-	LOCAL places IS stringList:LENGTH.
-	LOCAL timeList IS time_converter(ABS(timeSec),places).
-	LOCAL returnString IS "".
+LOCAL timeFormats IS LIST().
+timeFormats:ADD(LIST(0,LIST("s","m ","h ","d ","y "),2)).
+timeFormats:ADD(LIST(0,LIST("",":",":"," Days, "," Years, "),2)).
+timeFormats:ADD(LIST(0,LIST(" Seconds"," Minutes, "," Hours, "," Days, "," Years, "),2)).
+timeFormats:ADD(LIST(0,LIST("",":",":"),2)).
+timeFormats:ADD(LIST(3,timeFormats[3][1],2)).
+timeFormats:ADD(LIST(2,LIST("s  ","m  ","h  ","d ","y "),0)).
+timeFormats:ADD(LIST(2,LIST(" Seconds  "," Minutes  "," Hours    "," Days    "," Years   "),0)).
 
-	LOCAL maxLength IS MIN(timeList:LENGTH, places).
+LOCAL leading0List IS LIST(2,2,2,3,3).//presumed maximum leading zeros applied to sec,min,hour,day,year values
+
+FUNCTION time_formatting {
+	PARAMETER timeSec, formatType IS 0, rounding IS 0, prependT IS FALSE, showPlus IS prependT.
+
+	LOCAL timeFormat IS timeFormats[formatType].
+	LOCAL fixedPlaces IS timeFormat[0].
+	LOCAL stringList IS timeFormat[1].
+
+	LOCAL roundingList IS LIST(MIN(rounding,timeFormat[2]), 0, 0, 0, 0).
+	SET timeSec TO ROUND(timeSec, roundingList[0]).
+
+	LOCAL maxPlaces IS stringList:LENGTH.
+	LOCAL timeList IS time_converter(ABS(timeSec), maxPlaces).
+	LOCAL maxLength IS MIN(timeList:LENGTH, maxPlaces).
+	LOCAL returnString IS "".
 
 	IF fixedPlaces > 0 {
 		UNTIL timeList:LENGTH >= fixedPlaces {
 			timeList:ADD(0).
 		}
-		SET maxLength TO MIN(timeList:LENGTH, places).
+		SET maxLength TO MIN(timeList:LENGTH, maxPlaces).
 	} ELSE {
 		SET fixedPlaces TO maxLength.
 	}
 
-	FROM {LOCAL i IS maxLength - fixedPlaces.} UNTIL i >= maxLength STEP {SET i TO i + 1.} DO {
-		SET returnString TO padding(timeList[i],lib_formating_lex["leading0List"][i],roundingList[i],FALSE,1) + stringList[i] + returnString.
+	FROM {LOCAL i IS maxLength - fixedPlaces.}
+	UNTIL i >= maxLength STEP {SET i TO i + 1.} DO {
+		LOCAL paddedStr IS padding(timeList[i], leading0List[i], roundingList[i], FALSE, 1).
+		SET returnString TO paddedStr + stringList[i] + returnString.
 	}
+
+	IF prependT SET returnString TO returnString:INSERT(0, " ").
 
 	IF timeSec < 0 {
-		IF tMinus {
-			RETURN returnString:INSERT(0,"T- ").
-		} ELSE {
-			RETURN returnString:INSERT(0,"-").
-		}
+		SET returnString TO returnString:INSERT(0, "-").
+	} ELSE IF showPlus {
+		SET returnString TO returnString:INSERT(0, "+").
 	} ELSE {
-		IF tMinus {
-			RETURN returnString:INSERT(0,"T+ ").
-		} ELSE {
-			RETURN returnString:INSERT(0," ").
-		}
+		SET returnString TO returnString:INSERT(0, " ").
 	}
+
+	IF prependT SET returnString TO returnString:INSERT(0, "T").
+
+	RETURN returnString.
 }
 
-//adding list of format types
-lib_formating_lex:ADD("timeFormats",LIST()).
-lib_formating_lex["timeFormats"]:ADD(LIST(0,LIST("s","m ","h ","d ","y "))).
-lib_formating_lex["timeFormats"]:ADD(LIST(0,LIST("",":",":"," Days, "," Years, "))).
-lib_formating_lex["timeFormats"]:ADD(LIST(0,LIST(" Seconds"," Minutes, "," Hours, "," Days, "," Years, "))).
-lib_formating_lex["timeFormats"]:ADD(LIST(0,LIST("",":",":"))).
-lib_formating_lex["timeFormats"]:ADD(LIST(3,lib_formating_lex["timeFormats"][3][1])).
-lib_formating_lex["timeFormats"]:ADD(LIST(2,LIST("s  ","m  ","h  ","d ","y "))).
-lib_formating_lex["timeFormats"]:ADD(LIST(2,LIST(" Seconds  "," Minutes  "," Hours    "," Days    "," Years   "))).
 
-FUNCTION time_formating {
-	PARAMETER timeSec,	//the time in seconds to format
-	formatType IS 0,		//what type of format
-	rounding IS 0,		//what rounding on the seconds
-	tMinus IS FALSE.		//had a T- or T+ at the start of the formated time
-	LOCAL roundingList IS LIST(MIN(rounding,2),0,0,0,0).
-	LOCAL formatData IS lib_formating_lex["timeFormats"][formatType].
-	RETURN time_string(timeSec,formatData[0],formatData[1],roundingList,tMinus).
-}
+LOCAL siPrefixList IS LIST(" y"," z"," a"," f"," p"," n"," μ"," m","  "," k"," M"," G"," T"," P"," E"," Z"," Y").
 
-lib_formating_lex:ADD("siPrefixList",LIST(" y"," z"," a"," f"," p"," n"," μ"," m","  "," k"," M"," G"," T"," P"," E"," Z"," Y")).
+FUNCTION si_formatting {
+	PARAMETER num, unit IS "".
 
-FUNCTION si_formating {
-	PARAMETER num,//number to format,
-	unit IS "".//unit of number
 	IF num = 0 {
 		RETURN padding(num,1,3) + "  " + unit.
 	} ELSE {
 		LOCAL powerOfTen IS MAX(MIN(FLOOR(LOG10(ABS(num))),26),-24).
-		
+
 		SET num TO ROUND(num/10^powerOfTen,3) * 10^powerOfTen.
-		
+
 		SET powerOfTen TO MAX(MIN(FLOOR(LOG10(ABS(num))),26),-24).
 		LOCAL SIfactor IS FLOOR(powerOfTen / 3).
 		LOCAL trailingLength IS 3 - (powerOfTen - SIfactor * 3).
-		
+
 		LOCAL prefix IS lib_formating_lex["siPrefixList"][SIfactor + 8].
 		RETURN padding(num/1000^SIfactor,1,trailingLength,TRUE,0) + prefix + unit.
 	}
 }
 
 
+LOCAL roundingFunctions IS LIST(ROUND @,FLOOR @,CEILING @).
+
 FUNCTION padding {
-	PARAMETER num,	//number to pad
-	leadingLength,	//min length to the left of the decimal point
-	trailingLength,	// length to the right of the decimal point
-	positiveLeadingSpace IS TRUE,//if when positive should there be a space before the returned string
-	roundType IS 0.	// 0 for normal rounding, 1 for floor, 2 for ceiling
-	LOCAL returnString IS "".
-	//LOCAL returnString IS ABS(ROUND(num,trailingLength)):TOSTRING.
-	IF roundType = 0 {
-		SET returnString TO ABS(ROUND(num,trailingLength)):TOSTRING.
-	} ELSE IF roundType = 1 {
-		SET returnString TO ABS(adv_floor(num,trailingLength)):TOSTRING.
-	} ELSE {
-		SET returnString TO ABS(adv_ceiling(num,trailingLength)):TOSTRING.
-	}
+	PARAMETER num, leadingLength, trailingLength, positiveLeadingSpace IS TRUE, roundType IS 0.
+
+	LOCAL returnString IS ABS(roundingFunctions[roundType](num,trailingLength)):TOSTRING.
 
 	IF trailingLength > 0 {
-		IF NOT returnString:CONTAINS(".") {
-			SET returnString TO returnString + ".0".
+		IF returnString:CONTAINS(".") {
+			LOCAL splitString IS returnString:SPLIT(".").
+			SET returnString TO (splitString[0]:PADLEFT(leadingLength) + "." + splitString[1]:PADRIGHT(trailingLength)):REPLACE(" ","0").
+		} ELSE {
+			SET returnString TO (returnString:PADLEFT(leadingLength) + "." + "0":PADRIGHT(trailingLength)):REPLACE(" ","0").
 		}
-		UNTIL returnString:SPLIT(".")[1]:LENGTH >= trailingLength { SET returnString TO returnString + "0". }
-		UNTIL returnString:SPLIT(".")[0]:LENGTH >= leadingLength { SET returnString TO "0" + returnString. }
-	} ELSE {
-		UNTIL returnString:LENGTH >= leadingLength { SET returnString TO "0" + returnString. }
+	} ELSE IF returnString:LENGTH < leadingLength {
+		SET returnString TO returnString:PADLEFT(leadingLength):REPLACE(" ","0").
 	}
 
 	IF num < 0 {
@@ -142,16 +127,4 @@ FUNCTION padding {
 			RETURN returnString.
 		}
 	}
-}
-
-LOCAL FUNCTION adv_floor {
-	PARAMETER num,dp.
-	LOCAL multiplier IS 10^dp.
-	RETURN FLOOR(num * multiplier)/multiplier.
-}
-
-LOCAL FUNCTION adv_ceiling {
-	PARAMETER num,dp.
-	LOCAL multiplier IS 10^dp.
-	RETURN CEILING(num * multiplier)/multiplier.
 }

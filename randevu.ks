@@ -154,14 +154,15 @@ FUNCTION conferm_burn {
 }
 
 FUNCTION node_from_vector {//have not tested for different SOIs
-	PARAMETER vecTarget,nodeTime,localBody IS SHIP:BODY.
-	LOCAL vecNodePrograde IS VELOCITYAT(SHIP,nodeTime):ORBIT.
-	LOCAL vecNodeNormal IS VCRS(vecNodePrograde,POSITIONAT(SHIP,nodeTime) - localBody:POSITION).
+	PARAMETER vecTarget,nodeTime.
+	LOCAL localBody IS ORBITAT(SHIP,nodeTime):BODY.
+	LOCAL vecNodePrograde IS VELOCITYAT(SHIP,nodeTime):ORBIT:NORMALIZED.
+	LOCAL vecNodeNormal IS VCRS(vecNodePrograde,(POSITIONAT(SHIP,nodeTime) - localBody:POSITION):NORMALIZED):NORMALIZED.
 	LOCAL vecNodeRadial IS VCRS(vecNodeNormal,vecNodePrograde).
 
-	LOCAL nodePrograde IS VDOT(vecTarget,vecNodePrograde:NORMALIZED).
-	LOCAL nodeNormal IS VDOT(vecTarget,vecNodeNormal:NORMALIZED).
-	LOCAL nodeRadial IS VDOT(vecTarget,vecNodeRadial:NORMALIZED).
+	LOCAL nodePrograde IS VDOT(vecTarget,vecNodePrograde).
+	LOCAL nodeNormal IS VDOT(vecTarget,vecNodeNormal).
+	LOCAL nodeRadial IS VDOT(vecTarget,vecNodeRadial).
 	//PRINT "pro: " + ROUND(nodePrograde,2).
 	//PRINT "nor: " + ROUND(nodeNormal,2).
 	//PRINT "rad: " + ROUND(nodeRadial,2).

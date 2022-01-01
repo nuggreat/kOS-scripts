@@ -1,8 +1,11 @@
-PARAMETER dist IS 100000, head IS  -RANDOM().
+PARAMETER dist IS 10000, head IS  0.
 copypath("0:/Rover_path.ks","1:/").
-copypath("0:/lib/lib_geochordnate.ks","1:/lib/").
+copypath("0:/Rover_path_v3.ks","1:/").
+// copypath("0:/lib/lib_geochordnate.ks","1:/lib/").
 IF head < 0 { SET head TO (-head) * 360. }
-run rover_path(distance_heading_to_latlng(head,dist)).
+LOCAL startTime IS TIME:SECONDS.
+run rover_path_v3(distance_heading_to_latlng(head,dist)).
+PRINT TIME:SECONDS - startTime.
 
 FUNCTION distance_heading_to_latlng {//takes in a heading, distance, and start point and returns the latlng at the end of the greater circle
     PARAMETER head,dist,p1 IS SHIP:GEOPOSITION.

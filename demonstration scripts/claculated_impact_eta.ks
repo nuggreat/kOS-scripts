@@ -48,12 +48,12 @@ FUNCTION alt_to_ta {//returns a list of the true anomalies of the 2 points where
 
 FUNCTION time_betwene_two_ta {//returns the difference in time between 2 true anomalies, traveling from taDeg1 to taDeg2
 	PARAMETER ecc,periodIn,taDeg1,taDeg2.
-	
+
 	LOCAL maDeg1 IS ta_to_ma(ecc,taDeg1).
 	LOCAL maDeg2 IS ta_to_ma(ecc,taDeg2).
-	
+
 	LOCAL timeDiff IS periodIn * ((maDeg2 - maDeg1) / 360).
-	
+
 	RETURN MOD(timeDiff + periodIn, periodIn).
 }
 
