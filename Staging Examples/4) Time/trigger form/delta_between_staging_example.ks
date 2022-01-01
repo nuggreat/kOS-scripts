@@ -5,7 +5,6 @@ LOCAL bodyRad IS BODY:RADIUS.
 LOCAL bodyMu IS BODY:MU.
 LOCAL orbitTransition IS BODY:ATM:HEIGHT.
 
-CORE:DOEVENT("Open Terminal").
 FROM { LOCAL i IS -5. } UNTIL i >= 0 STEP { SET i TO i + 1. } DO {
   PRINT "t" + i.
   WAIT 1.
@@ -99,7 +98,7 @@ FUNCTION staging_start {
   }
 
   RETURN LEX(
-    "clear",{ SET clearStageing TO TRUE. },
+    "clear",{ SET clearStageing TO TRUE. sequence:CLEAR() },
     "stagesLeft",{ RETURN sequence:LENGTH. },
     "timeToNextStage", {
       IF sequence:LENGTH > 0 {

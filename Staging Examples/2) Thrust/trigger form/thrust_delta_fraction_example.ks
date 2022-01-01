@@ -5,7 +5,6 @@ LOCAL bodyRad IS BODY:RADIUS.
 LOCAL bodyMu IS BODY:MU.
 LOCAL orbitTransition IS BODY:ATM:HEIGHT.
 
-CORE:DOEVENT("Open Terminal").
 FROM { LOCAL i IS -5. } UNTIL i >= 0 STEP { SET i TO i + 1. } DO {
   PRINT "t" + i.
   WAIT 1.
@@ -43,6 +42,8 @@ UNTIL PERIAPSIS > targetAP - 250 {
   SET throt TO ((desiredSpeed - SHIP:VELOCITY:ORBIT:MAG) / currentAcc) - signed_eta_ap() + 1.
   WAIT 0.
 }
+
+stagingStruct:clearTrigger().
 UNLOCK THROTTLE.
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 PRINT "Space!".
@@ -69,7 +70,7 @@ FUNCTION staging_start {
   ON SHIP:AVAILABLETHRUSTAT(0) {
     IF keepStaging {
       LOCAL currentThrust IS SHIP:AVAILABLETHRUSTAT(0).
-      IF currentThrust < thrustThreshold {
+      IF currentThrust <= thrustThreshold {
         IF NOT STAGE:READY {
           WAIT UNTIL STAGE:READY.
         }

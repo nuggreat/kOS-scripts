@@ -1,4 +1,11 @@
-FUNCTION staging_start {//construct engine UID to first parent part with the a matching resource mapping
+//The function staging_start constructs a data structure for use by the staging_check function
+// It takes one parameter which is the amount a given resource must be less than to trigger staging
+// The data structure contains three items
+//  One a map of engine UIDs to a resource container with a consumed resource done with the walk_for_resources function starting from the engine
+//  Two the list of engines returned by the get_engine_list function
+//  Three the threshold required for staging
+
+FUNCTION staging_start {
   PARAMETER threshold IS 0.01.
   LOCAL stagingData IS LEX("threshold",threshold).
   LOCAL engList IS LIST().
@@ -20,6 +27,13 @@ FUNCTION staging_start {//construct engine UID to first parent part with the a m
   RETURN stagingData.
 }
 
+//The function walk_for_resources will recirsivly look a resource structure matching a given resource name
+// It takes two parameters
+//  The first is the current part to check for the given resource name
+//  The second is the name of the resource to check for
+// It will return the resource structure if it is found and a FALSE should it fail to find the resource
+// The part check will only look in parent parts until it runs into a Decoupler or the root part of the craft
+
 FUNCTION walk_for_resources {
   PARAMETER toCheck,resName.
   FOR res IN toCheck:RESOURCES {
@@ -34,6 +48,13 @@ FUNCTION walk_for_resources {
   }
 }
 
+
+//The get_engine_list function is for getting the list of active engines and has 2 modes of opperations
+// The first mode is used by not passing in a list
+//  This causes the function to create a list of all active engines
+// the second mode is used by passing in a list
+//  This causes the function to clear the passed in list of any data contained and then populate the list with all active engines
+
 FUNCTION get_engine_list {
   PARAMETER filteredEngList IS LIST().
   filteredEngList:CLEAR().
@@ -46,6 +67,10 @@ FUNCTION get_engine_list {
   }
   RETURN filteredEngList.
 }
+
+//The staging_check function checks for any engine in engList that has an assoceated resource structure whos AMOUNT below the threshold stored in stagingData
+// Staging will also be triggered if there are no engines in the engline list
+// Once staging happens the function will refresh the engine list using the get_engine_list function
 
 FUNCTION staging_check {
   PARAMETER stagingData.

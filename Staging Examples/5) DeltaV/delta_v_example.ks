@@ -5,7 +5,6 @@ LOCAL bodyRad IS BODY:RADIUS.
 LOCAL bodyMu IS BODY:MU.
 LOCAL orbitTransition IS BODY:ATM:HEIGHT.
 
-CORE:DOEVENT("Open Terminal").
 FROM { LOCAL i IS -5. } UNTIL i >= 0 STEP { SET i TO i + 1. } DO {
   PRINT "t" + i.
   WAIT 1.
@@ -65,13 +64,13 @@ FUNCTION signed_eta_ap {
 }
 
 FUNCTION staging_start {
-  PARAMETER threshold IS 0, sDelay IS 1, stableDelay IS 1..
+  PARAMETER threshold IS 0, stableDelay IS 1, stageDelay IS 1.
   RETURN LEX(
     "threshold",threshold,
-    "betweenDelay",sDelay,
-    "nextStageTime",TIME:SECONDS,
     "stableDelay",stableDelay,
-    "stableTime",TIME:SECONDS
+    "stableTime",TIME:SECONDS + stableDelay,
+    "betweenDelay",stageDelay,
+    "nextStageTime",TIME:SECONDS + stageDelay
   ).
 }
 

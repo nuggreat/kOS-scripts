@@ -5,7 +5,6 @@ LOCAL bodyRad IS BODY:RADIUS.
 LOCAL bodyMu IS BODY:MU.
 LOCAL orbitTransition IS BODY:ATM:HEIGHT.
 
-CORE:DOEVENT("Open Terminal").
 FROM { LOCAL i IS -5. } UNTIL i >= 0 STEP { SET i TO i + 1. } DO {
   PRINT "t" + i.
   WAIT 1.
@@ -67,7 +66,6 @@ FUNCTION staging_check {
   IF STAGE:READY {
     LOCAL engList IS LIST().
     LIST ENGINES IN engList.
-    LOCAL shouldStage IS FALSE.
     FOR eng IN engList {
       IF eng:IGNITION AND eng:FLAMEOUT {
         PRINT "Staging due to engine flame out".

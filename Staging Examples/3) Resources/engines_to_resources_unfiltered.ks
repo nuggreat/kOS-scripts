@@ -1,3 +1,7 @@
+//The function staging_check checks all active engines for any engines that have a consumed resource amount below the passed in threshold
+// A possible issue with the function is that if there are no active engines it will not stage
+// The function expects one parameter which is the amount of units a given resource must be below to cause staging
+
 FUNCTION staging_check {
   PARAMETER threshold IS 0.01.
   LOCAL engList IS LIST().

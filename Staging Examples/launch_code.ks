@@ -1,14 +1,8 @@
-// RUNPATH("0:/staging examples/1) Flamedout/filtered_engine_list.ks").
-// RUNPATH("0:/staging examples/2) Thrust/trigger form/lack_of_thrust.ks").
-// RUNPATH("0:/staging examples/3) Resources/tanks_above_engines_filtered.ks").
-// RUNPATH("0:/staging examples/4) Time/loop form/delta_between_staging.ks").
-// RUNPATH("0:/staging examples/4) Time/loop form/elapsed_since_start.ks").
-// RUNPATH("0:/staging examples/4) Time/trigger form/delta_between_staging.ks").
-RUNPATH("0:/staging examples/4) Time/trigger form/elapsed_since_start.ks").
-// RUNPATH("0:/staging examples/5) DeltaV/delta_v.ks").
-LOCAL targetAP IS 80_000.
-LOCAL initalPitch IS 20.
-LOCAL vMax IS 200.
+LOCAL targetAP IS 80_000.//the desired Apoapsis, though the true AP will likey be higher due to how the circularization logic works
+LOCAL initalPitch IS 20.//the number of degrees to pitch down from vertical when at vMax, pitch down will be lerped based on the difference between vMax and vertical speed in the inital phase of flight
+LOCAL vMax IS 200.//the vertical velocity at which maximum inital pitch is acheaved during the "inital pitch manuver"
+
+//constants chached now to speed up main loops.
 LOCAL bodyRad IS BODY:RADIUS.
 LOCAL bodyMu IS BODY:MU.
 LOCAL orbitTransition IS BODY:ATM:HEIGHT.

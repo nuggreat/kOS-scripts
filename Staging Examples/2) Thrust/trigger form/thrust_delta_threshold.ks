@@ -1,3 +1,7 @@
+//The function staging_start creates a trigger will stage when there is a large enough drop in thrust
+// The function will also return a lexicon with a single function delegate in it that allows for removal of the staging trigger
+// The function expects to be passed the required drop as a number of kilo-newtons
+
 FUNCTION staging_start {
   PARAMETER stageThreshold IS 20.
   LOCAL thrustThreshold IS SHIP:AVAILABLETHRUSTAT(0) - stageThreshold.

@@ -5,7 +5,6 @@ LOCAL bodyRad IS BODY:RADIUS.
 LOCAL bodyMu IS BODY:MU.
 LOCAL orbitTransition IS BODY:ATM:HEIGHT.
 
-CORE:DOEVENT("Open Terminal").
 FROM { LOCAL i IS -5. } UNTIL i >= 0 STEP { SET i TO i + 1. } DO {
   PRINT "t" + i.
   WAIT 1.

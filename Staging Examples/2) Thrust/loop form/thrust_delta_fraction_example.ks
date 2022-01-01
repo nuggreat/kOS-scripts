@@ -5,7 +5,6 @@ LOCAL bodyRad IS BODY:RADIUS.
 LOCAL bodyMu IS BODY:MU.
 LOCAL orbitTransition IS BODY:ATM:HEIGHT.
 
-CORE:DOEVENT("Open Terminal").
 FROM { LOCAL i IS -5. } UNTIL i >= 0 STEP { SET i TO i + 1. } DO {
   PRINT "t" + i.
   WAIT 1.
@@ -75,7 +74,7 @@ FUNCTION staging_start {
       SET threshold TO newThrust * stageThreshold.
       RETURN shouldStage.
     },
-    "tReset", {
+    "tReset", {// updates the staging threshold
       SET threshold TO SHIP:AVAILABLETHRUSTAT(0)  * stageThreshold.
     }
   ).
@@ -84,8 +83,8 @@ FUNCTION staging_start {
 FUNCTION staging_check {
   PARAMETER stagingStruct.
   IF stagingStruct:shouldStage() {
-    IF NOT STAGE:READY {
-      WAIT UNTIL STAGE:READY.
+    IF NOT STAGE:READY {         
+      WAIT UNTIL STAGE:READY.     
     }
     PRINT "Staging due to thrust decrease".
     STAGE.
