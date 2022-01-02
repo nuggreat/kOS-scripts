@@ -2,7 +2,7 @@
 // It takes in one parameter: A list of string and number pairs, the first threshold must be the first pair in the list the second will be the second pair and so on
 //  The string is a internal resource name
 //  The number is how low that resource must drop to trigger that staging
-// The retuned lexicon has one key "clearTrigger" which when called will clear the trigger.
+// The returned lexicon has one key "clearTrigger" which when called will clear the trigger.
 
 FUNCTION staging_start {
   PARAMETER sequenceList.

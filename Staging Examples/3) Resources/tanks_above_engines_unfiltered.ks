@@ -26,7 +26,7 @@ FUNCTION staging_start {
 }
 
 
-//The function walk_for_resources will recirsivly look a resource structure matching a given resource name
+//The function walk_for_resources will recursively look a resource structure matching a given resource name
 // It takes two parameters
 //  The first is the current part to check for the given resource name
 //  The second is the name of the resource to check for
@@ -47,7 +47,7 @@ FUNCTION walk_for_resources {
   }
 }
 
-//The staging_check function checks for any engine that has an assoceated resource structure whos AMOUNT below the threshold stored in stagingData
+//The staging_check function checks for any engine that has an associated resource structure whose AMOUNT below the threshold stored in stagingData
 // The function takes one parameter which is expected to be the lexicon constructed by staging_start
 
 FUNCTION staging_check {

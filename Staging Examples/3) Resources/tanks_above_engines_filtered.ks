@@ -27,7 +27,7 @@ FUNCTION staging_start {
   RETURN stagingData.
 }
 
-//The function walk_for_resources will recirsivly look a resource structure matching a given resource name
+//The function walk_for_resources will recursively look a resource structure matching a given resource name
 // It takes two parameters
 //  The first is the current part to check for the given resource name
 //  The second is the name of the resource to check for
@@ -49,7 +49,7 @@ FUNCTION walk_for_resources {
 }
 
 
-//The get_engine_list function is for getting the list of active engines and has 2 modes of opperations
+//The get_engine_list function is for getting the list of active engines and has 2 modes of operations
 // The first mode is used by not passing in a list
 //  This causes the function to create a list of all active engines
 // the second mode is used by passing in a list
@@ -68,8 +68,8 @@ FUNCTION get_engine_list {
   RETURN filteredEngList.
 }
 
-//The staging_check function checks for any engine in engList that has an assoceated resource structure whos AMOUNT below the threshold stored in stagingData
-// Staging will also be triggered if there are no engines in the engline list
+//The staging_check function checks for any engine in engList that has an associated resource structure whose AMOUNT below the threshold stored in stagingData
+// Staging will also be triggered if there are no engines in the engine list
 // Once staging happens the function will refresh the engine list using the get_engine_list function
 
 FUNCTION staging_check {

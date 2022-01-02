@@ -1,4 +1,4 @@
-//The get_engine_list function is for getting the list of active engines and has 2 modes of opperations
+//The get_engine_list function is for getting the list of active engines and has 2 modes of operations
 // The first mode is used by not passing in a list
 //  This causes the function to create a list of all active engines
 // the second mode is used by passing in a list
@@ -19,11 +19,11 @@ FUNCTION get_engine_list {
 
 
 //The staging_check function checks a list of engines for any engines that have a consumed resource amount below the passed in threshold
-// Staging will also be triggered if there are no engines in the engline list
+// Staging will also be triggered if there are no engines in the engine list
 // Once staging happens the function will refresh the engine list using the get_engine_list function
 // The function takes two parameters one is defaulted
-//  The first parasmeter is the list of engines to check the resources of, it is presumed to be coming from the get_engine_list function
-//  The second paraemter is the threshold any resource must be below in units
+//  The first parameter is the list of engines to check the resources of, it is presumed to be coming from the get_engine_list function
+//  The second parameter is the threshold any resource must be below in units
 //   Defaulted to 0.01
 
 FUNCTION staging_check {

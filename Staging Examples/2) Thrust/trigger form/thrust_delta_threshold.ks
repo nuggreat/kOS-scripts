@@ -14,7 +14,7 @@ FUNCTION staging_start {
         IF NOT STAGE:READY {
           WAIT UNTIL STAGE:READY.
         }
-        PRINT "stageing due to thrust drop".
+        PRINT "staging due to thrust drop".
         STAGE.
         SET currentThrust TO SHIP:AVAILABLETHRUSTAT(0).
       }
