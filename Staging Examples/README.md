@@ -4,11 +4,11 @@ The example scripts presumes they are running on a mostly stock kerbalX (you wil
 Most of the example scripts can likely work on other vessels though some are designed with explicit knowledge of the craft in question which makes them unusable on other craft.
 Lastly it is possible with some effort to use different methods at the same time though you would need to modify the provided libraries to do so.
 
-Click on the OVERVIEW links for the overview of that category and additional explanations of the staging methods in that category.
+Click on the [OVERVIEW](README.md) links below in the list for the overview of that category and additional explanations of the staging methods in that category.
 
-Click on the lib links to jump strait to the library of functions needed for that staging method.
+Click on the [lib](README.md) links below in the list to jump strait to the library of functions needed for that staging method.
 
-Click on the example links to jump strait to the example launch script for that staging method. 
+Click on the [example](README.md) links below in the list to jump strait to the example launch script for that staging method. 
 
   1. flamed out engines           [OVERVIEW](1\)%20Flamedout/OVERVIEW.md)
      - filtered engine list       [lib](1\)%20Flamedout/filtered_engine_list.ks) / [example](1\)%20Flamedout/filtered_engine_list_example.ks)
