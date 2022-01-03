@@ -1,0 +1,36 @@
+## Thrust overview
+
+These methods are based on checking the thrust of the vessel in some way.
+Either looking for a lack of thrust or a change of thrust.
+
+There are two different implementations of each method one employing function calls intended to be used in a loop and the other employing a single startup function call that sets up a trigger to handle staging.
+My personal preference is for the loop based functions as I consider them more reliable and easier to work with but I included the trigger methods mostly to show how to properly do staging using triggers.
+
+NOTE: These methods all use the available thrust call provided by kOS and some mods have been known to cause issues with this call which will intern cause issues with these methods.
+
+### Lack of Thrust
+
+Loop:    [lib](loop%20form\lack_of_thrust.ks) / [example](loop%20form\lack_of_thrust_example.ks)
+
+Trigger: [lib](trigger%20form\lack_of_thrust.ks) / [example](trigger%20form\lack_of_thrust_example.ks)
+
+This methods simply checks the available thrust of the vessel and stages when the available thrust is zero.
+This should only happen when no engines can generate thrust either by not having been activated yet or because they are out of fuel.
+But some mods have been known to cause issues with the available thrust so there can be issues.
+
+### thrust delta fraction
+
+Loop:    [lib](loop%20form\thrust_delta_fraction.ks) / [example](loop%20form\thrust_delta_fraction_example.ks)
+
+Trigger: [lib](trigger%20form\thrust_delta_fraction.ks) / [example](trigger%20form\thrust_delta_fraction_example.ks)
+
+This method compares the previous available thrust against the current available thrust and should the current thrust be sufficiently lower than the previous thrust it will stage.
+The amount the thrust needs to drop is not fixed and is instead some fraction of the previously stored thrust value.
+
+### thrust delta threshold
+
+Loop:    [lib](loop%20form\thrust_delta_threshold.ks) / [example](loop%20form\thrust_delta_threshold_example.ks)
+
+Trigger: [lib](trigger%20form\thrust_delta_threshold.ks) / [example](trigger%20form\thrust_delta_threshold_example.ks)
+
+This method is the same as thrust delta fraction except that the threshold used is a fixed kN value as apposed to deriving from the previous stored thrust value
