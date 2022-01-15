@@ -6,21 +6,21 @@
 //  the change in thrust is computed by simply taking the difference in thrust between last time shouldStage was called and the current thrust
 //  the stored thrust will be updated each time shouldStage is called incase there is an increase in thrust for any reason
 //
-// the second helper function tReset will store the current thrust as the old thrust useful 
+// the second helper function tReset will recalculate the stored threshold value
 
 FUNCTION staging_start {
   PARAMETER stageThreshold IS 20.
-  LOCAL oldThrust IS SHIP:AVAILABLETHRUSTAT(0).
+  LOCAL threshold IS MIN(0,SHIP:AVAILABLETHRUSTAT(0) - stageThreshold).
 
   RETURN LEX(
     "shouldStage", {
       LOCAL newThrust IS SHIP:AVAILABLETHRUSTAT(0).
-      LOCAL shouldStage IS (oldThrust - newThrust) >= stageThreshold.
-      SET oldThrust TO newThrust.
+      LOCAL shouldStage IS newThrust <= threshold.
+      SET threshold TO MIN(0,newThrust - stageThreshold).
       RETURN shouldStage.
     },
     "tReset", {
-      SET oldThrust TO SHIP:AVAILABLETHRUSTAT(0).
+      SET threshold TO MIN(0,SHIP:AVAILABLETHRUSTAT(0) - stageThreshold).
     }
   ).
 }

@@ -1,4 +1,4 @@
-//The function staging_check checks all active engines for any engines that have a consumed resource amount below the passed in threshold
+//The function staging_check checks all engines for any engines that have a consumed resource amount below the passed in threshold
 // A possible issue with the function is that if there are no active engines it will not stage
 // The function expects one parameter which is the amount of units a given resource must be below to cause staging
 
@@ -9,15 +9,13 @@ FUNCTION staging_check {
   LOCAL shouldStage IS FALSE.
   IF STAGE:READY {
     FOR eng IN engList {
-      IF eng:IGNITION {
-        LOCAL engRes IS eng:CONSUMEDRESOURCES.
-        FOR key IN engRes:KEYS {
-          IF engRes[key]:AMOUNT < threshold {
-            SET shouldStage TO TRUE.
-            PRINT "staging due to resource: " + engRes[key]:NAME + " below threshold".
-            STAGE.
-            BREAK.
-          }
+      LOCAL engRes IS eng:CONSUMEDRESOURCES.
+      FOR key IN engRes:KEYS {
+        IF engRes[key]:AMOUNT < threshold {
+          SET shouldStage TO TRUE.
+          PRINT "staging due to resource: " + engRes[key]:NAME + " below threshold".
+          STAGE.
+          BREAK.
         }
       }
       IF shouldStage {

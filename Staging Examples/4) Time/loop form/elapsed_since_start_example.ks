@@ -101,7 +101,7 @@ FUNCTION staging_check {
   RETURN FALSE.
 }
 
-FUNCTION staging_eta {//positave means it is pending, negitave means it is past
+FUNCTION staging_eta {//positive means it is pending, negative means it is past
   PARAMETER stageData.
   IF stageData:stageSequence:LENGTH > 0 {
     RETURN stageData:stageSequence[0] - (TIME:SECONDS - stageData:lastTime).

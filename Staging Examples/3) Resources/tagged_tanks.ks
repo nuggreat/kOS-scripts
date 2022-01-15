@@ -1,4 +1,4 @@
-//The function staging_check checks for any tanks that match the passed in list and have any resource whos amount is below the threshold
+//The function staging_check checks for any tanks that match the passed in tag or list of tags and have any resource who's amount is below the threshold
 // It takes two parameters
 //  One a string for the tag of the tank(s), or a list of tags for the tank(s)
 //  Two the AMOUNT that any resource must be below to trigger staging

@@ -1,4 +1,4 @@
-//The function staging_start creates a trigger and assoceated lexicon to remove the trigger when it is no longer needed.
+//The function staging_start creates a trigger and associated lexicon to remove the trigger when it is no longer needed.
 // It takes in one parameter: A list of string and number pairs, the first threshold must be the first pair in the list the second will be the second pair and so on
 //  The string is a internal resource name
 //  The number is how low that resource must drop to trigger that staging

@@ -4,13 +4,13 @@
 
 FUNCTION staging_start {
   PARAMETER stageThreshold IS 20.
-  LOCAL thrustThreshold IS SHIP:AVAILABLETHRUSTAT(0) - stageThreshold.
+  LOCAL threshold IS MIN(0,SHIP:AVAILABLETHRUSTAT(0) - stageThreshold).
   
   LOCAL keepStaging IS TRUE.
   ON SHIP:AVAILABLETHRUSTAT(0) {
     IF keepStaging {
       LOCAL currentThrust IS SHIP:AVAILABLETHRUSTAT(0).
-      IF currentThrust < thrustThreshold {
+      IF currentThrust <= threshold {
         IF NOT STAGE:READY {
           WAIT UNTIL STAGE:READY.
         }
@@ -18,7 +18,7 @@ FUNCTION staging_start {
         STAGE.
         SET currentThrust TO SHIP:AVAILABLETHRUSTAT(0).
       }
-      SET thrustThreshold TO currentThrust - stageThreshold.
+      SET threshold TO MIN(0,currentThrust - stageThreshold).
       PRESERVE.
     }
   }

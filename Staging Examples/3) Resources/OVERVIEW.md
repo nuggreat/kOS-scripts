@@ -13,8 +13,8 @@ Loop form:    [lib](global_thresholds_loop.ks) / [example](global_thresholds_loo
 
 Trigger form: [lib](global_thresholds_trigger.ks) / [example](global_thresholds_trigger_example.ks)
 
-This method stages once one of the resources on the craft falls below a given amount.
-It requires a list of resources and thresholds to be created for it to function.
+This method stages once the remaining amount of a resources is below a given threshold at which point it will check the next resource in the list.
+The resources and thresholds will be processed one at a time in the order they are passed to function.
 	   
 ### tagged tanks
 
@@ -33,7 +33,7 @@ Once such a part is found the part is monitored for when the amount of the found
 
 There are two forms to this method a filtered and unfiltered.
 The filtered from only examines tanks above active engines.
-The unfiltered form examines all tanks found regardless of resource status.
+The unfiltered form examines all tanks found regardless of engine status.
 
 ### engines to resource cast
 
@@ -45,7 +45,4 @@ This method works by examines the resources available to an engine for use as pr
 
 There are two forms of this method.
 The filtered form only examines the resources of active engines.
-The unfiltered form examines the resources of all engines.
-
-
-
+The unfiltered form examines the resources of all engines regardless of engine status.

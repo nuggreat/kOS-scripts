@@ -65,17 +65,17 @@ FUNCTION signed_eta_ap {
 
 FUNCTION staging_start {
   PARAMETER stageThreshold IS 20.
-  LOCAL oldThrust IS SHIP:AVAILABLETHRUSTAT(0).
+  LOCAL threshold IS MIN(0,SHIP:AVAILABLETHRUSTAT(0) - stageThreshold).
 
   RETURN LEX(
     "shouldStage", {
       LOCAL newThrust IS SHIP:AVAILABLETHRUSTAT(0).
-      LOCAL shouldStage IS (oldThrust - newThrust) >= stageThreshold.
-      SET oldThrust TO newThrust.
+      LOCAL shouldStage IS newThrust <= threshold.
+      SET threshold TO MIN(0,newThrust - stageThreshold).
       RETURN shouldStage.
     },
     "tReset", {
-      SET oldThrust TO SHIP:AVAILABLETHRUSTAT(0).
+      SET threshold TO MIN(0,SHIP:AVAILABLETHRUSTAT(0) - stageThreshold).
     }
   ).
 }

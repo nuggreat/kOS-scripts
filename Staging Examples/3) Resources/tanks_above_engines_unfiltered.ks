@@ -31,7 +31,7 @@ FUNCTION staging_start {
 //  The first is the current part to check for the given resource name
 //  The second is the name of the resource to check for
 // It will return the resource structure if it is found and a FALSE should it fail to find the resource
-// The part check will only look in parent parts until it runs into a Decoupler or the root part of the craft
+// The part check will only look in parent parts until it runs into a decoupler or the root part of the craft
 
 FUNCTION walk_for_resources {
   PARAMETER toCheck,resName.

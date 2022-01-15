@@ -78,12 +78,12 @@ FUNCTION staging_check {
   PARAMETER stagingData.
   IF STAGE:DELTAV:CURRENT <= stagingData:threshold {
   IF STAGE:READY {
-  IF TIME:SECONDS >= stagingData:stableTime {
+    IF TIME:SECONDS >= stagingData:stableTime {
         IF TIME:SECONDS >= stagingData:nextStageTime {
-        PRINT "Staging because the deltaV of the current stage is below threshold".
-        STAGE.
-        SET stagingData:nextStageTime TO TIME:SECONDS + stagingData:betweenDelay.
-      }
+          PRINT "Staging because the deltaV of the current stage is below threshold".
+          STAGE.
+          SET stagingData:nextStageTime TO TIME:SECONDS + stagingData:betweenDelay.
+        }
       }
     }
   } ELSE {

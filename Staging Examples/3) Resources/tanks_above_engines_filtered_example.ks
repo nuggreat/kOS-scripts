@@ -62,7 +62,7 @@ FUNCTION signed_eta_ap {
   }
 }
 
-FUNCTION staging_start {//construct engine UID to first parent part with the a matching resource mapping
+FUNCTION staging_start {
   PARAMETER threshold IS 0.01.
   LOCAL stagingData IS LEX("threshold",threshold).
   LOCAL engList IS LIST().
