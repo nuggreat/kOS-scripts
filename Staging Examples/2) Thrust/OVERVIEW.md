@@ -28,7 +28,6 @@ Trigger: [lib](trigger%20form\thrust_delta_fraction.ks) / [example](trigger%20fo
 This method compares the previous available thrust against the current available thrust and should the current thrust be sufficiently lower than the previous thrust it will stage.
 The change in thrust is calculated assuming the engine is in vacuum to avoid atmospheric issues as thrust can change due to atmosphere.
 The amount the thrust needs to drop is not fixed and is instead some fraction of the previously stored thrust value.
-The trigger form of this method is based on an `ON` trigger and it is looking for a change in `SHIP:AVAILABLETHRUSTAT(0)` before determine if staging should occur.
 
 ### thrust delta threshold
 
@@ -38,4 +37,3 @@ Trigger: [lib](trigger%20form\thrust_delta_threshold.ks) / [example](trigger%20f
 
 This method is the same as thrust delta fraction except that the threshold used is a fixed kN value as apposed to a fraction of the previous stored thrust value.
 The lower bound is also capped at a thrust of 0 as negative thrust is not possible.
-The trigger form of this method is based on an `ON` trigger and it is looking for a change in `SHIP:AVAILABLETHRUSTAT(0)` before determine if staging should occur.

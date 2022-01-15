@@ -1,4 +1,4 @@
-//the function staging_start creates 2 helper functions for staging_check to use to determine when thrust has fallen by a given fraction
+//the function staging_start creates 3 helper functions for staging_check to use to determine when thrust has fallen by a given fraction
 // expects to be passed in the decimal fraction that the thrust must fall by for staging to occur, defaulted to 0.99
 //
 // the first helper function is shouldStage and it decides when staging should occur
@@ -7,20 +7,27 @@
 //  the threshold is recalculated after each call of shouldStage
 //
 // the second helper function is tReset and that recalculates the threshold for staging
+//
+// the third helper function returns the last available thrust value that the function is aware of
 
 FUNCTION staging_start {
   PARAMETER stageThreshold IS 0.99.
-  LOCAL threshold IS SHIP:AVAILABLETHRUSTAT(0) * stageThreshold.
+  LOCAL newThrust IS SHIP:AVAILABLETHRUSTAT(0).
+  LOCAL threshold IS newThrust * stageThreshold.
 
   RETURN LEX(
     "shouldStage", {
-      LOCAL newThrust IS SHIP:AVAILABLETHRUSTAT(0).
+      SET newThrust TO SHIP:AVAILABLETHRUSTAT(0).
       LOCAL shouldStage IS newThrust <= threshold.
       SET threshold TO newThrust * stageThreshold.
       RETURN shouldStage.
     },
-    "tReset", {
-      SET threshold TO SHIP:AVAILABLETHRUSTAT(0)  * stageThreshold.
+    "tReset", {// updates the staging threshold
+      SET newThrust TO SHIP:AVAILABLETHRUSTAT(0).
+      SET threshold TO newThrust  * stageThreshold.
+    },
+    "thrustIs", {
+      RETURN newThrust.
     }
   ).
 }
@@ -31,10 +38,14 @@ FUNCTION staging_start {
 FUNCTION staging_check {
   PARAMETER stagingStruct.
   IF stagingStruct:shouldStage() {
-    IF NOT STAGE:READY {
-      WAIT UNTIL STAGE:READY.
+    IF NOT STAGE:READY {         
+      WAIT UNTIL STAGE:READY.     
     }
-    PRINT "Staging due to thrust decrease".
+    IF stagingStruct:thrustIs() <> 0 {
+      PRINT "Staging due to thrust decrease".
+    } ELSE {
+      PRINT "Staging due to no thrust".
+    }
     STAGE.
     stagingStruct:tReset().
     RETURN TRUE.

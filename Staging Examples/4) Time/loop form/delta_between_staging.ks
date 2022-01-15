@@ -31,7 +31,7 @@ FUNCTION staging_check {
   IF STAGE:READY {
     IF stageData:stageSequence:LENGTH > 0 {
       IF ((TIME:SECONDS - stageData:lastTime) >= stageData:stageSequence[0]) {
-        PRINT "staging".
+        PRINT "Staging".
         STAGE.
         SET stageData:lastTime TO TIME:SECONDS.
         stageData:stageSequence:REMOVE(0).

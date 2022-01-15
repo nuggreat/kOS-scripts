@@ -48,6 +48,8 @@ UNTIL PERIAPSIS > targetAP - 250 {
   SET throt TO ((desiredSpeed - SHIP:VELOCITY:ORBIT:MAG) / currentAcc) - signed_eta_ap() + 1.
   WAIT 0.
 }
+
+stagingStruct:clearTrigger().
 UNLOCK THROTTLE.
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 PRINT "Space!".
@@ -93,7 +95,7 @@ FUNCTION staging_start {
       }
     }
   }
-  RETURN LEX("clearTrigger",{ SET clearStageing TO TRUE. PRINT "removed global resource trigger". }).
+  RETURN LEX("clearTrigger",{ SET clearStageing TO TRUE. PRINT "Removed global resource trigger". sequenceList:CLEAR(). }).
 }
 
 FUNCTION get_resource {

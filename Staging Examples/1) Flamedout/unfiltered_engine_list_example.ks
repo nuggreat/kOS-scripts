@@ -13,7 +13,6 @@ LOCAL tarPitch IS 90.
 LOCAL throt IS 1.
 LOCK STEERING TO HEADING(90,tarPitch).
 LOCK THROTTLE TO MAX(MIN(CHOOSE throt IF throt > 0.01 ELSE 0,1),0).
-STAGE.
 
 PRINT "initial pitch maneuver".
 UNTIL VERTICALSPEED > vMax AND VANG(SRFPROGRADE:VECTOR,UP:VECTOR) > initalPitch {
@@ -66,12 +65,25 @@ FUNCTION staging_check {
   IF STAGE:READY {
     LOCAL engList IS LIST().
     LIST ENGINES IN engList.
+    LOCAL shouldStage IS FALSE.
+    LOCAL noActiveEngines IS TRUE.
     FOR eng IN engList {
-      IF eng:IGNITION AND eng:FLAMEOUT {
-        PRINT "Staging due to engine flame out".
-        STAGE.
-        RETURN TRUE.
+      IF eng:IGNITION {
+        SET noActiveEngines TO FALSE.
+        IF eng:FLAMEOUT {
+          SET shouldStage TO TRUE.
+          BREAK.
+        }
       }
+    }
+    IF shouldStage OR noActiveEngines {
+      IF noActiveEngines {
+        PRINT "Staging due to no active engines".
+      } ELSE {
+        PRINT "Staging due to engine flame out".
+      }
+      STAGE.
+      RETURN TRUE.
     }
   }
   RETURN FALSE.

@@ -44,5 +44,5 @@ Unfiltered form: [lib](engines_to_resources_unfiltered.ks) / [example](engines_t
 This method works by examines the resources available to an engine for use as propellants and checks for when the amounts of any of the resources for any of the engines fall below a threshold.
 
 There are two forms of this method.
-The filtered form only examines the resources of active engines.
-The unfiltered form examines the resources of all engines regardless of engine status.
+The filtered form will pre filter the engine list for the active engines.
+The unfiltered form will check all engines.

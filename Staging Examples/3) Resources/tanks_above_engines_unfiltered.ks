@@ -58,7 +58,7 @@ FUNCTION staging_check {
     FOR eng IN engList {
       IF stagingData:HASKEY(eng:UID) {
         IF stagingData[eng:UID]:AMOUNT < stagingData:threshold {
-          PRINT "staging due to resource: " + stagingData[eng:UID]:NAME + " below threshold.".
+          PRINT "Staging due to resource: " + stagingData[eng:UID]:NAME + " below threshold.".
           STAGE.
           RETURN TRUE.
         }

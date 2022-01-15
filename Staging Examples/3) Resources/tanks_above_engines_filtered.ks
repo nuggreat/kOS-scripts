@@ -81,7 +81,7 @@ FUNCTION staging_check {
         IF stagingData:HASKEY(eng:UID) {
           IF stagingData[eng:UID]:AMOUNT < stagingData:threshold {
             SET shouldStage TO TRUE.
-            PRINT "staging due to resource: " + stagingData[eng:UID]:NAME + " below threshold.".
+            PRINT "Staging due to resource: " + stagingData[eng:UID]:NAME + " below threshold.".
             BREAK.
           }
         }

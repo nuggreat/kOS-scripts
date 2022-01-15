@@ -91,7 +91,7 @@ FUNCTION staging_check {
   IF STAGE:READY {
     IF stageData:stageSequence:LENGTH > 0 {
       IF ((TIME:SECONDS - stageData:sequenceStart) >= stageData:stageSequence[0]) {
-        PRINT "staging".
+        PRINT "Staging".
         STAGE.
         stageData:stageSequence:REMOVE(0).
         RETURN TRUE.

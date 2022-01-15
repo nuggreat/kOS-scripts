@@ -7,7 +7,7 @@ These methods check the engines on a vessel for any that are flamed out and stag
 [lib](unfiltered_engine_list.ks) / [example](unfiltered_engine_list_example.ks)
 
 This method simply checks the list of all engines on the vessel for any that are flamed out.
-This method will only stage when there are flamed out engines.
+It also stage if there are no active engines.
 
 ### filtered engine list
 

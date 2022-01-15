@@ -31,7 +31,7 @@ FUNCTION staging_start {
       }
     }
   }
-  RETURN LEX("clearTrigger",{ SET clearStageing TO TRUE. PRINT "removed global resource trigger". }).
+  RETURN LEX("clearTrigger",{ SET clearStageing TO TRUE. PRINT "Removed global resource trigger". sequenceList:CLEAR(). }).
 }
 
 //The function get_resource returns the resourceAgrogate for the resource of the passed in name

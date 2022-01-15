@@ -52,6 +52,8 @@ UNTIL PERIAPSIS > targetAP - 250 {
   SET throt TO ((desiredSpeed - SHIP:VELOCITY:ORBIT:MAG) / currentAcc) - signed_eta_ap() + 1.
   WAIT 0.
 }
+
+stagingStruct:clearTrigger().
 UNLOCK THROTTLE.
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 PRINT "Space!".
@@ -86,7 +88,7 @@ FUNCTION staging_start {
   LOCAL nextStageTime IS sequence[0].
   WHEN ((TIME:SECONDS - startTime) >= nextStageTime OR clearStageing) THEN {
     IF (STAGE:READY AND (NOT clearStageing)) {
-      PRINT "staging".
+      PRINT "Staging".
       STAGE.
       sequence:REMOVE(0).
       IF sequence:LENGTH <> 0 {
@@ -97,7 +99,11 @@ FUNCTION staging_start {
   }
 
   RETURN LEX(
-    "clear",{ SET clearStageing TO TRUE. },
+    "clearTrigger",{
+      SET clearStageing TO TRUE.
+      PRINT "Removed elapsed since start trigger".
+      sequence:CLEAR().
+    },
     "stagesLeft",{ RETURN sequence:LENGTH. },
     "timeToNextStage", {
       IF sequence:LENGTH > 0 {

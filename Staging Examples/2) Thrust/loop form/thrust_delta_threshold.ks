@@ -1,4 +1,4 @@
-//the function staging_start creates 2 helper functions for use by staging_check to trigger stagingStruct
+//the function staging_start creates 3 helper functions for use by staging_check to trigger stagingStruct
 // gets passed the number of kN the thrust must fall by to trigger staging defaulted to 20
 //
 // the first helper function is shouldStage and it decides when staging should occur
@@ -7,20 +7,26 @@
 //  the stored thrust will be updated each time shouldStage is called incase there is an increase in thrust for any reason
 //
 // the second helper function tReset will recalculate the stored threshold value
+//
+// the third helper function returns the last available thrust value that the function is aware of
 
 FUNCTION staging_start {
   PARAMETER stageThreshold IS 20.
-  LOCAL threshold IS MIN(0,SHIP:AVAILABLETHRUSTAT(0) - stageThreshold).
-
+  LOCAL newThrust IS SHIP:AVAILABLETHRUSTAT(0).
+  LOCAL threshold IS MAX(0,newThrust - stageThreshold).
   RETURN LEX(
     "shouldStage", {
-      LOCAL newThrust IS SHIP:AVAILABLETHRUSTAT(0).
+      SET newThrust TO SHIP:AVAILABLETHRUSTAT(0).
       LOCAL shouldStage IS newThrust <= threshold.
-      SET threshold TO MIN(0,newThrust - stageThreshold).
+      SET threshold TO MAX(0,newThrust - stageThreshold).
       RETURN shouldStage.
     },
     "tReset", {
-      SET threshold TO MIN(0,SHIP:AVAILABLETHRUSTAT(0) - stageThreshold).
+      SET newThrust TO SHIP:AVAILABLETHRUSTAT(0).
+      SET threshold TO MAX(0,newThrust - stageThreshold).
+    },
+    "thrustIs", {
+      RETURN newThrust.
     }
   ).
 }
@@ -34,7 +40,11 @@ FUNCTION staging_check {
     IF NOT STAGE:READY {
       WAIT UNTIL STAGE:READY.
     }
-    PRINT "Staging due to thrust decrease".
+    IF stagingStruct:thrustIs() <> 0 {
+      PRINT "Staging due to thrust decrease".
+    } ELSE {
+      PRINT "Staging due to no thrust".
+    }
     STAGE.
     stagingStruct:tReset().
     RETURN TRUE.

@@ -9,7 +9,7 @@
 //   If false the passed in list of times is expected to be the time between staging events
 //    In this case staging_start will convert the passed in times to match with the first option
 // The function returned lexicon will has three delegates one will remove the trigger and the other two provide data as to the current state of the trigger.
-//  The key "clear" when called will dispose of the trigger
+//  The key "clearTrigger" when called will dispose of the trigger
 //  The key "stagesLeft" when called will return the number of staging events left in the programmed sequence
 //   Should the "clear" key be called this will return zero
 //  The key "timeToNextStage" will return the time difference between the current time and when the next staging event will be
@@ -31,7 +31,7 @@ FUNCTION staging_start {
   LOCAL nextStageTime IS sequence[0].
   WHEN ((TIME:SECONDS - startTime) >= nextStageTime OR clearStageing) THEN {
     IF (STAGE:READY AND (NOT clearStageing)) {
-      PRINT "staging".
+      PRINT "Staging".
       STAGE.
       sequence:REMOVE(0).
       IF sequence:LENGTH <> 0 {
@@ -42,7 +42,11 @@ FUNCTION staging_start {
   }
 
   RETURN LEX(
-    "clear",{ SET clearStageing TO TRUE. },
+    "clearTrigger",{
+      SET clearStageing TO TRUE.
+      PRINT "Removed elapsed since start trigger".
+      sequence:CLEAR().
+    },
     "stagesLeft",{ RETURN sequence:LENGTH. },
     "timeToNextStage", {
       IF sequence:LENGTH > 0 {

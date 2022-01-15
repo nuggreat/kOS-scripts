@@ -13,7 +13,6 @@ LOCAL tarPitch IS 90.
 LOCAL throt IS 1.
 LOCK STEERING TO HEADING(90,tarPitch).
 LOCK THROTTLE TO MAX(MIN(CHOOSE throt IF throt > 0.01 ELSE 0,1),0).
-STAGE.
 LOCAL stagingStruct IS staging_start().
 
 PRINT "initial pitch maneuver".
@@ -65,17 +64,21 @@ FUNCTION signed_eta_ap {
 
 FUNCTION staging_start {
   PARAMETER stageThreshold IS 20.
-  LOCAL threshold IS MIN(0,SHIP:AVAILABLETHRUSTAT(0) - stageThreshold).
-
+  LOCAL newThrust IS SHIP:AVAILABLETHRUSTAT(0).
+  LOCAL threshold IS MAX(0,newThrust - stageThreshold).
   RETURN LEX(
     "shouldStage", {
-      LOCAL newThrust IS SHIP:AVAILABLETHRUSTAT(0).
+      SET newThrust TO SHIP:AVAILABLETHRUSTAT(0).
       LOCAL shouldStage IS newThrust <= threshold.
-      SET threshold TO MIN(0,newThrust - stageThreshold).
+      SET threshold TO MAX(0,newThrust - stageThreshold).
       RETURN shouldStage.
     },
     "tReset", {
-      SET threshold TO MIN(0,SHIP:AVAILABLETHRUSTAT(0) - stageThreshold).
+      SET newThrust TO SHIP:AVAILABLETHRUSTAT(0).
+      SET threshold TO MAX(0,newThrust - stageThreshold).
+    },
+    "thrustIs", {
+      RETURN newThrust.
     }
   ).
 }
@@ -86,7 +89,11 @@ FUNCTION staging_check {
     IF NOT STAGE:READY {
       WAIT UNTIL STAGE:READY.
     }
-    PRINT "Staging due to thrust decrease".
+    IF stagingStruct:thrustIs() <> 0 {
+      PRINT "Staging due to thrust decrease".
+    } ELSE {
+      PRINT "Staging due to no thrust".
+    }
     STAGE.
     stagingStruct:tReset().
     RETURN TRUE.

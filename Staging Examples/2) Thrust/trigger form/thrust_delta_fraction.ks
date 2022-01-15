@@ -8,14 +8,18 @@ FUNCTION staging_start {
   LOCAL thrustThreshold IS SHIP:AVAILABLETHRUSTAT(0) * stageThreshold.
   
   LOCAL keepStaging IS TRUE.
-  ON SHIP:AVAILABLETHRUSTAT(0) {
+  WHEN TRUE THEN {
     IF keepStaging {
       LOCAL currentThrust IS SHIP:AVAILABLETHRUSTAT(0).
       IF currentThrust <= thrustThreshold {
         IF NOT STAGE:READY {
           WAIT UNTIL STAGE:READY.
         }
-        PRINT "staging due to thrust drop".
+        IF currentThrust <> 0 {
+          PRINT "Staging due to thrust drop".
+        } ELSE {
+          PRINT "Staging due to no thrust".
+        }
         STAGE.
         SET currentThrust TO SHIP:AVAILABLETHRUSTAT(0).
       }

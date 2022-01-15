@@ -13,7 +13,6 @@ LOCAL tarPitch IS 90.
 LOCAL throt IS 1.
 LOCK STEERING TO HEADING(90,tarPitch).
 LOCK THROTTLE TO MAX(MIN(CHOOSE throt IF throt > 0.01 ELSE 0,1),0).
-STAGE.
 LOCAL stagingStruct IS staging_start().
 
 PRINT "initial pitch maneuver".
@@ -67,14 +66,18 @@ FUNCTION staging_start {
   LOCAL thrustThreshold IS SHIP:AVAILABLETHRUSTAT(0) * stageThreshold.
   
   LOCAL keepStaging IS TRUE.
-  ON SHIP:AVAILABLETHRUSTAT(0) {
+  WHEN TRUE THEN {
     IF keepStaging {
       LOCAL currentThrust IS SHIP:AVAILABLETHRUSTAT(0).
       IF currentThrust <= thrustThreshold {
         IF NOT STAGE:READY {
           WAIT UNTIL STAGE:READY.
         }
-        PRINT "staging due to thrust drop".
+        IF currentThrust <> 0 {
+          PRINT "Staging due to thrust drop".
+        } ELSE {
+          PRINT "Staging due to no thrust".
+        }
         STAGE.
         SET currentThrust TO SHIP:AVAILABLETHRUSTAT(0).
       }

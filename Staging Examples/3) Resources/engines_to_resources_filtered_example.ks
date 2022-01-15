@@ -85,7 +85,7 @@ FUNCTION staging_check {
         FOR key IN engRes:KEYS {
           IF engRes[key]:AMOUNT < threshold {
             SET shouldStage TO TRUE.
-            PRINT "staging due to resource: " + engRes[key]:NAME + " below threshold".
+            PRINT "Staging due to resource: " + engRes[key]:NAME + " below threshold".
             BREAK.
           }
         }
