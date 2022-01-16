@@ -11,9 +11,9 @@ The exact calls are `SHIP:AVAILABLETHRUST` and `SHIP:AVAILABLETHRUSTAT(0)`.
 
 ### Lack of Thrust
 
-Loop:    [lib](loop%20form\lack_of_thrust.ks) / [example](loop%20form\lack_of_thrust_example.ks)
+Loop:    [lib](loop%20form/lack_of_thrust.ks) / [example](loop%20form/lack_of_thrust_example.ks)
 
-Trigger: [lib](trigger%20form\lack_of_thrust.ks) / [example](trigger%20form\lack_of_thrust_example.ks)
+Trigger: [lib](trigger%20form/lack_of_thrust.ks) / [example](trigger%20form/lack_of_thrust_example.ks)
 
 This methods simply checks the available thrust of the vessel and stages when the available thrust is zero.
 This should only happen when no engines can generate thrust either by not having been activated yet or because they are out of fuel.
@@ -21,9 +21,9 @@ But some mods have been known to cause issues with the available thrust so there
 
 ### thrust delta fraction
 
-Loop:    [lib](loop%20form\thrust_delta_fraction.ks) / [example](loop%20form\thrust_delta_fraction_example.ks)
+Loop:    [lib](loop%20form/thrust_delta_fraction.ks) / [example](loop%20form/thrust_delta_fraction_example.ks)
 
-Trigger: [lib](trigger%20form\thrust_delta_fraction.ks) / [example](trigger%20form\thrust_delta_fraction_example.ks)
+Trigger: [lib](trigger%20form/thrust_delta_fraction.ks) / [example](trigger%20form/thrust_delta_fraction_example.ks)
 
 This method compares the previous available thrust against the current available thrust and should the current thrust be sufficiently lower than the previous thrust it will stage.
 The change in thrust is calculated assuming the engine is in vacuum to avoid atmospheric issues as thrust can change due to atmosphere.
@@ -31,9 +31,9 @@ The amount the thrust needs to drop is not fixed and is instead some fraction of
 
 ### thrust delta threshold
 
-Loop:    [lib](loop%20form\thrust_delta_threshold.ks) / [example](loop%20form\thrust_delta_threshold_example.ks)
+Loop:    [lib](loop%20form/thrust_delta_threshold.ks) / [example](loop%20form/thrust_delta_threshold_example.ks)
 
-Trigger: [lib](trigger%20form\thrust_delta_threshold.ks) / [example](trigger%20form\thrust_delta_threshold_example.ks)
+Trigger: [lib](trigger%20form/thrust_delta_threshold.ks) / [example](trigger%20form/thrust_delta_threshold_example.ks)
 
 This method is the same as thrust delta fraction except that the threshold used is a fixed kN value as apposed to a fraction of the previous stored thrust value.
 The lower bound is also capped at a thrust of 0 as negative thrust is not possible.
