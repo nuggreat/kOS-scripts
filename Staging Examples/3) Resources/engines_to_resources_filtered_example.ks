@@ -82,10 +82,10 @@ FUNCTION staging_check {
     IF engList:LENGTH > 0 {
       FOR eng IN engList {
         LOCAL engRes IS eng:CONSUMEDRESOURCES.
-        FOR key IN engRes:KEYS {
-          IF engRes[key]:AMOUNT < threshold {
+        FOR res IN engRes:VALUES {
+          IF res:AMOUNT < threshold {
             SET shouldStage TO TRUE.
-            PRINT "Staging due to resource: " + engRes[key]:NAME + " below threshold".
+            PRINT "Staging due to resource: " + res:NAME + " below threshold".
             BREAK.
           }
         }
