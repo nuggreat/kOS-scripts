@@ -1,7 +1,8 @@
 PARAMETER targetAP IS 26,doInclined IS FALSE,targetInclination IS 0,skipConfirm IS FALSE.
-FOR lib IN LIST("lib_navball2","lib_rocket_utilities","lib_formating","lib_warp_control") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_navball2","lib_rocket_utilities","lib_formatting","lib_warp_control") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 SET targetAP TO targetAP * 1000.
 LOCAL northReff IS LATLNG(90,0).
+LOCAL refferenceVector IS v(0,1,0).
 SAS OFF.
 ABORT OFF.
 CLEARSCREEN.
@@ -9,9 +10,12 @@ LOCAL targetVspeed IS 50.
 //kp,ki,kd,min,max
 LOCAL ascentThrottlePID IS PIDLOOP(1,0.1,0.01,0.01,1).
 LOCAL circThrottlePID IS PIDLOOP(1,0.1,0.01,0.001,1).
+GLOBAL planerError IS 0.
+// GLOBAL incError IS 0.
 
 LOCAL targetPitch IS 90.
 LOCAL targetHeading IS 90.
+LOCAL correctPlane IS TRUE.
 LOCAL rangeScanDuration IS 120000 / CONFIG:IPU.
 LOCAL rangeSafty IS 2.5.//the increase to the base range for fixed inclination launches
 LOCAL rangeData IS LEX().//to store the results of the range scan
@@ -22,6 +26,7 @@ IF doInclined {
 	IF targetInclination:ISTYPE("scalar") {
 		LOCAL launchRange IS launch_range(targetInclination,targetAP,rangeSafty).
 		SET targetHeading TO launchRange["launchAz"].
+		SET correctPlane TO FALSE.
 		SET rangeData TO range_scan(launchRange).
 		SET LANdata TO LAN_calculations(targetInclination).//recalculation needed because of duration of scan
 	} ELSE {
@@ -80,10 +85,13 @@ IF doInclined {
 
 		IF doLaunch {
 			LOCAL warpConObj IS warp_control_init(2).
-			UNTIL (crossTime - TIME:SECONDS) < 0.1 {
+			LOCAL warpingDone IS FALSE.
+			UNTIL warpingDone {
 				LOCAL crossETA IS crossTime - TIME:SECONDS.
-				warpConObj["execute"]:CALL(crossETA - 10).
-				PRINT time_formating(-crossETA,0,0,TRUE) + "     " AT(19,warpPrintHeight).
+				IF (warpConObj["execute"]:CALL(crossETA - 10) AND (crossETA < 0.1)){
+					SET warpingDone TO TRUE.
+				}
+				PRINT time_formatting(-crossETA,0,0,TRUE) + "     " AT(19,warpPrintHeight).
 				WAIT 0.
 			}
 		}
@@ -133,7 +141,7 @@ UNTIL APOAPSIS > targetAP {//launch
 		SET tgtVspd TO launchSlope * shipHorVel:MAG.
 	} ELSE {
 		SET slopeAcc TO 0.
-		SET tgtVspd TO localGrav.
+		SET tgtVspd TO localGrav + 0.1.
 	}
 	LOCAL vertCorrec IS MIN(MAX(((tgtVspd - shipVertSpd) / 10),-localGrav),shipAcc).// calculates a correction to apply to vertAcc so the vertical velocity matches tgtVspd
 	
@@ -143,7 +151,7 @@ UNTIL APOAPSIS > targetAP {//launch
 	SET throt TO ascentThrottlePID:UPDATE(TIME:SECONDS,shipVel:MAG/shipAcc).
 	SET targetPitch TO MAX(ARCSIN(MIN(1,vertAcc/shipAcc)),0).
 	IF doInclined {
-		SET targetHeading TO azimuth(LANdata["LAN"],LANdata["inc"],targetAP).
+		SET targetHeading TO azimuth(LANdata["LAN"],LANdata["inc"],targetAP,TRUE,correctPlane).
 	} ELSE {
 		SET targetHeading TO CHOOSE 90 IF ALT:RADAR < 100 ELSE heading_of_vector(PROGRADE:VECTOR).
 	}
@@ -160,6 +168,7 @@ UNTIL APOAPSIS > targetAP {//launch
 	PRINT "ap: " + ROUND(APOAPSIS).
 	PRINT "throttle error: " + ROUND(ascentThrottlePID:ERROR,3).
 	PRINT "throttle Val: " + ROUND(throt,3).
+	PRINT "planer error: "  + planerError.
 }
 LOCK THROTTLE TO 0.
 
@@ -195,6 +204,13 @@ UNTIL done {//assumes only a single stage is needed for circularization
 LOCK THROTTLE TO 0.
 LOCK STEERING TO "kill".
 }
+WAIT 0.
+IF HASTARGET {
+	PRINT "relInc: " + VANG(VCRS(TARGET:POSITION - BODY:POSITION,TARGET:VELOCITY:ORBIT),VCRS(SHIP:POSITION - BODY:POSITION,SHIP:VELOCITY:ORBIT)).
+}
+// IF doInclined {
+	// PRINT "incError: " + (SHIP:ORBIT:INCLINATION - targetInclination).
+// }
 
 FUNCTION user_ui {
 	PARAMETER launchType,launchTimes,skipConfirm.
@@ -251,7 +267,7 @@ FUNCTION user_input {
 		}
 		LOCAL i IS 0.
 		FOR launchTime IN launchTimes {
-			PRINT time_formating(TIME:SECONDS - launchTime,0,0,TRUE) + "     " AT(timePos,i).
+			PRINT time_formatting(TIME:SECONDS - launchTime,0,0,TRUE) + "     " AT(timePos,i).
 			SET i TO i + 1.
 		}
 		WAIT 0.
@@ -302,22 +318,25 @@ FUNCTION LAN_calculations {//calculate the information needed for the azimuth ca
 }
 
 FUNCTION azimuth {
-	PARAMETER targetLAN,targetInc,targetAP,headingOfDiff IS TRUE.
+	PARAMETER targetLAN,targetInc,targetAP,headingOfDiff IS TRUE,correctPlane IS TRUE.
 	LOCAL sufaceLAN IS targetLAN - BODY:ROTATIONANGLE.//lan converted to a surface longitude
 
 	LOCAL lanVec IS (LATLNG(0,sufaceLAN):POSITION - BODY:POSITION):NORMALIZED.//vector pointing to the LAN
-	//LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * (LATLNG(-90,0):POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
-	LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * -(northReff:POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
+	// LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * (LATLNG(-90,0):POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
+	// LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * -(northReff:POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
+	LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * -refferenceVector.//computing the normal vector of the desired orbit
 	LOCAL radVec IS SHIP:POSITION - BODY:POSITION.//current radius as a vector
 	LOCAL currentVel IS SHIP:VELOCITY:ORBIT.
 
 	LOCAL targetSpeed IS MAX(speed_given_ap(radVec:MAG,targetAP),currentVel:MAG + 1).//calculating speed at current radius to reach given AP with current PE, also has MAX call so that said speed is always 1 m/s greater than currentVel
+	SET planerError TO CHOOSE 90 - VANG(radVec,targetNormal) IF correctPlane ELSE 0.
+	// SET incError TO VANG(targetNormal,VCRS(SHIP:POSITION - BODY:POSITION, SHIP:VELOCITY:ORBIT)).
 
 	LOCAL targetVel IS VCRS(targetNormal,radVec:NORMALIZED):NORMALIZED * targetSpeed.//desired velocity vector
 	SET currentVel TO VXCL(UP:VECTOR,currentVel):NORMALIZED * currentVel:MAG.//current velocity flattened to match targetVel
 	LOCAL difVec IS targetVel - currentVel.//difference
 	IF headingOfDiff {
-		RETURN heading_of_vector(difVec).
+		RETURN heading_of_vector(difVec) - max(min(planerError * 10,10),-10).
 	} ELSE {
 		RETURN heading_of_vector(targetVel).
 	}
@@ -332,8 +351,8 @@ FUNCTION speed_given_ap {
 FUNCTION launch_range {
 	PARAMETER tarInc,targetAP,rangeSafty.
 	LOCAL LANdata IS LAN_calculations(tarInc).
-	LOCAL targetHeading IS azimuth(LANdata["LAN"],LANdata["inc"],targetAP).
-	LOCAL launchRange IS ABS(targetHeading - azimuth(LANdata["LAN"],LANdata["inc"],targetAP,FALSE)).	//the range over which the craft might fly relative to the targetHeading
+	LOCAL targetHeading IS azimuth(LANdata["LAN"],LANdata["inc"],targetAP,TRUE,FALSE).
+	LOCAL launchRange IS ABS(targetHeading - azimuth(LANdata["LAN"],LANdata["inc"],targetAP,FALSE,FALSE)).	//the range over which the craft might fly relative to the targetHeading
 	SET launchRange TO MOD(launchRange + rangeSafty + 360,360).
 	RETURN LEX("launchAz",targetHeading,"arc",launchRange,"inc",CHOOSE LANdata["inc"] IF LANdata["isNorth"] ELSE -LANdata["inc"]).
 }
@@ -437,14 +456,14 @@ FUNCTION UTs_of_orbit_cross {//returns the UTs of when the craft can launch into
 	}
 	LOCAL baseLng IS ARCSIN(MAX(MIN(TAN(myLat) / TAN(tarInc),1),-1)).
 	LOCAL northCross IS baseLng + tarLan.//will be the longitude of the crossing point, with a velocity going more north (AN)
-	LOCAL southCross IS (tarLan - 180) - baseLng.//will be the longitude of the crossing point, with a velocity going more south (DN)
+	LOCAL southCross IS (tarLan + 180) - baseLng.//will be the longitude of the crossing point, with a velocity going more south (DN)
 	RETURN LIST(cross_point_to_UTs(startTime,northCross,myLng,leadTime),cross_point_to_UTs(startTime,southCross,myLng,leadTime)).
 }
 
 FUNCTION cross_point_to_UTs {//calculates the time to the given crossing point
 	PARAMETER startTime,targetLng,currentLng,leadTime.
 	LOCAL lngDiff IS (CHOOSE (targetLng - currentLng) IF VDOT(BODY:ANGULARVEL,V(0,1,0)) < 0 ELSE (currentLng - targetLng)).
-	LOCAL timeDiff IS MOD(lngDiff + 360,360) * (BODY:ROTATIONPERIOD / 360) - leadTime.
+	LOCAL timeDiff IS MOD(lngDiff + 720,360) * (BODY:ROTATIONPERIOD / 360) - leadTime.
 	IF timeDiff < 0 { SET timeDiff TO timeDiff + BODY:ROTATIONPERIOD. }
 	RETURN timeDiff + startTime.
 }

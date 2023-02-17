@@ -100,7 +100,7 @@ FUNCTION si_formatting {
 }
 
 
-LOCAL roundingFunctions IS LIST(ROUND @,FLOOR @,CEILING @).
+LOCAL roundingFunctions IS LIST(ROUND@,FLOOR@,CEILING@).
 
 FUNCTION padding {
 	PARAMETER num, leadingLength, trailingLength, positiveLeadingSpace IS TRUE, roundType IS 0.

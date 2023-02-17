@@ -21,7 +21,7 @@ FUNCTION hash_string {//the pre-processing for SHA_1 and SHA_2 functions
     reduced IS FALSE.
   // LOCAL oldIPU IS CONFIG:IPU.
   // SET CONFIG:IPU TO 2000.
-  
+
   LOCAL bitsPerChar IS 0.
   LOCAL bitThreshold IS 0.
   FROM { local i IS inStr:LENGTH - 1. } UNTIL i < 0 STEP { SET i TO i - 1. } DO {
@@ -51,9 +51,9 @@ FUNCTION hash_string {//the pre-processing for SHA_1 and SHA_2 functions
   } ELSE IF hashType:CONTAINS("SHA-512/") {
     LOCAL typeNum IS hashType:SPLIT("/")[1]:TONUMBER(512).
     IF typeNum = 384 OR typeNum = 512 {
-	  SET hashType TO "SHA-" + typeNum.
+      SET hashType TO "SHA-" + typeNum.
       SET result TO SHA_2(bitStr,reduced,hashType).
-	} ELSE IF typeNum < 512 {
+    } ELSE IF typeNum < 512 {
       sha2Data:ADD(hashType,LEX(
         "h",hash_string(hashType,"SHA-512/t",FALSE),
         "k",sha2Data["SHA-512"]["k"],
@@ -62,7 +62,7 @@ FUNCTION hash_string {//the pre-processing for SHA_1 and SHA_2 functions
         "cfg",sha2Data["SHA-512"]["cfg"]
       )).
       SET result TO SHA_2(bitStr,reduced,hashType).
-	}
+    }
   }
   // SET CONFIG:IPU TO oldIPU.
   RETURN (CHOOSE bin_to_hex(result) IF hexReturn ELSE result).
@@ -97,7 +97,7 @@ LOCAL FUNCTION simple_hash {
 
   //padding input string
   SET bitStr TO bitStr + padd_str(bitStr:LENGTH,blockSize,simpleHashData:lengthSize).
-  
+
   LOCAL iMax IS bitStr:LENGTH - 1.
   FROM { local i IS 0. } UNTIL i > iMax STEP { SET i TO i + blockSize. } DO {
 
@@ -156,7 +156,7 @@ LOCAL sha1Data IS LEX(
 
 LOCAL FUNCTION SHA_1 {//an implementation of the SHA-1 algorithm
   PARAMETER bitStr,reduced.
-  
+
   //importing constants and configuration
   LOCAL h0 IS sha1Data:h[0].
   LOCAL h1 IS sha1Data:h[1].
@@ -174,7 +174,7 @@ LOCAL FUNCTION SHA_1 {//an implementation of the SHA-1 algorithm
   LOCAL w1 IS rounds / 4.
   LOCAL w2 IS w1 * 2.
   LOCAL w3 IS w1 * 3.
-  
+
   //padding input string
   SET bitStr TO bitStr + padd_str(bitStr:LENGTH,blockSize,sha1Data:cfg:lengthSize).
 
@@ -276,7 +276,7 @@ sha2Data:ADD("SHA-256",LEX(
     "lengthSize",64
   )
 )).
-	  
+
 FOR h IN LIST("6A09E667","BB67AE85","3C6EF372","A54FF53A","510E527F","9B05688C","1F83D9AB","5BE0CD19") {
   sha2Data["SHA-256"]["h"]:ADD(hex_to_bin(h)).
 }
@@ -322,27 +322,27 @@ sha2Data:ADD("SHA-512",LEX(
 )).
 
 FOR h IN LIST(
-"6A09E667F3BCC908","BB67AE8584CAA73B","3C6EF372FE94F82B","A54FF53A5F1D36F1", 
+"6A09E667F3BCC908","BB67AE8584CAA73B","3C6EF372FE94F82B","A54FF53A5F1D36F1",
 "510E527FADE682D1","9B05688C2B3E6C1F","1F83D9ABFB41BD6B","5BE0CD19137E2179") {
   sha2Data["SHA-512"]["h"]:ADD(hex_to_bin(h)).
 }
 
 FOR k IN LIST(
-"428A2F98D728AE22","7137449123EF65CD","B5C0FBCFEC4D3B2F","E9B5DBA58189DBBC","3956C25BF348B538", 
-"59F111F1B605D019","923F82A4AF194F9B","AB1C5ED5DA6D8118","D807AA98A3030242","12835B0145706FBE", 
-"243185BE4EE4B28C","550C7DC3D5FFB4E2","72BE5D74F27B896F","80DEB1FE3B1696B1","9BDC06A725C71235", 
-"C19BF174CF692694","E49B69C19EF14AD2","EFBE4786384F25E3","0FC19DC68B8CD5B5","240CA1CC77AC9C65", 
-"2DE92C6F592B0275","4A7484AA6EA6E483","5CB0A9DCBD41FBD4","76F988DA831153B5","983E5152EE66DFAB", 
-"A831C66D2DB43210","B00327C898FB213F","BF597FC7BEEF0EE4","C6E00BF33DA88FC2","D5A79147930AA725", 
-"06CA6351E003826F","142929670A0E6E70","27B70A8546D22FFC","2E1B21385C26C926","4D2C6DFC5AC42AED", 
-"53380D139D95B3DF","650A73548BAF63DE","766A0ABB3C77B2A8","81C2C92E47EDAEE6","92722C851482353B", 
-"A2BFE8A14CF10364","A81A664BBC423001","C24B8B70D0F89791","C76C51A30654BE30","D192E819D6EF5218", 
-"D69906245565A910","F40E35855771202A","106AA07032BBD1B8","19A4C116B8D2D0C8","1E376C085141AB53", 
-"2748774CDF8EEB99","34B0BCB5E19B48A8","391C0CB3C5C95A63","4ED8AA4AE3418ACB","5B9CCA4F7763E373", 
-"682E6FF3D6B2B8A3","748F82EE5DEFB2FC","78A5636F43172F60","84C87814A1F0AB72","8CC702081A6439EC", 
-"90BEFFFA23631E28","A4506CEBDE82BDE9","BEF9A3F7B2C67915","C67178F2E372532B","CA273ECEEA26619C", 
-"D186B8C721C0C207","EADA7DD6CDE0EB1E","F57D4F7FEE6ED178","06F067AA72176FBA","0A637DC5A2C898A6", 
-"113F9804BEF90DAE","1B710B35131C471B","28DB77F523047D84","32CAAB7B40C72493","3C9EBE0A15C9BEBC", 
+"428A2F98D728AE22","7137449123EF65CD","B5C0FBCFEC4D3B2F","E9B5DBA58189DBBC","3956C25BF348B538",
+"59F111F1B605D019","923F82A4AF194F9B","AB1C5ED5DA6D8118","D807AA98A3030242","12835B0145706FBE",
+"243185BE4EE4B28C","550C7DC3D5FFB4E2","72BE5D74F27B896F","80DEB1FE3B1696B1","9BDC06A725C71235",
+"C19BF174CF692694","E49B69C19EF14AD2","EFBE4786384F25E3","0FC19DC68B8CD5B5","240CA1CC77AC9C65",
+"2DE92C6F592B0275","4A7484AA6EA6E483","5CB0A9DCBD41FBD4","76F988DA831153B5","983E5152EE66DFAB",
+"A831C66D2DB43210","B00327C898FB213F","BF597FC7BEEF0EE4","C6E00BF33DA88FC2","D5A79147930AA725",
+"06CA6351E003826F","142929670A0E6E70","27B70A8546D22FFC","2E1B21385C26C926","4D2C6DFC5AC42AED",
+"53380D139D95B3DF","650A73548BAF63DE","766A0ABB3C77B2A8","81C2C92E47EDAEE6","92722C851482353B",
+"A2BFE8A14CF10364","A81A664BBC423001","C24B8B70D0F89791","C76C51A30654BE30","D192E819D6EF5218",
+"D69906245565A910","F40E35855771202A","106AA07032BBD1B8","19A4C116B8D2D0C8","1E376C085141AB53",
+"2748774CDF8EEB99","34B0BCB5E19B48A8","391C0CB3C5C95A63","4ED8AA4AE3418ACB","5B9CCA4F7763E373",
+"682E6FF3D6B2B8A3","748F82EE5DEFB2FC","78A5636F43172F60","84C87814A1F0AB72","8CC702081A6439EC",
+"90BEFFFA23631E28","A4506CEBDE82BDE9","BEF9A3F7B2C67915","C67178F2E372532B","CA273ECEEA26619C",
+"D186B8C721C0C207","EADA7DD6CDE0EB1E","F57D4F7FEE6ED178","06F067AA72176FBA","0A637DC5A2C898A6",
+"113F9804BEF90DAE","1B710B35131C471B","28DB77F523047D84","32CAAB7B40C72493","3C9EBE0A15C9BEBC",
 "431D67C49C100D4C","4CC5D4BECB3E42B6","597F299CFC657E2A","5FCB6FAB3AD6FAEC","6C44198C4A475817") {
   sha2Data["SHA-512"]["k"]:ADD(hex_to_bin(k)).
 }
@@ -373,14 +373,14 @@ sha2Data:ADD("SHA-384",LEX(
 )).
 
 FOR h IN LIST(
-"cbbb9d5dc1059ed8","629a292a367cd507","9159015a3070dd17","152fecd8f70e5939", 
+"cbbb9d5dc1059ed8","629a292a367cd507","9159015a3070dd17","152fecd8f70e5939",
 "67332667ffc00b31","8eb44a8768581511","db0c2e0d64f98fa7","47b5481dbefa4fa4") {
   sha2Data["SHA-384"]["h"]:ADD(hex_to_bin(h)).
 }
 
 LOCAL FUNCTION SHA_2 {//an implementation of the SHA-256 algorithm
   PARAMETER bitStr,reduced,shaType IS "SHA-256".
-  
+
   //importing constants and configuration
   LOCAL typeData IS sha2Data[shaType].
   LOCAL h0 IS typeData:h[0].
@@ -406,7 +406,7 @@ LOCAL FUNCTION SHA_2 {//an implementation of the SHA-256 algorithm
   LOCAL s1r2 IS typeData:s[5].
   LOCAL wordSize IS typeData:cfg:wordSize.
   LOCAL blockSize IS typeData:cfg:blockSize.
-  
+
   //padding input string
   SET bitStr TO bitStr + padd_str(bitStr:LENGTH,blockSize,typeData:cfg:lengthSize).
 
@@ -495,7 +495,7 @@ LOCAL FUNCTION SHA_2 {//an implementation of the SHA-256 algorithm
     SET h6 TO bin_ADD(h6,gSeg).
     SET h7 TO bin_ADD(h7,hSeg).
   }
-  
+
   IF shaType = "SHA-224" {
     RETURN (h0 + h1 + h2 + h3 + h4 + h5 + h6).
   } ELSE IF shaType = "SHA-384" {
@@ -503,19 +503,137 @@ LOCAL FUNCTION SHA_2 {//an implementation of the SHA-256 algorithm
   } ELSE IF shaType:CONTAINS("SHA-512/") {
     IF shaType = "SHA-512/t" {
       RETURN LIST(h0,h1,h2,h3,h4,h5,h6,h7).
-	} ELSE {
-	  RETURN (h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7):SUBSTRING(0,shaType:SPLIT("/")[1]:TONUMBER()).
-	}
+    } ELSE {
+      RETURN (h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7):SUBSTRING(0,shaType:SPLIT("/")[1]:TONUMBER()).
+    }
   } ELSE { //IF shaType = "SHA-256" {
     RETURN (h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7).
   }
+}
+
+PRINT "loading MD5".
+LOCAL md5Data IS LEX(
+  "a0",hex_to_bin(67452301),
+  "b0",hex_to_bin(efcdab89),
+  "c0",hex_to_bin(98badcfe),
+  "d0",hex_to_bin(10325476),
+  "f0",hex_to_bin(00000000),
+  "s",LIST(
+      7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
+      5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
+      4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
+      6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
+  ),
+  "k",LIST().
+  "cfg",LEX(
+    "fullRounds",64,
+    "reducedRounds",16,
+    "wordSize",32,
+    "blockSize",512,
+    "lengthSize",64
+  )
+).
+
+FOR k IN LIST(
+"d76aa478", "e8c7b756", "242070db", "c1bdceee", "f57c0faf", "4787c62a", "a8304613", "fd469501",
+"698098d8", "8b44f7af", "ffff5bb1", "895cd7be", "6b901122", "fd987193", "a679438e", "49b40821",
+"f61e2562", "c040b340", "265e5a51", "e9b6c7aa", "d62f105d", "02441453", "d8a1e681", "e7d3fbc8",
+"21e1cde6", "c33707d6", "f4d50d87", "455a14ed", "a9e3e905", "fcefa3f8", "676f02d9", "8d2a4c8a",
+"fffa3942", "8771f681", "6d9d6122", "fde5380c", "a4beea44", "4bdecfa9", "f6bb4b60", "bebfbc70",
+"289b7ec6", "eaa127fa", "d4ef3085", "04881d05", "d9d4d039", "e6db99e5", "1fa27cf8", "c4ac5665",
+"f4292244", "432aff97", "ab9423a7", "fc93a039", "655b59c3", "8f0ccc92", "ffeff47d", "85845dd1",
+"6fa87e4f", "fe2ce6e0", "a3014314", "4e0811a1", "f7537e82", "bd3af235", "2ad7d2bb", "eb86d391") {
+  md5Data["k"]:ADD(hex_to_bin(k)).
+}
+
+LOCAL FUNCTION MD5 {
+  PARAMETER bitStr.
+    //importing constants and configuration
+  LOCAL a0 IS md5Data:a0.
+  LOCAL b0 IS md5Data:b0.
+  LOCAL c0 IS md5Data:c0.
+  LOCAL d0 IS md5Data:d0.
+  LOCAL f0 IS md5Data:f0
+  LOCAL kList IS md5Data:k.
+  LOCAL sList IS md5Data:s.
+  LOCAL blockSize IS md5Data:cfg:blockSize.
+  LOCAL wordSize IS md5Data:cfg:wordSize.
+
+  LOCAL rounds IS md5Data:cfg:fullRounds.
+  LOCAL w1 IS rounds / 4.
+  LOCAL w2 IS w1 * 2.
+  LOCAL w3 IS w1 * 3.
+
+  //padding input string
+  SET bitStr TO bitStr + padd_str(bitStr:LENGTH,blockSize,sha1Data:cfg:lengthSize).
+
+  LOCAL iMax IS bitStr:LENGTH - 1.
+  FROM { local i IS 0. } UNTIL i > iMax STEP { SET i TO i + blockSize. } DO {
+    //print ROUND((i / iMax) * 100,4).
+
+    LOCAL wordList IS LIST().
+    LOCAL jMax IS i + blockSize.
+    FROM { LOCAL j IS i. } UNTIL j >= jMax STEP { SET j TO j + wordSize. } DO {
+      wordList:ADD(bitStr:SUBSTRING(j,wordSize)).
+    }
+
+    LOCAL aSeg IS a0.
+    LOCAL bSeg IS b0.
+    LOCAL cSeg IS c0.
+    LOCAL dSeg IS d0.
+    LOCAL fSeg IS f0.
+    LOCAL gVal IS 0.
+    FROM { LOCAL w IS 0. } UNTIL w >= rounds STEP { SET w TO w + 1. } DO {
+      IF w < w2 {
+        IF w < w1 {
+          // LOCAL tmp1 IS bin_AND(bSeg,cSeg).
+          // LOCAL tmp2 IS bin_NOT(bSeg).
+          // LOCAL tmp3 IS bin_AND(tmp2,dSeg).
+          // SET fSeg TO bin_OR(tmp1,tmp3).
+          SET fSeg TO bin_OR(bin_AND(bSeg,cSeg),bin_AND(bin_NOT(bSeg),dSeg)).
+          SET gVal TO w.
+        } ELSE {
+          // LOCAL tmp1 IS bin_AND(dSeg,bSeg).
+          // LOCAL tmp2 IS bin_NOT(dSeg).
+          // LOCAL tmp3 IS bin_AND(tmp2,cSeg).
+          // SET fSeg TO bin_OR(tmp1,tmp3).
+          SET fSeg TO bin_OR(bin_AND(dSeg,bSeg),bin_AND(bin_NOT(dSeg),cSeg)).
+          SET gVal TO MOD(w * 5 + 1,16).
+        }
+      } ELSE {
+        IF w < w3 {
+          // LOCAL tmp1 IS bin_XOR(bSeg,cSeg).
+          // SET fSeg TO bin_XOR(tmp1,dSeg).
+          SET fSeg TO bin_XOR(bin_XOR(bSeg,cSeg),dSeg).
+          SET gVal TO MOD(w * 3 + 5,16).
+        } ELSE {
+          F := C xor (B or (not D))
+          // LOCAL tmp1 IS bin_NOT(dSeg).
+          // LOCAL tmp2 IS bin_OR(bSeg,tmp1).
+          // SET f TO bin_XOR(cSeg,tmp2).
+          SET f TO bin_XOR(cSeg,bin_OR(bSeg,bin_NOT(dSeg))).
+          SET gVal TO MOD(w * 7,16).
+        }
+      }
+      SET fSeg TO bin_ADD_multi(LIST(fSeg,aSeg,kList[w],wordList[gVal])).
+      SET aSeg TO dSeg.
+      SET dSeg TO cSeg.
+      SET cSeg TO bSeg.
+      SET bSeg TO bin_ADD(bSeg,bin_rotate_left(fSeg,sList[w])).
+    }
+    SET a0 TO bin_ADD(a0,aSeg).
+    SET b0 TO bin_ADD(b0,bSeg).
+    SET c0 TO bin_ADD(c0,cSeg).
+    SET d0 TO bin_ADD(d0,dSeg).
+  }
+  RETURN (a0 + b0 + c0 + d0).
 }
 
 LOCAL FUNCTION padd_str {
   PARAMETER bitStrLength,blockSize,lengthSize.
   LOCAL padLength IS (blockSize - lengthSize) - MOD(bitStrLength,blockSize).
   IF padLength < 0 {
-	SET padLength TO padLength + blockSize.
+    SET padLength TO padLength + blockSize.
   }
   RETURN "1":PADRIGHT(padLength):REPLACE(" ","0") + int_to_bin(bitStrLength,lengthSize).
 }
@@ -575,7 +693,7 @@ LOCAL FUNCTION bin_OR_multi {
   FOR i IN RANGE(binList[0]:LENGTH) {
     LOCAL bitVal IS "0".
     LOCAL binListi IS binList:ITERATOR.
-	UNTIL NOT binListi:NEXT {
+    UNTIL NOT binListi:NEXT {
       IF binListi:VALUE[i] = "1" {
         SET bitVal TO "1".
         BREAK.
@@ -601,7 +719,7 @@ LOCAL FUNCTION bin_AND_multi {
   FOR i IN RANGE(binList[0]:LENGTH) {
     LOCAL bitVal IS "1".
     LOCAL binListi IS binList:ITERATOR.
-	UNTIL NOT binListi:NEXT {
+    UNTIL NOT binListi:NEXT {
       IF binListi:VALUE[i] = "0" {
         SET bitVal TO "0".
         BREAK.
@@ -626,10 +744,10 @@ LOCAL FUNCTION bin_XOR_multi {//Exclusive Or for 3 or more binary strings
   LOCAL returnStr IS "".
   FOR i IN RANGE(binList[0]:LENGTH) {
     LOCAL binListi IS binList:ITERATOR.
-	binListi:NEXT.
+    binListi:NEXT.
     LOCAL bitVal IS binListi:VALUE[i].
-	UNTIL NOT binListi:NEXT {
-	  SET bitVal TO CHOOSE "0" IF binListi:VALUE[i] = bitVal ELSE "1".
+    UNTIL NOT binListi:NEXT {
+      SET bitVal TO CHOOSE "0" IF binListi:VALUE[i] = bitVal ELSE "1".
     }
     SET returnStr TO returnStr + bitVal.
   }
@@ -664,7 +782,7 @@ LOCAL FUNCTION bin_ADD_multi {//add 3 or more bin strings, will discard any over
   FOR i IN RANGE(binList[0]:LENGTH - 1,-1) {
     LOCAL sum IS carry.
     LOCAL binListi IS binList:ITERATOR.
-	UNTIL NOT binListi:NEXT {
+    UNTIL NOT binListi:NEXT {
       SET sum TO sum + binListi:VALUE[i]:TONUMBER.
     }
     SET carry TO FLOOR((sum) / 2).

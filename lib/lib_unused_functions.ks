@@ -131,9 +131,15 @@ FUNCTION burn_along_vector {//needs libs formating, rocker utilities
 	}
 }
 
+FUNCTION rotate_vec_into_solar_raw {
+  PARAMETER rawRawVec.
+  LOCAL rawToSolar IS LOOKDIRUP(SOLARPRIMEVECTOR,v(0,1,0)).
+  RETURN rawRawVec * rawToSolar.
+}
+
 FUNCTION burn_vec_constructor {
 	PARAMETER burnTime,burnRadial,burnNormal,burnPrograde,localBody IS SHIP:BODY.
-	
+	// LOCAL localBody IS ORBITAT(SHIP,nodeTime):BODY.
 	LOCAL vecUp IS (POSITIONAT(SHIP,nodeTime) - localBody:POSITION):NORMALIZED.
 	LOCAL vecNodePrograde IS VELOCITYAT(SHIP,nodeTime):ORBIT:NORMALIZED.
 	LOCAL vecNodeNormal IS VCRS(vecNodePrograde,vecUp):NORMALIZED.
@@ -521,11 +527,12 @@ FUNCTION string_cat {
 FUNCTION ternary_search {
 	PARAMETER f, left, right, absPrecision.
 	UNTIL FALSE {
-		IF ABS(right - left) < absPrecision {
+		LOCAL rightLeftDiff IS right - left.
+		IF ABS(rightLeftDiff) < absPrecision {
 			RETURN (left + right) / 2.
 		}
-		LOCAL leftThird IS left + (right - left) / 3.
-		LOCAL rightThird IS right - (right - left) / 3.
+		LOCAL leftThird IS left + (rightLeftDiff) / 3.
+		LOCAL rightThird IS right - (rightLeftDiff) / 3.
 		IF f(leftThird) < f(rightThird) {
 			SET left TO leftThird.
 		} ELSE {
@@ -534,18 +541,27 @@ FUNCTION ternary_search {
 	}
 }
 
+FUNCTION position_at_surface {
+	PARAMETER thing,dt.
+	LOCAL vi IS thing:VELOCITY:SURFACE.
+	LOCAL rad IS thing:POSITION - thing:BODY:POSITION.
+	LOCAL ac IS rad:NORMALIZED * (thing:BODY:MU / rad:SQRMAGNITUDE).
+	RETURN thing:POSITION + vi * dt + ac * t^2 / 2.
+}
+
 FUNCTION delta_init {
-    PARAMETER initalX, initalTime TO TIME:SECONDS.
-    LOCAL oldX TO initalX.
-    LOCAL deltaX TO initalX - initalX.
-	LOCAL oldTime TO initalTime.
+    PARAMETER initalX.
+    LOCAL oldT IS TIME:SECONDS.
+    LOCAL oldX IS initalX.
+    LOCAL deltaX IS initalX - initalX.
+	LOCAL deltaT IS 0.
     RETURN {
-        PARAMETER newX, newTime TO TIME:SECONDS.
-        IF newTime <> oldTime {
-			LOCAL deltaT TO newTime - oldTime.
+        PARAMETER newX, newT IS TIME:SECONDS.
+        SET deltaT TO newT - oldT.
+        IF deltaT <> 0 {
             SET deltaX TO (newX - oldX) / deltaT.
+            SET oldT TO newT.
             SET oldX TO newX.
-			SET oldTime TO newTime.
         }
 		RETURN deltaX.
     }.
@@ -553,7 +569,7 @@ FUNCTION delta_init {
 
 FUNCTION inerta_vector {
     LOCAL am IS SHIP:ANGULARMOMENTUM.
-    LOCAL av TO SHIP:ANGULARVEL * -SHIP:FACING.//x = pitch(w = pos, s = neg), y = yaw(d = pos, a = neg), z  = roll(q = pos, e = neg)
+    LOCAL av TO SHIP:ANGULARVEL * SHIP:FACING:INVERSE.//x = pitch(w = pos, s = neg), y = yaw(d = pos, a = neg), z  = roll(q = pos, e = neg)
     
     //PRINT "pitch inertia: " +  (am:X / av:X).
     //PRINT "yaw   inertia: " + (-am:Z / av:Y).
@@ -567,11 +583,11 @@ FUNCTION moi_getter_init {
 	LOCAL warpStruct IS KUNIVERSE:TIMEWARP.
 	LOCAL lowPassHighVal IS (lowPassCoef - 1) / lowPassCoef.
 	LOCAL lowPassLowVal IS 1 - lowPassHighVal.
-	LOCAL angVel IS SHIP:ANGULARVEL * -SHIP:FACING.
+	LOCAL angVel IS SHIP:ANGULARVEL * SHIP:FACING:INVERSE.
 	LOCAL angMom IS SHIP:ANGULARMOMENTUM.
 	UNTIL (angVel:X * angVel:Y * angVel:Z * angMom:X * angMom:Y * angMom:Z) <> 0 {
 		WAIT 0.
-		SET angVel TO SHIP:ANGULARVEL * -SHIP:FACING.
+		SET angVel TO SHIP:ANGULARVEL * SHIP:FACING:INVERSE.
 		SET angMom TO SHIP:ANGULARMOMENTUM.
 	}
 	LOCAL MoIvec IS v(
@@ -581,8 +597,7 @@ FUNCTION moi_getter_init {
 	).
 	RETURN {
 		PARAMETER newAngVel IS SHIP:ANGULARVEL * SHIP:FACING:INVERSE, newAngMom IS SHIP:ANGULARMOMENTUM.
-		IF	(warpStruct:WARP = 0) AND
-			(warpStruct:MODE <> "RAILS") AND
+		IF	((warpStruct:WARP = 0) OR (warpStruct:MODE <> "RAILS")) AND
 			((newAngVel:X * newAngVel:Y * newAngVel:Z * newAngMom:X * newAngMom:Y * newAngMom:Z) <> 0)
 		{
 			LOCAL newMoIvec IS v(
@@ -598,6 +613,18 @@ FUNCTION moi_getter_init {
 			"Roll",MoIvec:Z,
 		).
 	}
+}
+
+FUNCTION low_pass_filter_init {
+	PARAMETER initalVal,lowPassCoef IS 50.
+	LOCAL lowPassHighVal IS (lowPassCoef - 1) / lowPassCoef.
+	LOCAL lowPassLowVal IS 1 - lowPassHighVal.
+	LOCAL pastVal IS initalVal.
+	RETURN {
+		PARAMETER newVal.
+		SET pastVal TO pastVal * lowPassHighVal + newVal * lowPassLowVal.
+		RETURN pastVal.
+	}.
 }
 
 FUNCTION circ_at_pe {
@@ -733,6 +760,19 @@ FUNCTION deep_copy {
 		}
 	}
 	RETURN thing.
+}
+
+FUNCTION SteeringByGrav {//steering vector for ideal suborbital hop(in theory)
+	PARAMETER posVec.//target landing location accounting for body rotation
+	
+	LOCAL upv IS UP:VECTOR.
+	
+	LOCAL desiredAcc IS (posVec:NORMALIZED+upv):NORMALIZED.
+	LOCAL twr IS MAXTHRUST/(bg*MASS).
+	LOCAL sinA IS upv*desiredAcc.
+	
+	LOCAL mlt is SQRT(twr * twr + sinA * sinA - 1) - sinA.
+	RETURN desiredAcc * mlt + upv.
 }
 
 FUNCTION static_atm_temp {

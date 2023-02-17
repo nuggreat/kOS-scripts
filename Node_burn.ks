@@ -1,9 +1,8 @@
 PARAMETER autoWarp IS FALSE, degreesOfRotation IS 0, doStage IS FALSE.
 IF NOT SHIP:UNPACKED { PRINT "waiting for unpack". WAIT UNTIL SHIP:UNPACKED. WAIT 1. PRINT "unpacked". }
-IF NOT EXISTS("1:/lib/lib_formating.ks") COPYPATH("0:/lib/lib_formating.ks","1:/lib/").
-FOR lib IN LIST("lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
+IF NOT EXISTS("1:/lib/lib_formatting.ks") COPYPATH("0:/lib/lib_formatting.ks","1:/lib/").
+FOR lib IN LIST("lib_rocket_utilities","lib_formatting") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
-
 SAS OFF.
 ABORT OFF.
 SET TERMINAL:WIDTH TO 60.
@@ -65,7 +64,7 @@ UNTIL done {	//waiting for a node to exist or be locked in
 		} ELSE IF warpState = 1 { //warp close to node
 			IF burnStart > nodeLock * 10 + 1 {
 				KUNIVERSE:TIMEWARP:WARPTO(TIME:SECONDS + (burnStart - (nodeLock * 10))).
-			} 
+			}
 			SET pData[2] TO "Node Lock" + time_formatting(nodeLock) + " Before The Node Burn Begins".
 			SET pData[4] TO "Warping To" + time_formatting(nodeLock * 10) + " Before The Burn".
 			SET pData[9] TO "Kill Warp Then Activate ABORT To Stop Auto Warping".
@@ -209,9 +208,9 @@ SET STEERINGMANAGER:ROLLTS TO oldSteeringSettings["rollTS"].
 
 //end of core logic start of functions
 FUNCTION screen_update {
-	PARAMETER pList.
+	PARAMETER printList.
 	CLEARSCREEN.
-	FOR printLine IN pList {
+	FOR printLine IN printList {
 		PRINT printLine.
 	}
 }
