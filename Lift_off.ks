@@ -6,7 +6,7 @@ LOCAL targetAP IS apHeight * 1000.
 
 RCS OFF.
 SAS OFF.
-LOCAL bodyAtmosphere IS SHIP:BODY:ATM.
+LOCAL bodyAtm IS SHIP:BODY:ATM.
 
 //PID setup PIDLOOP(kP,kI,kD,min,max)
 SET throttlePID TO PIDLOOP(0.5,0.1,0,0,1).
@@ -17,14 +17,14 @@ LOCAL goNoGo IS TRUE.//true to launch, false to cancel
 CLEARSCREEN.
 IF NOT skipConfirm {
 	PRINT "Lanuching to an apolapsis of: " + (targetAP / 1000) + "Km".
-	IF bodyAtmosphere:EXISTS AND targetAP < bodyAtmosphere:HEIGHT {
+	IF bodyAtm:EXISTS AND targetAP < bodyAtm:HEIGHT {
 		PRINT "Warning target apolapsis is below atmosphere height".
 		PRINT " ".
 	}
 	PRINT "Lanuching with heaidng of:    " + launchHeading.
 	PRINT " ".
-	IF bodyAtmosphere:EXISTS {
-		PRINT SHIP:BODY:NAME + " has a atmosphere height of: " + bodyAtmosphere:HEIGHT / 1000 + "Km".
+	IF bodyAtm:EXISTS {
+		PRINT SHIP:BODY:NAME + " has a atmosphere height of: " + bodyAtm:HEIGHT / 1000 + "Km".
 	} ELSE {
 		PRINT SHIP:BODY:NAME + " has no atmosphere".
 	}
@@ -67,7 +67,7 @@ PID_config(throttlePID,etaSet,0.25).
 LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 LOCAL twr IS (SHIP:AVAILABLETHRUST / SHIP:MASS) / (SHIP:BODY:MU / SHIP:BODY:RADIUS^2).
 LOCAL maxPitch IS MAX(MIN(twr * 10,45),22.5).
-IF bodyAtmosphere:EXISTS {
+IF bodyAtm:EXISTS {
 	SET vertSpeed TO 100.
 	PID_config(throttlePID,etaSet,1).
 //	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
@@ -85,7 +85,7 @@ UNTIL SHIP:VERTICALSPEED > vertSpeed OR (signed_eta_ap() > (etaSet - 0.1) AND SH
 	stage_check().
 }
 WAIT 1.
-IF bodyAtmosphere:EXISTS {	//liftoff
+IF bodyAtm:EXISTS {	//liftoff
 	PID_config(throttlePID,etaSet,0.25).
 //	LOCK THROTTLE TO throttlePID:UPDATE(TIME:SECONDS,signed_eta_ap()).
 	UNTIL pitchTo > pitch_target(SHIP:VELOCITY:SURFACE,etaSet,5,-5,20) OR SHIP:ORBIT:APOAPSIS > targetAP {
@@ -106,7 +106,7 @@ PRINT "Roll Program Complete".
 
 //pitch and boost to apolapsis
 PRINT "Boosting to Apoapsis".
-IF bodyAtmosphere:EXISTS {
+IF bodyAtm:EXISTS {
 	LOCAL gradeVec IS SHIP:VELOCITY:SURFACE.
 	LOCAL headingTar IS heading_of_vector(gradeVec).
 	LOCAL pitchTar IS pitch_target(gradeVec,etaSet,5,-5,20).
@@ -150,10 +150,10 @@ LOCK STEERING TO SHIP:VELOCITY:ORBIT.
 LOCAL minThrottle IS 0.
 //LOCK THROTTLE TO PID_config(throttlePID,etaSet,minThrottle).
 
-IF bodyAtmosphere:EXISTS AND SHIP:ALTITUDE < bodyAtmosphere:HEIGHT {
+IF bodyAtm:EXISTS AND SHIP:ALTITUDE < bodyAtm:HEIGHT {
 	PRINT "Coasting to Edge of Atmosphere".
 	LOCAL engActive IS TRUE.
-	UNTIL signed_eta_ap() < 151 OR SHIP:ALTITUDE > bodyAtmosphere:HEIGHT {
+	UNTIL signed_eta_ap() < 151 OR SHIP:ALTITUDE > bodyAtm:HEIGHT {
 		IF SHIP:ORBIT:APOAPSIS < targetAP {
 			SET minThrottle TO MAX((targetAP - SHIP:ORBIT:APOAPSIS) / 1000,0.001).
 			PID_config(throttlePID,etaSet,minThrottle).
@@ -176,7 +176,7 @@ IF signed_eta_ap() > 151 {
 	SET minThrottle TO 0.
 	UNTIL signed_eta_ap() < 151 OR NOT not_warping() {
 		WAIT 0.01.
-		IF SHIP:ALTITUDE > bodyAtmosphere:HEIGHT + 100. {
+		IF SHIP:ALTITUDE > bodyAtm:HEIGHT + 100. {
 			SET KUNIVERSE:TIMEWARP:MODE TO "RAILS".
 			KUNIVERSE:TIMEWARP:WARPTO(TIME:SECONDS + (signed_eta_ap() - 150)).
 		}

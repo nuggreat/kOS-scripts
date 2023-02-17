@@ -535,22 +535,19 @@ FUNCTION ternary_search {
 }
 
 FUNCTION delta_init {
-    PARAMETER initalVal.
-    LOCAL oldTime IS TIME:SECONDS.
-    LOCAL oldVal IS initalVal.
-    LOCAL oldDelta IS initalVal - initalVal.
+    PARAMETER initalX, initalTime TO TIME:SECONDS.
+    LOCAL oldX TO initalX.
+    LOCAL deltaX TO initalX - initalX.
+	LOCAL oldTime TO initalTime.
     RETURN {
-        PARAMETER newVal, newTime IS TIME:SECONDS.
-        LOCAL deltaT IS newTime - oldTime.
-        IF deltaT = 0 {
-            RETURN oldDelta.
-        } ELSE {
-            LOCAL deltaVal IS newVal - oldVal.
-            SET oldTime TO newTime.
-            SET oldVal TO newVal.
-            SET oldDelta TO deltaVal / deltaT.
-            RETURN oldDelta.
+        PARAMETER newX, newTime TO TIME:SECONDS.
+        IF newTime <> oldTime {
+			LOCAL deltaT TO newTime - oldTime.
+            SET deltaX TO (newX - oldX) / deltaT.
+            SET oldX TO newX.
+			SET oldTime TO newTime.
         }
+		RETURN deltaX.
     }.
 }
 
@@ -583,15 +580,15 @@ FUNCTION moi_getter_init {
 		(angMom:Y / angVel:Z)  //roll  axis
 	).
 	RETURN {
-		PARAMETER newAngVel IS SHIP:ANGULARVEL, newAngMom IS SHIP:ANGULARMOMENTUM.
+		PARAMETER newAngVel IS SHIP:ANGULARVEL * SHIP:FACING:INVERSE, newAngMom IS SHIP:ANGULARMOMENTUM.
 		IF	(warpStruct:WARP = 0) AND
 			(warpStruct:MODE <> "RAILS") AND
-			((angVel:X * angVel:Y * angVel:Z * angMom:X * angMom:Y * angMom:Z) <> 0)
+			((newAngVel:X * newAngVel:Y * newAngVel:Z * newAngMom:X * newAngMom:Y * newAngMom:Z) <> 0)
 		{
 			LOCAL newMoIvec IS v(
-				(angMom:X / angVel:X), //pitch axis
-				(-angMom:Z / angVel:Y),//yaw   axis
-				(angMom:Y / angVel:Z)  //roll  axis
+				(newAngMom:X / newAngVel:X), //pitch axis
+				(-newAngMom:Z / newAngVel:Y),//yaw   axis
+				(newAngMom:Y / newAngVel:Z)  //roll  axis
 			).
 			SET MoIvec TO MoIvec * lowPassHighVal + newMoIvec * lowPassLowVal.
 		}

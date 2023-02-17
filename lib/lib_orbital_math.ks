@@ -12,7 +12,7 @@ FUNCTION uts_of_nodes {//will return the UTs of the ascending and descending nod
 	LOCAL c1Period IS craft1:ORBIT:PERIOD.
 	LOCAL tAnomaly IS craft1:ORBIT:TRUEANOMALY.
 	LOCAL localTime IS TIME:SECONDS.
-	LOCAL taOfNode IS ta_of_node(craft1,craft2).
+	LOCAL taOfNode IS ta_of_node(craft1,craft2,tAnomaly).
 	LOCAL timeFromPe IS ta_to_time_from_pe(craft1:ORBIT,tAnomaly).
 
 	LOCAL etaToNode1 IS MOD(ta_to_time_from_pe(craft1:ORBIT,taOfNode) - timeFromPe + c1Period,c1Period).
@@ -86,7 +86,7 @@ FUNCTION ta_to_ma {//converts a true anomaly(degrees) to the mean anomaly (degre
 //}
 
 FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to the orbit of craft2 or equator of craft2 if craft1 is in orbit of craft2
-	PARAMETER craft1,craft2.
+	PARAMETER craft1,craft2,craft1TA IS craft1:ORBIT:TRUEANOMALY.
 	LOCAL vecC1Normal IS normal_of_orbit(craft1).//normal of craft 1 orbit
 	LOCAL vecC2Normal IS normal_of_orbit(craft2).//normal of craft 2 orbit
 	IF craft2:ISTYPE("BODY") {//check to see if craft1 is in orbit of craft2
@@ -104,7 +104,7 @@ FUNCTION ta_of_node {//returns the true anomaly of a node for craft1 relative to
 		SET relitiveAnomaly TO 360 - relitiveAnomaly.
 	}
 
-	RETURN MOD(relitiveAnomaly + craft1:ORBIT:TRUEANOMALY,360).
+	RETURN MOD(relitiveAnomaly + craft1TA,360).
 }
 
 FUNCTION normal_of_orbit {//returns the normal of a crafts/bodies orbit, will point north if orbiting clockwise on equator

@@ -22,6 +22,7 @@ UNTIL done {
 }
 
 IF incMatch {
+	LOCAL startTime IS TIME:SECONDS.
 	clear_all_nodes().
 	LOCAL nodesUTs IS UTs_of_nodes(SHIP,TARGET).
 	LOCAL highNode IS "an".
@@ -59,6 +60,8 @@ IF incMatch {
 
 	LOCAL baseNode IS node_from_vector(vecBurn,nodesUTs[highNode]).
 	ADD baseNode.
+	PRINT "elapsedTime: " + (TIME:SECONDS - startTime).
+	WAIT UNTIL FALSE.
 	RUNPATH("1:/node_burn",TRUE).
 //	RCS OFF.
 //	WAIT UNTIL RCS.

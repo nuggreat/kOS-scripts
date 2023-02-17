@@ -98,7 +98,7 @@ UNTIL done OR ABORT {
 		LOCAL pointPos IS nodeTree[nodeID]["latLng"]:POSITION.
 		SET bestVec:START TO pointPos.
 		SET bestVec:VEC TO (pointPos - SHIP:BODY:POSITION):NORMALIZED * 2000.
-		PRINT "   closest Dist: " + si_formating(closestDist,"m") + " " AT(0,3).
+		PRINT "   closest Dist: " + si_formatting(closestDist,"m") + " " AT(0,3).
 		PRINT " Time Remaining: " + ROUND(closestDist / ((startDist - closestDist) / (TIME:SECONDS - startTime))) + "    " AT(0,4).
 	}
 	LOCAL pointPos IS nodeTree[nodeID]["latLng"]:POSITION.
@@ -177,7 +177,7 @@ FUNCTION render_points  {
 		SET totalDist to totalDist + dist_between_coordinates(prevousPoint,point).
 		SET prevousPoint TO point.
 	}
-	PRINT "path length: " + si_formating(totalDist,"m") AT(0,10).
+	PRINT "path length: " + si_formatting(totalDist,"m") AT(0,10).
 	//WAIT 5.
 }
 
@@ -525,16 +525,16 @@ FUNCTION path_scroll {
 	LOCAL done IS FALSE.
 	UNTIL done {
 		IF termIn:HASCHAR {
-			LOCAL char IS termIn:GETCHAR().
-			IF char = "+" {
+			LOCAL inChar IS termIn:GETCHAR().
+			IF inChar = "+" {
 				SET i TO MIN(i + 1,pathList:LENGTH - 1).
-			} ELSE IF char = "-" {
+			} ELSE IF inChar = "-" {
 				SET i TO MAX(i - 1,0).
-			} ELSE IF char = "*" {
+			} ELSE IF inChar = "*" {
 				SET i TO MIN(i + 10,pathList:LENGTH - 1).
-			} ELSE IF char = "/" {
+			} ELSE IF inChar = "/" {
 				SET i TO MAX(i - 10,0).
-			} ELSE IF char = "0" {
+			} ELSE IF inChar = "0" {
 				SET done TO TRUE.
 			}
 			LOCAL pointPos IS nodeTree[pathList[i]]["latLng"]:POSITION.

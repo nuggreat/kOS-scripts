@@ -1105,11 +1105,11 @@ FUNCTION update_status {
 			} ELSE {
 				IF statusData["data"][0] = 1 {
 					SET isdl00Text0:TEXT TO "Burning Towards Target".
-					SET isdl01Text0:TEXT TO "Speed Target: " + si_formating(statusData["data"][2],"m/s").
+					SET isdl01Text0:TEXT TO "Speed Target: " + si_formatting(statusData["data"][2],"m/s").
 				} ELSE {
 					SET isdl00Text0:TEXT TO "Closing With Target".
-					SET isdl01Text0:TEXT TO "Speed Target: " + si_formating(statusData["data"][2],"m/s").
-					SET isdl01Text1:TEXT TO "Distance Target: " + si_formating(statusData["data"][3],"m").
+					SET isdl01Text0:TEXT TO "Speed Target: " + si_formatting(statusData["data"][2],"m/s").
+					SET isdl01Text1:TEXT TO "Distance Target: " + si_formatting(statusData["data"][3],"m").
 				}
 				isdLayout01:SHOW.
 			}
@@ -1160,10 +1160,10 @@ FUNCTION update_status {
 		}
 		IF statusData["dispType"] = 1 {
 			SET isdl00Text1:TEXT TO "State: " + statusData["data"][1].
-			SET isdl01Text0:TEXT TO "Speed Target: " + si_formating(statusData["data"][2],"m/s").
-			SET isdl02Text1:TEXT TO si_formating(statusData["data"][4],"m/s").//relitave speed
-			SET isdl03Text1:TEXT TO si_formating(statusData["data"][5],"m/s").//DV on burn
-			SET isdl04Text1:TEXT TO si_formating(statusData["data"][6], "m").//dist to target
+			SET isdl01Text0:TEXT TO "Speed Target: " + si_formatting(statusData["data"][2],"m/s").
+			SET isdl02Text1:TEXT TO si_formatting(statusData["data"][4],"m/s").//relitave speed
+			SET isdl03Text1:TEXT TO si_formatting(statusData["data"][5],"m/s").//DV on burn
+			SET isdl04Text1:TEXT TO si_formatting(statusData["data"][6], "m").//dist to target
 			IF statusData["data"][1] = 1 {
 				SET isdl051l1Text0:TEXT TO "Alignment Time: ".
 				SET isdl051l1Text1:TEXT TO time_formating(statusData["data"][8],0,1).
@@ -1188,14 +1188,14 @@ FUNCTION update_status {
 			LOCAL distVec IS statusData["data"][3].
 			LOCAL speedVec IS statusData["data"][4] - statusData["data"][5].
 			SET isdl00Text1:TEXT TO "State: " + statusData["data"][1].
-			SET isdl02Text1:TEXT TO si_formating(distVec:MAG,"m").//dist
-			SET isdl03Text1:TEXT TO si_formating(speedVec:MAG,"m/s").//speed
-			SET isdl052Text1:TEXT TO si_formating(VDOT(distVec,forVec),"m").//For Dist
-			SET isdl06Text1:TEXT TO si_formating(VDOT(-speedVec,forVec),"m/s").//For Speed
-			SET isdl08Text1:TEXT TO si_formating(VDOT(distVec,topVec),"m").//Top Dist
-			SET isdl09Text1:TEXT TO si_formating(VDOT(speedVec,topVec),"m/s").//Top Speed: ".
-			SET isdl11Text1:TEXT TO si_formating(VDOT(distVec,starVec),"m").//Star Dist
-			SET isdl12Text1:TEXT TO si_formating(VDOT(speedVec,starVec),"m/s").//Star Speed: ".
+			SET isdl02Text1:TEXT TO si_formatting(distVec:MAG,"m").//dist
+			SET isdl03Text1:TEXT TO si_formatting(speedVec:MAG,"m/s").//speed
+			SET isdl052Text1:TEXT TO si_formatting(VDOT(distVec,forVec),"m").//For Dist
+			SET isdl06Text1:TEXT TO si_formatting(VDOT(-speedVec,forVec),"m/s").//For Speed
+			SET isdl08Text1:TEXT TO si_formatting(VDOT(distVec,topVec),"m").//Top Dist
+			SET isdl09Text1:TEXT TO si_formatting(VDOT(speedVec,topVec),"m/s").//Top Speed: ".
+			SET isdl11Text1:TEXT TO si_formatting(VDOT(distVec,starVec),"m").//Star Dist
+			SET isdl12Text1:TEXT TO si_formatting(VDOT(speedVec,starVec),"m/s").//Star Speed: ".
 		} ELSE {
 			LOCAL typeString IS "Burn".
 			IF isdl051l1Text0 <> " " { SET typeString TO "Translation". }

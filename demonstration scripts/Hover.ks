@@ -30,7 +30,7 @@ interface:SHOW.
 LOCAL throtPID IS PIDLOOP(10,1,.1,-1,1).
 SET throtPID:SETPOINT TO 0.
 LOCAL throt IS 0.
-LOCK THROTTLE TO throtPID:UPDATE(TIME:SECONDS,SHIP:VERTICALSPEED / engineAcc) + gravOffset.
+LOCK THROTTLE TO throtPID:UPDATE(TIME:SECONDS,SHIP:VERTICALSPEED) + gravOffset.
 // LOCK THROTTLE TO throt / 10 + gravOffset.
 LOCK STEERING TO LOOKDIRUP(UP:VECTOR - VXCL(UP:VECTOR,SHIP:VELOCITY:SURFACE * 0.001),NORTH:VECTOR).
 // LOCK STEERING TO UP.
@@ -56,7 +56,7 @@ UNTIL done {
     }
     SET gravOffset TO gravAcc / engineAcc.
     LOCAL tSpeed IS MIN(SQRT(MAX(ABS(2 * distError * accel),0.0001)), ABS(distError)) * sign.
-	SET throtPID:SETPOINT TO tSpeed / engineAcc.
+	SET throtPID:SETPOINT TO tSpeed.
 	// SET throt TO (throtPID:UPDATE(TIME:SECONDS,SHIP:VERTICALSPEED / engineAcc) + throt) / (11/10).
 	pid_debug(throtPID).
 	PRINT distError AT(0,8).

@@ -94,7 +94,7 @@ FUNCTION si_formatting {
 		LOCAL SIfactor IS FLOOR(powerOfTen / 3).
 		LOCAL trailingLength IS 3 - (powerOfTen - SIfactor * 3).
 
-		LOCAL prefix IS lib_formating_lex["siPrefixList"][SIfactor + 8].
+		LOCAL prefix IS siPrefixList[SIfactor + 8].
 		RETURN padding(num/1000^SIfactor,1,trailingLength,TRUE,0) + prefix + unit.
 	}
 }
