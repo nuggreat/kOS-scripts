@@ -1,15 +1,20 @@
 PARAMETER warping TO FALSE,landingTar TO FALSE,retroMargin TO 100,thrustCoef TO 0.95.
-IF NOT EXISTS ("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
+copypath("0:/lib/lib_math_tools.ks","1:/lib/").
+IF NOT EXISTS("1/lib/lib_geochordnate.ks") { COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/lib_geochordnate.ks"). }
 FOR lib IN LIST("lib_land_vac_v3","lib_navball2","lib_rocket_utilities","lib_geochordnate","lib_math_tools") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 control_point().
 SAS OFF.
 SET TERMINAL:WIDTH TO 60.
-SET TERMINAL:HEIGHT TO 20.
+SET TERMINAL:HEIGHT TO 30.
 LOCAL gg0 TO CONSTANT:g0().
 WAIT UNTIL active_engine().
 LOCAL vertMargin TO lowist_part(SHIP) + 2.5.	//Sets the margin for the Sucide Burn and Final Decent
 SET retroMargin TO retroMargin + vertMargin.
 LOCAL retroMarginLow TO retroMargin - 100.
+
+// LOCAL logPath TO "0:/landingLog.csv".
+// IF EXISTS(logPath) { DELETEPATH(logPath). }
+// LOG "velAng,overshootError,simSeconds,dv" TO logPath.
 
 //vars to start sim
 LOCAL shipISP TO isp_calc().
@@ -20,6 +25,7 @@ LOCAL shipVel TO SHIP:VELOCITY:ORBIT.
 LOCAL bodyPos TO BODY:POSITION.
 LOCAL deltaTime TO delta_time_init().
 LOCAL dtFilter TO low_pass_filter_init(5,1).
+LOCAL tsLimitFIlter IS low_pass_filter_init(5,1).
 
 //sim result vars
 // LOCAL radDelta TO delta_init(BODY:RADIUS).
@@ -28,7 +34,7 @@ LOCAL simResults TO LEX("pos",SHIP:POSITION,"seconds", 30).
 LOCAL gm TO BODY:MU.
 LOCAL stopPos TO SHIP:POSITION.
 LOCAL stopGapRaw TO 0.
-LOCAL stopGapFilter IS low_pass_filter_init(0,5).
+LOCAL stopGapFilter IS low_pass_filter_init(3,0).
 LOCAL stopGapFiltered TO 0.
 LOCAL pitchOffset TO 0.
 LOCAL headingOffset TO 0.
@@ -69,7 +75,8 @@ SET NAVMODE TO "SURFACE".
 //LOCAL done TO FALSE.
 UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical speed is greater than -2
 	LOCAL dt IS deltaTime().
-	LOCAL ts IS dtFilter(dt).
+	LOCAL tsLimit IS tsLimitFIlter(MAX(simResults["seconds"] / 10 - 0.1,1)).
+	LOCAL ts IS MIN(dtFilter(dt),tsLimit).
 
 	WAIT 0.
 	LOCAL solarPrime TO SOLARPRIMEVECTOR.
@@ -93,15 +100,24 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 
 	LOCAL gravAcc TO gm / simResults["rad"]^2.
 	//equation is t = (sqrt(2*a*d + v^2) - v) / a,  the '- v' was changed to '+ v' to flip the sign on vertical speed
-	LOCAL burnEta TO (SQRT(2 * gravAcc * (stopGapFiltered - margin) - VERTICALSPEED^2) + VERTICALSPEED) / gravAcc.
+	// PRINT gravAcc.
+	// PRINT stopGapFiltered.
+	// PRINT retroMargin.
+	// PRINT VERTICALSPEED.
+	LOCAL burnEta TO (SQRT(2 * gravAcc * MAX((stopGapFiltered - retroMargin) + VERTICALSPEED^2,0)) + VERTICALSPEED) / gravAcc.
+	// PRINT initalMass.
+	// PRINT simResults["mass"].
+	// PRINT simResults["cycles"].
 	SET burnDv TO shipISP*gg0*LN(initalMass/simResults["mass"]).
 
 	CLEARSCREEN.
 	PRINT "Terrain Gap:    " + ROUND(stopGapRaw).
+	PRINT "Terrain Gap:    " + ROUND(stopGapFiltered).
 	PRINT "Dv Needed:      " + ROUND(burnDv).
 	PRINT " ".
 	PRINT "time to Stop:   " + ROUND(simResults["seconds"],1).
-	PRINT "Time Per Sim:   " + ROUND(deltaTime,2).
+	PRINT "Time Per Sim:   " + ROUND(dt,2).
+	PRINT "time step:      " + ROUND(ts,2).
 	PRINT "Steps Per Sim:  " + simResults["cycles"].
 	PRINT "Vert Speed:     " + ROUND(VERTICALSPEED).
 	PRINT "burn start eta: " + ROUND(ABS(stopGapFiltered / VERTICALSPEED),2).
@@ -120,8 +136,8 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 		LOCAL retrogradeVec TO SHIP:SRFRETROGRADE:FOREVECTOR.
 		LOCAL upVec TO UP:VECTOR.
 		LOCAL averageAcc IS burnDv / simResults["seconds"].
-		
-		SET throt TO (stopGapRaw + stopGapFiltered) / (margin * 2).
+
+		SET throt TO (retroMargin) / MAX(stopGapRaw ,1).
 
 		LOCAL leftVec TO VCRS(retrogradeVec,positionUpVec):NORMALIZED.//vector normal to retrograde and up
 		LOCAL retroVec TO VXCL(positionUpVec,retrogradeVec):NORMALIZED.//retrograde vector parallel to the ground
@@ -137,33 +153,46 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 		//adjacent = cos(angled)*thrustCoef
 		//
 		//shipThrust = full thrust
-		//arccos(adjacent/1) = fullAng
+		//arccos(adjacent/shipThrust) = fullAng
 
 		// LOCAL shipThrust IS SHIP:AVAILABLETHRUST.
 		// LOCAL shipThrustFrac IS shipThrust * thrustCoef.
 		LOCAL velAng TO VANG(retrogradeVec, upVec).
-		LOCAL adjacent TO COS(velAng) * thrustCoef.
-		LOCAL fullAng TO ARCCOS(adjacent).
-		LOCAL pitchMIN TO fullAng - velAng.
+		LOCAL vertThrustFrac TO COS(velAng) * thrustCoef.
+		LOCAL fullAng TO ARCCOS(MAX(-1,MIN(1,vertThrustFrac))).
+		
+		LOCAL pitchMIN TO velAng - fullAng.
+		SET pitchMIN TO MIN(MAX(stopGapRaw / retroMargin * -5, pitchMIN),15).
+		LOCAL headingClamp TO MIN(MAX(SIN(-pitchMIN),0),10).
 
 		// LOCAL pitchMIN TO MAX(stopGapRaw / (retroMargin / 5),0).
-		LOCAL inlineAccel TO overshootError / simResults["seconds"] * 2.
-		LOCAL opposite TO SIN(velAng) * averageAcc.
-		LOCAL oppositeNew TO opposite - inlineAccel.
-		LOCAL newPitchAng TO ARCTAN(oppositeNew/adjacent).
-		LOCAL pitchOffset TO MIN(MAX(newPitchAng - velAng,-pitchMIN),15).
+		LOCAL inlineAccChange TO 2 * overshootError / simResults["seconds"]^2.
+		LOCAL inlineAcc TO SIN(velAng) * averageAcc.
+		LOCAL vertAcc TO COS(velAng) * averageAcc.
+		LOCAL netInlineAcc TO inlineAcc - inlineAccChange.
+		// LOCAL newPitchAng TO ARCTAN(MAX(-1,MIN(1,netInlineAcc / vertAcc))).
+		LOCAL newPitchAng TO ARCTAN(netInlineAcc / vertAcc).
+		SET pitchOffset TO MIN(MAX((velAng - newPitchAng) * 2,pitchMIN),15).
 
 
 		// SET pitch_PID:MINOUTPUT TO MIN(MAX(-PIDclamp,-5),0).
 		// SET pitchOffset TO pitch_PID:UPDATE(TIME:SECONDS,-overshootError).
 
-		LOCAL headingClamp TO SIN(pitchMIN).
-		LOCAL lateralAcc IS lateralError / simResults["seconds"] * 2.
-		SET headingOffset TO ARCSIN(MAX(MIN(lateralAcc / averageAcc),headingClamp),-headingClamp).
-
-		PRINT "overshoot Error: " + ROUND(overshootError).
+		LOCAL lateralAcc IS 3 * lateralError / simResults["seconds"]^2.
+		SET headingOffset TO ARCSIN(MAX(MIN(lateralAcc / averageAcc,headingClamp),-headingClamp)).
+		
+		// LOG LIST(velAng,overshootError,simResults["seconds"],burnDv):JOIN(",") TO logPath.
+		
+		PRINT "overshoot Error: " + ROUND(overshootError,2).
+		PRINT "velAng: " + velAng.
+		PRINT "inlineAccChange: " + inlineAccChange.
+		PRINT "inlineAcc: " + inlineAcc.
+		PRINT "vertAcc: " + vertAcc.
+		PRINT "netInlineAcc: " + netInlineAcc.
+		PRINT "newPitchAng: " + newPitchAng.
+		PRINT "pitchMin: " + pitchMIN.
 		PRINT "Pitch    Offset: " + ROUND(pitchOffset,2).
-		PRINT "lateral   Error: " + ROUND(lateralError).
+		PRINT "lateral   Error: " + ROUND(lateralError,2).
 		PRINT "Heading  Offset: " + ROUND(headingOffset,2).
 		PRINT "Distance:        " + ROUND(landingChord:DISTANCE).
 	}
@@ -190,8 +219,8 @@ UNTIL ALT:RADAR < sucideMargin {	//vertical suicide burn stopping at about 10m a
 	PRINT "setPoint:     " + ROUND(landing_PID:SETPOINT,2).
 	PRINT "vSpeed:       " + ROUND(VERTICALSPEED,2).
 	PRINT "Altitude:     " + ROUND(ALT:RADAR - sucideMargin,1).
-	PRINT "Stoping Dist: " + ROUND(decentLex["stopDist"],1).
-	PRINT "Stoping Time: " + ROUND(decentLex["stopTime"],1).
+	PRINT "Stopping Dist: " + ROUND(decentLex["stopDist"],1).
+	PRINT "Stopping Time: " + ROUND(decentLex["stopTime"],1).
 	PRINT "Dist to Burn: " + ROUND(ALT:RADAR - sucideMargin - decentLex["stopDist"],1).
 	WAIT 0.01.
 }

@@ -120,3 +120,27 @@ FUNCTION pid_debug {
 	PRINT "     min: " + ROUND(pidToDebug:MINOUTPUT,2) + "     " AT(0,9).
 //	LOG (pidToDebug:SETPOINT + "," + pidToDebug:ERROR + "," + pidToDebug:PTERM + "," + pidToDebug:ITERM + "," + pidToDebug:DTERM + "," + pidToDebug:MAXOUTPUT + "," + pidToDebug:OUTPUT +  "," + pidToDebug:MINOUTPUT) TO PATH("0:/pidLog.txt").
 }
+
+// very damped hover script
+// parameter target_alt TO 1000, settleTime TO 30, damp TO 1.
+
+// SAS OFF.
+// function v_accel {
+	// CLEARSCREEN.
+    // local altError is target_alt - altitude.
+    // local cenAccel is vxcl(up:vector, velocity:orbit):sqrmagnitude / body:position:mag.
+    // local g is body:mu / body:position:sqrmagnitude.
+	// LOCAL accMod IS -verticalspeed^2 / (2 * altError).
+    // local vert_accel is 2 * (altError - verticalspeed * damp * settleTime) / settleTime^2.
+    // return res.
+    // return g - cenAccel + vert_accel + accMod.
+// }
+
+// LOCK maxAccel TO ship:availablethrust / ship:mass.
+// lock steering to LOOKDIRUP(UP:VECTOR * MAX(SHIP:VELOCITY:SURFACE:MAG,1) * 10 - SHIP:VELOCITY:SURFACE,NORTH:VECTOR).
+// lock throttle to v_accel / maxAccel.
+
+// RCS OFF.
+// WAIT UNTIL RCS.
+// SET SHIP:CONTROL:PILOTMAINTHROTTLE TO throttle.
+// SAS ON.

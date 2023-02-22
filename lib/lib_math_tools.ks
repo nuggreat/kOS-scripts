@@ -1,6 +1,6 @@
 FUNCTION low_pass_filter_init {
 	PARAMETER lowPassCoef, initalVal.
-	LOCAL newValCoef TO 1 - lowPassCoef
+	LOCAL newValCoef TO 1 / lowPassCoef.
 	LOCAL persistCoef TO (lowPassCoef - 1) / lowPassCoef.
 	LOCAL persistantVal TO initalVal.
 	RETURN {
@@ -11,16 +11,17 @@ FUNCTION low_pass_filter_init {
 }
 
 FUNCTION delta_time_init {
-	PARAMETER initalTime.
-	LOCAL oldTime TO initalTime.
+	PARAMETER initalT TO TIME:SECONDS.
+	LOCAL oldT TO initalT.
 	LOCAL deltaT TO 0.
 	RETURN {
-		PARAMETER newTime TO TIME:SECONDS.
-		IF newTime <> oldTime {
-			SET deltaT TO newTime - oldTime.
+		PARAMETER newT TO TIME:SECONDS.
+		IF newT <> oldT {
+			SET deltaT TO newT - oldT.
+			SET oldT TO newT.
 		}
 		RETURN deltaT.
-	}
+	}.
 }
 
 FUNCTION delta_init {

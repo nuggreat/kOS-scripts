@@ -1,4 +1,6 @@
 LOCAL defautlTar IS "Default not set".
+COPYPATH("0:/lib/lib_land_vac_v3","1:/lib/").
+COPYPATH("0:/landing_vac_v5.ks","1:/").
 IF EXISTS("1:/data/landing_default.json") {
 	LOCAL defaultData IS READJSON("1:/data/landing_default.json").
 	SET defautlTar TO BODY(defaultData["body"]):GEOPOSITIONLATLNG(defaultData["lat"],defaultData["lng"]).
@@ -28,7 +30,11 @@ IF NOT ABORT {
 	RUN node_burn(doWarp).
 	REMOVE NEXTNODE.
 	IF NOT ABORT {
-		RUN landing_vac(TRUE,landingTar).
+		FOR eng IN SHIP:ENGINES {
+			SET eng:THRUSTLIMIT TO 30.
+		}
+		RUN landing_vac_v5(TRUE,landingTar).
+		// RUN landing_vac(TRUE,landingTar).
 		IF landingTar = defautlTar AND (SHIP:MODULESNAMED("ModuleResourceHarvester"):LENGTH > 0) {
 			DEPLOYDRILLS ON.
 			PANELS ON.

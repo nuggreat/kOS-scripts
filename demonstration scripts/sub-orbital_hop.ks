@@ -1,11 +1,49 @@
-LOCAL degAroundBody IS VANG(targetGeopos:POSITION - BODY:POSITION,SHIP:POSITION - BODY:POSITION).
+PARAMETER targetObject.
+FOR lib IN LIST("lib_rocket_utilities","lib_geochordnate") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 
-LOCAL velocityAngle IS 45 - degAroundBody / 4.
-LOCAL sma IS BODY:RADIUS * (1 + SIN(degAroundBody / 2)) / 2.
-LOCAL launchSpeed IS SQRT((BODY:MU * (2 * sma - BODY:RADIUS)) / (sma * BODY:RADIUS)).
-LOCAL obtElements IS obt_elements(BODY:MU, BODY:RADIUS, launchSpeed, velocityAngle).
-LOCAL hopDuration IS time_betwene_two_ta(obtElements["ecc"],obtElements["period"],180 - degAroundBody, 180 + degAroundBody))
+LOCAL targetGeopos IS mis_types_to_geochordnate(targetObject).
 
+LOCAL initalHopData IS inital_hop_calculation(targetGeopos).
+
+//initial calculations
+//check range based on estimated flight path (adjust target position based on flight time)
+//refine launch data
+//launch based on refined data
+
+LOCAL rangeData IS get_range_data().
+
+LOCAL hopData IS refine_hop(targetGeopos,initalHopData,rangeData).
+
+
+FUNCTION inital_hop_calculation {
+	PARAMETER targetGeopos.
+	LOCAL pastHopDuration IS 0.
+	LOCAL hopRadius IS BODY:RADIUS + (SHIP:ALTITUDE + targetGeopos:TERRAINHEIGHT) / 2.
+	LOCAL bodyMu IS BODY:MU.
+	UNTIL FALSE {
+		LOCAL adjustedTar IS ground_track(targetGeopos:POSITION,TIME:SECONDS + pastHopDuration).
+		LOCAL degAroundBody IS VANG(adjustedTar:POSITION - BODY:POSITION,SHIP:POSITION - BODY:POSITION).
+		
+		LOCAL velocityAngle IS 45 - degAroundBody / 4.
+		LOCAL sma IS hopRadius * (1 + SIN(degAroundBody / 2)) / 2.
+		LOCAL launchSpeed IS SQRT((bodyMu * (2 * sma - hopRadius)) / (sma * hopRadius)).
+		LOCAL obtElements IS obt_elements(bodyMu, hopRadius, launchSpeed, velocityAngle).
+		LOCAL hopDuration IS time_betwene_two_ta(obtElements["ecc"],obtElements["period"],180 - degAroundBody, 180 + degAroundBody).
+		
+		IF  ABS(hopDuration - pastHopDuration) < 0.01 {
+			RETURN LEX("initalAngle",velocityAngle,"duration",hopDuration,"obtElements",obtElements).
+		}
+		SET pastHopDuration TO hopDuration.
+	}
+}
+
+FUNCTION refine_hop {
+	PARAMETER targetGeopos, hopData, rangeData.
+	//determine TA of start and end points.
+	//compute time again
+	//check that angle is correct for angle to target
+	
+}
 
 FUNCTION obt_elements {
 	PARAMETER bodyMu,// is BODY:MU
