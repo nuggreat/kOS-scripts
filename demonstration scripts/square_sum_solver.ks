@@ -40,19 +40,18 @@ FUNCTION generate_tree {
 	FROM { LOCAL i IS 1. } UNTIL i > treeCurrent STEP { SET i TO i + 1. } DO {
 		tree:ADD(i,LIST()).
 	}
-
-	FROM { LOCAL i IS 1. } UNTIL i >= treeCurrent STEP { SET i TO i + 1. } DO {
-		FROM { LOCAL j IS i + 1. } UNTIL j > treeCurrent STEP { SET j TO j + 1. } DO {
-			IF MOD(SQRT(i+j),1) = 0 {
-				//PRINT i+j.
-				//PRINT i.
-				//PRINT j.
-				//WAIT 1.
-				tree[i]:ADD(j).
-				tree[j]:ADD(i).
-			}
+	
+	LOCAL maxSquared IS treeCurrent * 2 - 1
+	LOCAL iSquared IS 0.
+	FROM { LOCAL i IS 2. UNTIL } iSquared > maxSquared STEP { SET i TO i + 1. } DO {
+		LOCAL iSquared IS (i^2).
+		LOCAL half IS iSquared / 2.
+		FROM { LOCAL j IS 1. } UNTIL j >= half STEP {SET j TO j + 1. } DO {
+			tree[j]:ADD(iSquared - j).
+			tree[iSquared - j]:ADD(j).
 		}
 	}
+	
 	PRINT "tree build complete.".
 	RETURN tree.
 }
@@ -91,7 +90,7 @@ FUNCTION walk_tree {
 		//PRINT "current: " + currentVertex.
 		//PRINT "removed: " + removedVertex.
 		//PRINT "next: " + nextVert.
-		//PRINT "possable: " + currentVertexes.
+		//PRINT "possible: " + currentVertexes.
 		//PRINT "current path: " + currentPath.
 		//PRINT " ".
 		//RCS OFF.

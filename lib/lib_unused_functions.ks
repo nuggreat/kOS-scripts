@@ -95,7 +95,7 @@ FUNCTION engine_torque {
 	RETURN VCRS((SHIP:POSITION - eng:POSITION),(eng:FACING:VECTOR * eng:AVAILABLETHRUST)).
 }
 
-FUNCTION burn_along_vector {//needs libs formating, rocker utilities
+FUNCTION burn_along_vector {//needs libs formatting, rocker utilities
 	PARAMETER DVvector,startTime IS TIME:SECONDS,doStage IS TRUE.
 	ABORT OFF.
 	LOCAL timePast IS TIME:SECONDS.

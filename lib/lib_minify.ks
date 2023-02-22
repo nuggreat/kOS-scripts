@@ -1,7 +1,8 @@
-LOCAL lf TO CHAR().
-LOCAL cr TO CHAR().
+LOCAL cr TO CHAR(13).
+LOCAL lf TO CHAR(10).
 LOCAL crlf TO cr + lf.
-LOCAL tab TO CHAR().
+LOCAL tab TO CHAR(9).
+LOCAL nul TO CHAR(0).
 LOCAL padRemove TO LIST("+", "-", "*", "/", "(", ")", "{", "}", ",", "=", ">", "<").
 FUNCTION minify {
 	PARAMETER fileSource, fileDest.
@@ -25,7 +26,22 @@ FUNCTION minify {
 		IF line[0] = " " OR line[0] = tab {
 			FROM { LOCAL j TO 0. } UNTIL j >= line:LENGTH STEP { SET j TO j + 1. } DO {
 				IF line[j] <> " " AND line[j] <> tab {
-					SET line TO line:REMOVE(0, j).
+					IF j > 0 {
+						SET line TO line:REMOVE(0, j).
+					}
+					BREAK.
+				}
+			}
+		}
+
+		//remove trailing white space
+		IF line:ENDSWITH(" ") OR line:ENDSWITH(tab) {
+			LOCAL whiteLength TO 0.
+			FROM { LOCAL j TO line:LENGTH - 1. } UNTIL j < 0 STEP { SET j TO j - 1. } DO {
+				IF line[j] <> " " OR line[j] <> tab {
+					IF j < (line:LENGTH - 1) {
+						SET line TO line:REMOVE(j + 1, line:LENGTH - j - 1).
+					}
 					BREAK.
 				}
 			}
@@ -70,19 +86,6 @@ FUNCTION minify {
 							SET j TO MAX(j - 2, -1).
 						}
 					}
-				}
-			}
-		}
-
-		//remove trailing white space
-		IF line:ENDSWITH(" ") OR line:ENDSWITH(tab) {
-			LOCAL whiteLength TO 0.
-			FROM { LOCAL j TO line:LENGTH - 1. } UNTIL j < 0 STEP { SET j TO j - 1. } DO {
-				IF line[j] = " " OR line[j] = tab {
-					SET whiteLength TO whiteLength + 1.
-				} ELSE {
-					SET line TO line:REMOVE(j + 1, whiteLength).
-					BREAK.
 				}
 			}
 		}
