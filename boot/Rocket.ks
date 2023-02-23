@@ -9,7 +9,7 @@ COPYPATH("0:/lib/lib_navball2.ks","1:/lib/").
 COPYPATH("0:/lib/lib_rocket_utilities.ks","1:/lib").
 COPYPATH("0:/lift_off.ks","1:").
 COPYPATH("0:/node_burn.ks","1:/").
-COPYPATH("0:/lib/lib_formating.ks","1:/lib").
+COPYPATH("0:/lib/lib_formatting.ks","1:/lib").
 COPYPATH("0:/lib/lib_land_vac.ks","1:/lib/").
 COPYPATH("0:/landing_vac.ks","1:/").
 COPYPATH("0:/lib/lib_dock.ks","1:/lib").

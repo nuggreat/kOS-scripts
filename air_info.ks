@@ -11,7 +11,7 @@ UNTIL RCS {
 
 FUNCTION angle_of_attack {
 	LOCAL shipF is SHIP:FACING.
-	LOCAL srfVel IS VXCL(shipF:STARVECTOR,SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.//surface velocity excluding any yaw component
+	LOCAL srfVel IS VXCL(shipF:STARVECTOR,SHIP:VELOCITY:SURFACE).//surface velocity excluding any yaw component
 	IF VDOT(shipF:TOPVECTOR,(srfVel)) < 0 {
 		RETURN VANG(shipF:FOREVECTOR,srfVel).
 	} ELSE {
@@ -21,7 +21,7 @@ FUNCTION angle_of_attack {
 
 FUNCTION side_slip {
 	LOCAL shipF is SHIP:FACING.
-	LOCAL srfVel IS VXCL(shipF:TOPVECTOR,SHIP:VELOCITY:SURFACE:NORMALIZED):NORMALIZED.//surface velocity excluding any pitch component
+	LOCAL srfVel IS VXCL(shipF:TOPVECTOR,SHIP:VELOCITY:SURFACE).//surface velocity excluding any pitch component
 	IF VDOT(shipF:STARVECTOR,(srfVel)) < 0 {
 		RETURN VANG(shipF:FOREVECTOR,srfVel).
 	} ELSE {

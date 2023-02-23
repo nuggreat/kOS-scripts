@@ -31,9 +31,9 @@ IF NOT ABORT {
 	REMOVE NEXTNODE.
 	IF NOT ABORT {
 		FOR eng IN SHIP:ENGINES {
-			SET eng:THRUSTLIMIT TO 30.
+			SET eng:THRUSTLIMIT TO 50.
 		}
-		RUN landing_vac_v5(TRUE,landingTar).
+		RUN landing_vac_v5(FALSE,landingTar).
 		// RUN landing_vac(TRUE,landingTar).
 		IF landingTar = defautlTar AND (SHIP:MODULESNAMED("ModuleResourceHarvester"):LENGTH > 0) {
 			DEPLOYDRILLS ON.

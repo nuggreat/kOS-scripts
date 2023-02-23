@@ -6,7 +6,7 @@ CLEARGUIS().
 CLEARVECDRAWS().
 CLEARSCREEN.
 //IF NOT EXISTS ("1:/lib/lib_mis_utilities.ks") { COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/lib_mis_utilities.ks"). }
-FOR lib IN LIST("lib_dock","lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_dock","lib_rocket_utilities","lib_formatting") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 LOCAL varConstants IS LEX("numList",LIST("0","1","2","3","4","5","6","7","8","9"),"translationPIDs",LIST("Fore","Star","Top")).
 
 LOCAL vecDrawLex IS LEX().
@@ -124,21 +124,21 @@ LOCAL interface IS GUI(500).
 	LOCAL itmntLayout1 IS itmnTarget:ADDHLAYOUT.
 	 LOCAL itmntl1Speed IS itmntLayout1:ADDBUTTON("Speed").
 	 LOCAL itmntl1Dist IS itmntLayout1:ADDBUTTON("Distance").
-	  i_speed_dist_formating(itmntl1Speed,itmntl1Dist).
+	  i_speed_dist_formatting(itmntl1Speed,itmntl1Dist).
 	 LOCAL itmntl1Label IS itmntLayout1:ADDLABEL("Fore/Back (+/-): ").
 	 LOCAL itmntl1Fore IS itmntLayout1:ADDTEXTFIELD("0").
  	  i_width_to(itmntl1Fore,240).
 	LOCAL itmntLayout2 IS itmnTarget:ADDHLAYOUT.
 	 LOCAL itmntl2Speed IS itmntLayout2:ADDBUTTON("Speed").
 	 LOCAL itmntl2Dist IS itmntLayout2:ADDBUTTON("Distance").
-	  i_speed_dist_formating(itmntl2Speed,itmntl2Dist).
+	  i_speed_dist_formatting(itmntl2Speed,itmntl2Dist).
 	 LOCAL itmntl2Label IS itmntLayout2:ADDLABEL("Up/Down (+/-): ").
 	 LOCAL itmntl2Top IS itmntLayout2:ADDTEXTFIELD("0").
 	  i_width_to(itmntl2Top,240).
 	LOCAL itmntLayout3 IS itmnTarget:ADDHLAYOUT.
 	 LOCAL itmntl3Speed IS itmntLayout3:ADDBUTTON("Speed").
 	 LOCAL itmntl3Dist IS itmntLayout3:ADDBUTTON("Distance").
-	  i_speed_dist_formating(itmntl3Speed,itmntl3Dist).
+	  i_speed_dist_formatting(itmntl3Speed,itmntl3Dist).
 	 LOCAL itmntl3Label IS itmntLayout3:ADDLABEL("Left/Right (+/-): ").
 	 LOCAL itmntl3Star IS itmntLayout3:ADDTEXTFIELD("0").
 	  i_width_to(itmntl3Star,240).
@@ -263,7 +263,7 @@ ABORT OFF.
 
 LOCAL tarPort IS FALSE.
 LOCAL taskList IS LIST().
-field_cycle(LIST(ibslField,ibdlField,itmnfl0Pitch,itmnfl1Yaw,itmnfl2Roll,itmntl1Fore,itmntl2Top,itmntl3Star,itmsl0Speed,itmsl1Accel)).
+field_cycle_init(taskList,LIST(ibslField,ibdlField,itmnfl0Pitch,itmnfl1Yaw,itmnfl2Roll,itmntl1Fore,itmntl2Top,itmntl3Star,itmsl0Speed,itmsl1Accel)).
 taskList:ADD(update_status@:BIND(0)).
 interface:SHOW.//set up done waiting on user input
 UNTIL scriptData["done"] {
@@ -281,17 +281,14 @@ interface:DISPOSE.
 enable_disable_highlight(FALSE).
 CLEARVECDRAWS().
 
-FUNCTION field_cycle {
-	PARAMETER fieldList,fieldInex IS 0.
-
-	SET fieldList[fieldInex]:TEXT TO field_to_numbers_only(fieldList[fieldInex]).
-	IF fieldInex < (fieldList:LENGTH - 1) {
-		SET fieldInex TO fieldInex + 1.
-		taskList:ADD(field_cycle@:BIND(fieldList,fieldInex)).
-	} ELSE {
-		taskList:ADD(field_cycle@:BIND(fieldList)).
-	}
-	RETURN TRUE.
+FUNCTION field_cycle_init {
+	PARAMETER taskList,fieldList.
+	LOCAL fieldIndex IS 0.
+	LOCAL indexLimit IS fieldList:LENGTH.
+	taskList:ADD({
+		SET fieldList[fieldIndex]:TEXT TO field_to_numbers_only(fieldList[fieldIndex]).
+		SET fieldIndex TO MOD(fieldIndex + 1, indexLimit).
+	}).
 }
 
 FUNCTION change_menu {
@@ -1067,10 +1064,10 @@ FUNCTION translation_new_target {
 FUNCTION tangent_velocity_vector {//returns a vector pointing in direction of motion with MAG of m/s of motion
 	PARAMETER targetPoint.
 	LOCAL targetCraft IS target_craft(targetPoint).
-	LOCAL angleVec IS SHIP:POSITION - targetCraft:POSITION.
+	LOCAL radusVec IS SHIP:POSITION - targetCraft:POSITION.
 	LOCAL angularVelVecNormal IS targetCraft:ANGULARVEL.//in radians
 
-	RETURN VCRS(angularVelVecNormal,angleVec).
+	RETURN VCRS(angularVelVecNormal,radusVec).
 }
 
 FUNCTION have_valid_target {
@@ -1166,7 +1163,7 @@ FUNCTION update_status {
 			SET isdl04Text1:TEXT TO si_formatting(statusData["data"][6], "m").//dist to target
 			IF statusData["data"][1] = 1 {
 				SET isdl051l1Text0:TEXT TO "Alignment Time: ".
-				SET isdl051l1Text1:TEXT TO time_formating(statusData["data"][8],0,1).
+				SET isdl051l1Text1:TEXT TO time_formatting(statusData["data"][8],0,1).
 			} ELSE {
 				SET isdl051l1Text0:TEXT TO " ".
 				SET isdl051l1Text1:TEXT TO " ".
@@ -1296,7 +1293,7 @@ FUNCTION shutdown_stack {
 	SET scriptData["done"] TO TRUE.
 }
 
-FUNCTION i_speed_dist_formating {
+FUNCTION i_speed_dist_formatting {
 	PARAMETER s,d.
 	SET s:EXCLUSIVE TO TRUE.
 	SET s:TOGGLE TO TRUE.

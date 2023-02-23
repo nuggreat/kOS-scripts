@@ -37,7 +37,7 @@ FUNCTION stage_check {	//a check for if the rocket needs to stage
 				}
 			}
 		}
-		IF needStage	{
+		IF needStage {
 			STAGE.
 			STEERINGMANAGER:RESETPIDS().
 			SET lib_rocket_utilities_lex["nextStageTime"] TO TIME:SECONDS + stageDelay.

@@ -121,38 +121,38 @@ FUNCTION screen_update {		//updates the terminal
 //	LOCAL targetETA IS target_eta(dist - stoppingDist).
 	LOCAL targetETA IS average_eta(dist - stoppingDist).
 //	CLEARSCREEN.
-	LOCAL printList IS LIST().
-	printList:ADD("Roving To: " + markName).
-	printList:ADD("Distance : " + si_formating(dist,"m")).
+	LOCAL pList IS LIST().
+	pList:ADD("Roving To: " + markName).
+	pList:ADD("Distance : " + si_formating(dist,"m")).
 	IF NOT stopping {
-		printList:ADD("ETA      :" + time_formating(targetETA,5)).
+		pList:ADD("ETA      :" + time_formating(targetETA,5)).
 	} ELSE {
-		printList:ADD("                       ").
+		pList:ADD("                       ").
 	}
-	printList:ADD(" ").
-	printList:ADD("Curent Speed  :" + padding(forSpeed,2,2)).
-	printList:ADD("Target Speed  :" + padding(speed_PID:SETPOINT,2,2)).
-	printList:ADD("Speed Differce:" + padding(speedDif,2,2)).
-	printList:ADD("Wheel Throttle: " + padding(SHIP:CONTROL:WHEELTHROTTLE,1,2)).
-//	printList:ADD("     P: " + ROUND(speed_PID:PTERM,3)).
-//	printList:ADD("     I: " + ROUND(speed_PID:ITERM,3)).
-//	printList:ADD("     D: " + ROUND(speed_PID:DTERM,3)).
-//	printList:ADD("Output: " + ROUND(speed_PID:OUTPUT,2)).
-	printList:ADD(" ").
-	printList:ADD("Bearing to Target:" + padding(mark:BEARING,2,1)).
-//	printList:ADD("     P: " + ROUND(steer_PID:PTERM,3)).
-//	printList:ADD("     I: " + ROUND(steer_PID:ITERM,3)).
-//	printList:ADD("     D: " + ROUND(steer_PID:DTERM,3)).
-//	printList:ADD("Output: " + ROUND(steer_PID:OUTPUT,2)).
-	printList:ADD("Wheel Steering Is: " + padding(SHIP:CONTROL:WHEELSTEER,1,2)).
+	pList:ADD(" ").
+	pList:ADD("Curent Speed  :" + padding(forSpeed,2,2)).
+	pList:ADD("Target Speed  :" + padding(speed_PID:SETPOINT,2,2)).
+	pList:ADD("Speed Differce:" + padding(speedDif,2,2)).
+	pList:ADD("Wheel Throttle: " + padding(SHIP:CONTROL:WHEELTHROTTLE,1,2)).
+//	pList:ADD("     P: " + ROUND(speed_PID:PTERM,3)).
+//	pList:ADD("     I: " + ROUND(speed_PID:ITERM,3)).
+//	pList:ADD("     D: " + ROUND(speed_PID:DTERM,3)).
+//	pList:ADD("Output: " + ROUND(speed_PID:OUTPUT,2)).
+	pList:ADD(" ").
+	pList:ADD("Bearing to Target:" + padding(mark:BEARING,2,1)).
+//	pList:ADD("     P: " + ROUND(steer_PID:PTERM,3)).
+//	pList:ADD("     I: " + ROUND(steer_PID:ITERM,3)).
+//	pList:ADD("     D: " + ROUND(steer_PID:DTERM,3)).
+//	pList:ADD("Output: " + ROUND(steer_PID:OUTPUT,2)).
+	pList:ADD("Wheel Steering Is: " + padding(SHIP:CONTROL:WHEELSTEER,1,2)).
 	IF stopping {
 		CLEARSCREEN.
-		FOR line IN printList { PRINT line. }
+		FOR line IN pList { PRINT line. }
 		PRINT "stopping".
 	} ELSE {
-		printList:ADD("       ").
-		FROM { LOCAL i IS printList:LENGTH - 1. } UNTIL 0 > i STEP { SET i TO i - 1. } DO {
-			PRINT printList[i] + " " AT(0,i).
+		pList:ADD("       ").
+		FROM { LOCAL i IS pList:LENGTH - 1. } UNTIL 0 > i STEP { SET i TO i - 1. } DO {
+			PRINT pList[i] + " " AT(0,i).
 		}
 	}
 }

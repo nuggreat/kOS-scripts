@@ -135,7 +135,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 		LOCAL positionUpVec TO (stopPos - SHIP:BODY:POSITION):NORMALIZED.
 		LOCAL retrogradeVec TO SHIP:SRFRETROGRADE:FOREVECTOR.
 		LOCAL upVec TO UP:VECTOR.
-		LOCAL averageAcc IS burnDv / simResults["seconds"].
+		LOCAL averageAcc IS (burnDv - gravAcc * simResults["seconds"]) / simResults["seconds"].
 
 		SET throt TO (retroMargin) / MAX(stopGapRaw ,1).
 
@@ -168,7 +168,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 		// LOCAL pitchMIN TO MAX(stopGapRaw / (retroMargin / 5),0).
 		LOCAL inlineAccChange TO 2 * overshootError / simResults["seconds"]^2.
 		LOCAL inlineAcc TO SIN(velAng) * averageAcc.
-		LOCAL vertAcc TO COS(velAng) * MAX(averageAcc - gravAcc, gravAcc - averageAcc).
+		LOCAL vertAcc TO COS(velAng) * (averageAcc).
 		LOCAL netInlineAcc TO inlineAcc - inlineAccChange.
 		// LOCAL newPitchAng TO ARCTAN(MAX(-1,MIN(1,netInlineAcc / vertAcc))).
 		LOCAL newPitchAng TO ARCTAN(netInlineAcc / vertAcc).

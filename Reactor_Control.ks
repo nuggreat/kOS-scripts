@@ -12,7 +12,6 @@ LOCAL ec IS get_ec().
 
 ON SHIP:PARTS:LENGTH {//detection of docking events
 	SET ec TO get_ec().
-	SET numberOfParts TO SHIP:PARTS:LENGTH.
 	SET newScanTime TO TIME:SECONDS - 1.
 	PRESERVE.
 }
