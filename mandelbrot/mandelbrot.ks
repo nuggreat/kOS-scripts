@@ -1,5 +1,3 @@
-a short history of tractors in ukrainian by marina lewyeka
-
 // LOCAL termWidth IS 102*2+1.
 // LOCAL termHeight IS 51*2+1.
 // LOCAL realTimeDraw IS TRUE.
