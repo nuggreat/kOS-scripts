@@ -1,22 +1,22 @@
 @LAZYGLOBAL OFF.
 
 FUNCTION warp_control_init {
-	//plublic 
-	PARAMETER easeFactor IS 1.5,//the smaller this number the later the warp control will leave reducing the rate of time warp, to small and you will over shoot target
-	warpLimit IS 7,//max number of times function is allowed to increase the warp rate
-	maxDelay IS 10.//after a change to warp state not commanded by this library this is how long to delay until starting warp again
-	LOCAL warpConLex IS LEX().
+	//public 
+	PARAMETER easeFactor TO 1.5,//the smaller this number the later the warp control will leave reducing the rate of time warp, to small and you will over shoot target
+	warpLimit TO 7,//maximum number of times warp can be increased from 1x
+	maxDelay TO 10.//after a change to warp state not commanded by this library this is how long to delay until starting warp again
+	LOCAL warpConLex TO LEX().
 	warpConLex:ADD("getEaseFactor", { RETURN easeFactor. }).
-	warpConLex:ADD("setEaseFactor", { PARAMETER newEaseFactor IS easeFactor. SET easeFactor TO newEaseFactor. }).
+	warpConLex:ADD("setEaseFactor", { PARAMETER newEaseFactor TO easeFactor. SET easeFactor TO newEaseFactor. }).
 	warpConLex:ADD("getWarpLimit", { RETURN defaultMaxRate. }).
-	warpConLex:ADD("setWarpLimit", { PARAMETER newLimit IS maxPossibleRate. SET defaultMaxRate TO MIN(maxPossibleRate,warpLimit). }).
+	warpConLex:ADD("setWarpLimit", { PARAMETER newLimit TO maxPossibleRate. SET defaultMaxRate TO MIN(maxPossibleRate,warpLimit). }).
 	warpConLex:ADD("getDelay", { RETURN maxDelay. }).
-	warpConLex:ADD("setDelay", { PARAMETER newDelay IS maxDelay. SET maxDelay TO newDelay. }).
+	warpConLex:ADD("setDelay", { PARAMETER newDelay TO maxDelay. SET maxDelay TO newDelay. }).
 	warpConLex:ADD("getState", { RETURN warpState. }).
 	warpConLex:ADD("triggerCrash", { SET warpState TO "crashing". }).
 	warpConLex:ADD("execute", {
 		PARAMETER timeIn,//the time in seconds until the target event
-		maxRate IS defaultMaxRate.//max number of times function is allowed to increase the warp rate
+		maxRate TO defaultMaxRate.//maximum number of times warp can be increased from 1x
 		IF warpBase:WARP <> expectedWarp {
 			SET warpState TO "crashing".
 		}
@@ -24,16 +24,16 @@ FUNCTION warp_control_init {
 	}).
 	
 	//private
-	LOCAL warpState IS "eval_settled".
-	LOCAL warpBase IS KUNIVERSE:TIMEWARP.
-	LOCAL maxPossibleRate IS warpBase:RAILSRATELIST:LENGTH - 1.
-	LOCAL defaultMaxRate IS MIN(maxPossibleRate,warpLimit).
-	LOCAL railRateList IS warpBase:RAILSRATELIST.
-	LOCAL crashedTimeing IS TIME:SECONDS.
-	LOCAL nextIncrease IS TIME:SECONDS.
-	LOCAL expectedWarp IS warpBase:WARP.
+	LOCAL warpState TO "eval_settled".
+	LOCAL warpBase TO KUNIVERSE:TIMEWARP.
+	LOCAL maxPossibleRate TO warpBase:RAILSRATELIST:LENGTH - 1.
+	LOCAL defaultMaxRate TO MIN(maxPossibleRate,warpLimit).
+	LOCAL railRateList TO warpBase:RAILSRATELIST.
+	LOCAL crashedTimeing TO TIME:SECONDS.
+	LOCAL nextIncrease TO TIME:SECONDS.
+	LOCAL expectedWarp TO warpBase:WARP.
 	
-	LOCAL stateLex IS LEX().
+	LOCAL stateLex TO LEX().
 	stateLex:ADD("eval_settled", {
 		PARAMETER timeIn,maxRate.
 		IF warpBase:ISSETTLED {

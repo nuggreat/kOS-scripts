@@ -1,5 +1,6 @@
 LOCAL yRef TO v(0,1,0).
 LOCAL gg0 TO CONSTANT:g0.
+LOCAL ppi TO CONSTANT:PI.
 LOCAL zeroVec TO v(0,0,0).
 
 FUNCTION sim_land_vac {
@@ -21,7 +22,8 @@ FUNCTION sim_land_vac {
 	LOCAL sixthTimeStep TO timeStep / 6.
 
 	LOCAL GM TO localBody:MU.			//the MU of the body the ship is in orbit of
-	LOCAL angVel TO localBody:ANGULARVEL.
+	// LOCAL angVel TO localBody:ANGULARVEL.
+	LOCAL angVel TO -yRef * ppi * 2 / localBody:ROTATIONPERIOD.
 	LOCAL massFlow TO vesThrust / (gg0 * vesISP).
 	LOCAL timeLimit TO (vesMass - vesLowMass) / massFlow.
 
@@ -73,9 +75,9 @@ FUNCTION sim_land_vac {
 
 		//kraken's bane
 		// IF vesPosSol:SQRMAGNITUDE > 36_000_000 {//equivalent to vesPosSol:MAG > 6000
-			// LOCAL baneVec IS vesPosSol + vesVelSol:NORMALIZED * 3000.
-			// SET vesPosSol TO vesPosSol - baneVec.
-			// SET krakenBane TO krakenBane - baneVec.
+			// LOCAL baneVec IS -vesPosSol + vesVelSol:NORMALIZED * 3000.
+			// SET vesPosSol TO vesPosSol + baneVec.
+			// SET krakenBane TO krakenBane + baneVec.
 			// SET bodyPosSol TO bodyPosSolRoot + baneVec.
 		// }
 
@@ -90,7 +92,18 @@ FUNCTION sim_land_vac {
 		//tweak final time step to reduce error/overshoot.
 		LOCAL nextAccel TO current_accel(vesPosSol, vesVelSol, bodyPosSol, totalTime).
 		LOCAL potentialStep IS newSurfVel:MAG / nextAccel:MAG.
-		IF potentialStep < 1 {
+		// PRINT " ".
+		// PRINT "time " + totalTime.
+		// PRINT "surfVelAng " + VANG(oldSurfVel, newSurfVel).
+		// PRINT "surfVel " + newSurfVel.
+		// PRINT "nextAccel " + nextAccel.
+		// PRINT "nextAccelMag " + nextAccel:MAG.
+		// PRINT "surfVelMag " + newSurfVel:MAG.
+		// PRINT "potentialStep " + potentialStep.
+		// IF RCS {
+			// KUNIVERSE:PAUSE.
+		// }
+		IF potentialStep < timeStep {
 			IF potentialStep > 0.02 {//sets time step such that velocity will be near or at zero at the end of the next step
 				SET timeStep TO potentialStep.
 				SET halfTimeStep TO timeStep / 2.

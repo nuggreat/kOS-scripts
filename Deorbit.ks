@@ -24,6 +24,8 @@ IF setDefault {
 
 IF landingChord:ISTYPE("geocoordinates") {
 //LOCAL thrustLimitBackup IS twr_restriction(7.5).
+// PRINT "updated deorbit 123".
+// WAIT 10.
 ABORT OFF.
 RUN land_at(landingTar).
 IF NOT ABORT {
@@ -31,10 +33,12 @@ IF NOT ABORT {
 	REMOVE NEXTNODE.
 	IF NOT ABORT {
 		FOR eng IN SHIP:ENGINES {
-			SET eng:THRUSTLIMIT TO 50.
+			SET eng:THRUSTLIMIT TO 17.
 		}
-		RUN landing_vac_v5(FALSE,landingTar).
+		// RUN landing_vac_v5(TRUE,landingTar).
 		// RUN landing_vac(TRUE,landingTar).
+		RUN landing_vac_v5(TRUE).
+		// RUN landing_vac(TRUE).
 		IF landingTar = defautlTar AND (SHIP:MODULESNAMED("ModuleResourceHarvester"):LENGTH > 0) {
 			DEPLOYDRILLS ON.
 			PANELS ON.
@@ -61,9 +65,7 @@ FUNCTION twr_restriction {
 	IF twr > twrTarget {
 		limiterBackup:ADD(TRUE).
 		LOCAL twrCoeficent IS twrTarget / twr.
-		LOCAL engineList IS LIST().
-		LIST ENGINES IN engineList.
-		FOR engine IN engineList {
+		FOR engine IN SHIP:ENGINES {
 			IF engine:IGNITION AND NOT engine:FLAMEOUT {
 				limiterBackup:ADD(LIST(engine,engine:THRUSTLIMIT)).
 				SET engine:THRUSTLIMIT TO MAX(CEILING(engine:THRUSTLIMIT * twrCoeficent * 2) / 2,0.5).

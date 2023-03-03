@@ -1,7 +1,7 @@
 GLOBAL stage_check IS { LOCAL ns IS FALSE. IF STAGE:READY { IF MAXTHRUST = 0 { SET ns TO TRUE. } ELSE { LOCAL el IS LIST(). LIST ENGINES IN el. FOR e IN el { IF e:IGNITION AND e:FLAMEOUT { SET ns TO TRUE. BREAK. } } } IF ns	{ STAGE. } } ELSE { SET ns TO TRUE. } }.
 
-/me list engines in englist. set tcon to true. on time:second { local dif is (tpid:setpoint - ship:velocity:surface:mag). for eng in englist {if eng:primarymode {if dif > 50 {eng:togglemode.}} else {if diff < 25 {eng:togglemode.}} return tcon.}}
-list engines in englist. for eng in engList {eng:togglemode.}
+/me set englist to ship:engines. set tcon to true. on time:second { local dif is (tpid:setpoint - ship:velocity:surface:mag). for eng in englist {if eng:primarymode {if dif > 50 {eng:togglemode.}} else {if diff < 25 {eng:togglemode.}} return tcon.}}
+set englist to ship:engines. for eng in engList {eng:togglemode.}
 
 /me set autothrot to true. set vtar to 175. set tpid to pidloop(0.1,0.001,1,0,1). set tpid:setpoint to vtar. lock throttle to tpid:update(time:seconds,ship:velocity:surface:mag). on vtar { set tpid:setpoint to vtar. return autothrot.}
 
@@ -58,7 +58,7 @@ LOCK STEERING TO SHIP:PROGRADE:TOPVECTOR.
 
 /me SET keepStage TO TRUE. ON TIME:SECOND { LIST ENGINES IN el. FOR eng IN el { if eng:FLAMEOUT OR (MAXTHRUST = 0) { STAGE. BREAK.} } IF keepStage { PRESERVE. } }
 
-list engines in englist. for eng in englist { set eng:gimbal:limit to 50. }
+set englist to ship:engines. for eng in englist { set eng:gimbal:limit to 50. }
 
 /me when vang(nextnode:deltaV,ship:facing:forevector) > 5 then {lock throttle to 0.}
 /me warpto(nextnode:ETA - 60).
