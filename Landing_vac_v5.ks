@@ -24,7 +24,7 @@ LOCAL shipPos TO SHIP:POSITION.
 LOCAL shipVel TO SHIP:VELOCITY:ORBIT.
 LOCAL bodyPos TO BODY:POSITION.
 LOCAL deltaTime TO delta_time_init().
-LOCAL dtFilter TO low_pass_filter_init(5,1).
+LOCAL dtFilter TO low_pass_filter_init(2,1).
 LOCAL tsLimitFIlter IS low_pass_filter_init(5,1).
 
 //sim result vars
