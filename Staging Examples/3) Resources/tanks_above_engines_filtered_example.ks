@@ -65,9 +65,7 @@ FUNCTION signed_eta_ap {
 FUNCTION staging_start {
   PARAMETER threshold IS 0.01.
   LOCAL stagingData IS LEX("threshold",threshold).
-  LOCAL engList IS LIST().
-  LIST ENGINES IN engList.
-  FOR eng IN engList {
+  FOR eng IN SHIP:ENGINES {
     LOCAL engResData IS eng:CONSUMEDRESOURCES.
     LOCAL foundPart IS FALSE.
     FOR key IN engResData:KEYS {
@@ -101,9 +99,7 @@ FUNCTION walk_for_resources {
 FUNCTION get_engine_list {
   PARAMETER filteredEngList IS LIST().
   filteredEngList:CLEAR().
-  LOCAL engList IS LIST().
-  LIST ENGINES IN engList.
-  FOR eng IN engList {
+  FOR eng IN SHIP:ENGINES {
     IF eng:IGNITION {
       filteredEngList:ADD(eng).
     }

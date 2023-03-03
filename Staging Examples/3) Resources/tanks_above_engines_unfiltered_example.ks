@@ -66,9 +66,7 @@ FUNCTION signed_eta_ap {
 FUNCTION staging_start {//construct engine UID to first parent part with the a matching resource mapping
   PARAMETER threshold IS 0.01.
   LOCAL stagingData IS LEX("threshold",threshold).
-  LOCAL engList IS LIST().
-  LIST ENGINES IN engList.
-  FOR eng IN engList {
+  FOR eng IN SHIP:ENGINES {
     LOCAL engResData IS eng:CONSUMEDRESOURCES.
     LOCAL foundPart IS FALSE.
     FOR key IN engResData:KEYS {
@@ -101,9 +99,7 @@ FUNCTION walk_for_resources {
 FUNCTION staging_check {
   PARAMETER stagingData.
   IF STAGE:READY {
-    LOCAL engList IS LIST().
-    LIST ENGINES IN engList.
-    FOR eng IN engList {
+    FOR eng IN SHIP:ENGINES {
       IF stagingData:HASKEY(eng:UID) {
         IF stagingData[eng:UID]:AMOUNT < stagingData:threshold {
           PRINT "Staging due to resource: " + stagingData[eng:UID]:NAME + " below threshold.".

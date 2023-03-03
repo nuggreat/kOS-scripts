@@ -65,9 +65,7 @@ FUNCTION signed_eta_ap {
 FUNCTION get_engine_list {
   PARAMETER filteredEngList IS LIST().
   filteredEngList:CLEAR().
-  LOCAL engList IS LIST().
-  LIST ENGINES IN engList.
-  FOR eng IN engList {
+  FOR eng IN SHIP:ENGINES {
     IF eng:IGNITION {
       filteredEngList:ADD(eng).
     }

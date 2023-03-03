@@ -2,11 +2,9 @@
 
 FUNCTION staging_check {
   IF STAGE:READY {
-    LOCAL engList IS LIST().
-    LIST ENGINES IN engList.
     LOCAL shouldStage IS FALSE.
     LOCAL noActiveEngines IS TRUE.
-    FOR eng IN engList {
+    FOR eng IN SHIP:ENGINES {
       IF eng:IGNITION {
         SET noActiveEngines TO FALSE.
         IF eng:FLAMEOUT {

@@ -4,12 +4,10 @@
 
 FUNCTION staging_check {
   PARAMETER threshold IS 0.01.
-  LOCAL engList IS LIST().
-  LIST ENGINES IN engList.
   LOCAL shouldStage IS FALSE.
   LOCAL noActiveEngines IS TRUE.
   IF STAGE:READY {
-    FOR eng IN engList {
+    FOR eng IN SHIP:ENGINES {
       IF eng:IGNITION {
 		SET noActiveEngines TO FALSE.
         LOCAL engRes IS eng:CONSUMEDRESOURCES.
