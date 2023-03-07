@@ -321,5 +321,6 @@ FUNCTION lowist_part {//returns the largest dist from the root part for a part i
 FUNCTION adjusted_retorgrade {
 	PARAMETER yawOffset,pitchOffset.//positive yaw is yawing to the right, positive pitch is pitching up
 	LOCAL returnDir TO ANGLEAXIS(-pitchOffset,SHIP:SRFRETROGRADE:STARVECTOR) * SHIP:SRFRETROGRADE.
+
 	RETURN ANGLEAXIS(yawOffset,UP:VECTOR) * returnDir.
 }
