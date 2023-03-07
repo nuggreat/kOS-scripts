@@ -232,11 +232,9 @@ FUNCTION margen_error { //aproximates vertical drop needed for the craft to stop
 }
 
 FUNCTION isp_calc {	//calculates the average isp of all of the active engins on the ship
-	LOCAL engineList IS LIST().
 	LOCAL totalFlow IS 0.
 	LOCAL totalThrust IS 0.
-	LIST ENGINES IN engineList.
-	FOR engine IN engineList {
+	FOR engine IN SHIP:ENGINES {
 		IF engine:IGNITION AND NOT engine:FLAMEOUT {
 			SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / engine:ISP).
 			SET totalThrust TO totalThrust + engine:AVAILABLETHRUST.

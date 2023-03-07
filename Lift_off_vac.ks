@@ -400,7 +400,7 @@ FUNCTION range_scan {
 		LOCAL ts IS TIME:SECONDS.
 		LOCAL lanVec IS (lanGeoPos:POSITION - BODY:POSITION):NORMALIZED.//vector pointing to the LAN
 		LOCAL radVec IS (SHIP:POSITION - BODY:POSITION):NORMALIZED.
-		LOCAL arcNormal IS ANGLEAXIS(arcRot,radVec) * (ANGLEAXIS(tarInc,lanVec) * V(0,-1,0)).//computing the normal to the arc to scan along
+		LOCAL arcNormal IS ANGLEAXIS(arcRot,radVec) * (ANGLEAXIS(tarInc,lanVec) * -refferenceVector).//computing the normal to the arc to scan along
 
 		LOCAL outerProg IS ROUND((arcRot - arcRotStart) / (arcRotStep)) / totalSteps.//percentage progress of outer loop
 		PRINT (printPrefix + padding((outerProg * 100),2,3) + "%"):PADRIGHT(TERMINAL:WIDTH) AT(0,printHeight).
@@ -462,7 +462,7 @@ FUNCTION UTs_of_orbit_cross {//returns the UTs of when the craft can launch into
 
 FUNCTION cross_point_to_UTs {//calculates the time to the given crossing point
 	PARAMETER startTime,targetLng,currentLng,leadTime.
-	LOCAL lngDiff IS (CHOOSE (targetLng - currentLng) IF VDOT(BODY:ANGULARVEL,V(0,1,0)) < 0 ELSE (currentLng - targetLng)).
+	LOCAL lngDiff IS (CHOOSE (targetLng - currentLng) IF VDOT(BODY:ANGULARVEL,refferenceVector) < 0 ELSE (currentLng - targetLng)).
 	LOCAL timeDiff IS MOD(lngDiff + 720,360) * (BODY:ROTATIONPERIOD / 360) - leadTime.
 	IF timeDiff < 0 { SET timeDiff TO timeDiff + BODY:ROTATIONPERIOD. }
 	RETURN timeDiff + startTime.

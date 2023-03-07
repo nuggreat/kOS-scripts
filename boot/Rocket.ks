@@ -1,6 +1,5 @@
 IF NOT SHIP:UNPACKED AND SHIP:LOADED { PRINT "waiting for unpack". WAIT UNTIL SHIP:UNPACKED AND SHIP:LOADED. WAIT 1. PRINT "unpacked". }
 IF NOT EXISTS("1:/lib/") {CREATEDIR("1:/lib/").}       //creates lib sub directory on local volume
-//DELETEPATH("1:/boot/rocket.ks").
 COPYPATH("0:/boot/Post Startup Bootfiles/ablank.ks","1:/").
 COPYPATH("0:/lib/lib_file_util.ks","1:/lib/").
 COPYPATH("0:/updater.ks","1:/").
@@ -15,7 +14,7 @@ COPYPATH("0:/landing_vac.ks","1:/").
 COPYPATH("0:/lib/lib_dock.ks","1:/lib").
 COPYPATH("0:/dock_ship.ks","1:/").
 COPYPATH("0:/land_at.ks","1:/").
-COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib").
+COPYPATH("0:/lib/lib_geochordnate.ks","1:/lib/").
 COPYPATH("0:/lib/lib_mis_utilities.ks","1:/lib/").
 COPYPATH("0:/lib/lib_orbital_math.ks","1:/lib/").
 COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/").
