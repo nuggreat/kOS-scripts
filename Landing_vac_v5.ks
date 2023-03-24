@@ -17,7 +17,7 @@ LOCAL localBody TO SHIP:BODY.
 LOCAL warpBase TO KUNIVERSE:TIMEWARP.
 LOCAL railRateList TO warpBase:RAILSRATELIST.
 LOCAL maxRate TO 3.
-LOCAL factorThreshold TO 30.
+LOCAL factorThreshold TO 20.
 
 // LOCAL logPath TO "0:/landingLog.csv".
 // IF EXISTS(logPath) { DELETEPATH(logPath). }
@@ -72,13 +72,13 @@ IF NOT landingTar:ISTYPE("boolean") {
 WHEN TRUE THEN {
 	LOCAL stopGap TO ((SHIP:ALTITUDE - altOffset) - localBody:GEOPOSITIONOF(stopPos):TERRAINHEIGHT) - retroMargin.
 	IF canWarp {
-		LOCAL burnEta TO stopGap / ABS(VERTICALSPEED).
+		LOCAL burnEt TO stopGap / ABS(VERTICALSPEED).
 		IF warping AND warpBase:ISSETTLED {
-			// PRINT "be " + burnEta.
+			// PRINT "be " + burnEt.
 			// PRINT "wf " + warpFactor.
-			IF (burnEta / railRateList[warpBase:WARP]) < factorThreshold {
+			IF (burnEt / railRateList[warpBase:WARP]) < factorThreshold {
 				SET warpBase:WARP TO MAX(warpBase:WARP - 1,0).
-			} ELSE IF (burnEta / railRateList[warpBase:WARP + 1]) > factorThreshold {
+			} ELSE IF (burnEt / railRateList[warpBase:WARP + 1]) > factorThreshold {
 				SET warpBase:WARP TO MIN(warpBase:WARP + 1,maxRate).
 			}
 		}
@@ -138,7 +138,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 	// PRINT stopGapFiltered.
 	// PRINT retroMargin.
 	// PRINT VERTICALSPEED.
-	LOCAL burnEta TO (SQRT(MAX(2 * gravAcc * (stopGapFiltered - retroMargin) + VERTICALSPEED^2,0)) + VERTICALSPEED) / gravAcc.
+	LOCAL burnEt TO (SQRT(MAX(2 * gravAcc * (stopGapFiltered - retroMargin) + VERTICALSPEED^2,0)) + VERTICALSPEED) / gravAcc.
 	// PRINT initalMass.
 	// PRINT simResults["mass"].
 	// PRINT simResults["cycles"].
@@ -154,7 +154,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 	PRINT "time step:      " + ROUND(ts,2).
 	PRINT "Steps Per Sim:  " + simResults["cycles"].
 	PRINT "Vert Speed:     " + ROUND(VERTICALSPEED).
-	PRINT "burn start eta: " + ROUND(burnEta,2).
+	PRINT "burn start et: " + ROUND(burnEt,2).
 	IF RCS {
 		KUNIVERSE:PAUSE.
 	}
@@ -237,7 +237,7 @@ LOCAL srfGrav TO SHIP:BODY:MU/(SHIP:BODY:RADIUS)^2.
 LOCAL shipAcc TO (shipThrust / SHIP:MASS).
 LOCAL sucideMargin TO vertMargin + 7.5.
 LOCAL decentLex TO decent_math(shipThrust,srfGrav).
-LOCK STEERING TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR + UP:VECTOR,SHIP:NORTH:FOREVECTOR).
+LOCK STEERING TO LOOKDIRUP(-SHIP:VELOCITY:SURFACE + UP:VECTOR,SHIP:NORTH:FOREVECTOR).
 //SET landing_PID:SETPOINT TO sucideMargin - 0.1.
 LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 //LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,ALT:RADAR - decentLex["stopDist"]).
@@ -256,7 +256,7 @@ UNTIL ALT:RADAR < sucideMargin {	//vertical suicide burn stopping at about 10m a
 }
 //landing_PID:RESET().
 
-LOCAL steeringTar TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR:NORMALIZED + (SHIP:UP:FOREVECTOR:NORMALIZED * 3),SHIP:NORTH:FOREVECTOR).
+LOCAL steeringTar TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR + (SHIP:UP:FOREVECTOR * 3),SHIP:NORTH:FOREVECTOR).
 LOCK STEERING TO steeringTar.
 //LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 //LOCAL done TO FALSE.
@@ -310,9 +310,9 @@ FUNCTION lowist_part {//returns the largest dist from the root part for a part i
 	PARAMETER craft TO SHIP.
 	LOCAL largest TO 0.
 	FOR par IN craft:PARTS {
-		LOCAL aft_dist TO VDOT((craft:ROOTPART:POSITION - par:POSITION), craft:FACING:FOREVECTOR).
-		IF aft_dist > largest {
-			SET largest TO aft_dist.
+		LOCAL aftDist TO VDOT((craft:ROOTPART:POSITION - par:POSITION), craft:FACING:FOREVECTOR).
+		IF aftDist > largest {
+			SET largest TO aftDist.
 		}
 	}
 	RETURN largest.

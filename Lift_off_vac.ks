@@ -322,20 +322,19 @@ FUNCTION azimuth {
 	LOCAL sufaceLAN IS targetLAN - BODY:ROTATIONANGLE.//lan converted to a surface longitude
 
 	LOCAL lanVec IS (LATLNG(0,sufaceLAN):POSITION - BODY:POSITION):NORMALIZED.//vector pointing to the LAN
-	// LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * (LATLNG(-90,0):POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
-	// LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * -(northReff:POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
 	LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * -refferenceVector.//computing the normal vector of the desired orbit
 	LOCAL radVec IS SHIP:POSITION - BODY:POSITION.//current radius as a vector
 	LOCAL currentVel IS SHIP:VELOCITY:ORBIT.
+	LOCAL upVec IS UP:VECTOR.
 
 	LOCAL targetSpeed IS MAX(speed_given_ap(radVec:MAG,targetAP),currentVel:MAG + 1).//calculating speed at current radius to reach given AP with current PE, also has MAX call so that said speed is always 1 m/s greater than currentVel
-	SET planerError TO CHOOSE 90 - VANG(radVec,targetNormal) IF correctPlane ELSE 0.
 	// SET incError TO VANG(targetNormal,VCRS(SHIP:POSITION - BODY:POSITION, SHIP:VELOCITY:ORBIT)).
 
 	LOCAL targetVel IS VCRS(targetNormal,radVec:NORMALIZED):NORMALIZED * targetSpeed.//desired velocity vector
-	SET currentVel TO VXCL(UP:VECTOR,currentVel):NORMALIZED * currentVel:MAG.//current velocity flattened to match targetVel
+	SET currentVel TO VXCL(upVec,currentVel):NORMALIZED * currentVel:MAG.//current velocity flattened to match targetVel
 	LOCAL difVec IS targetVel - currentVel.//difference
 	IF headingOfDiff {
+		SET planerError TO 90 - VANG(radVec,targetNormal).
 		RETURN heading_of_vector(difVec) - max(min(planerError * 10,10),-10).
 	} ELSE {
 		RETURN heading_of_vector(targetVel).
