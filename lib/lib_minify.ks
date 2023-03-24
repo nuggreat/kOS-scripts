@@ -32,20 +32,18 @@ FUNCTION minify {
 		SET term TO cr.
 	}
 	SET fileContent TO fileContent:SPLIT(term).
+	
 	LOCAL notStrCarry TO TRUE.
 	LOCAL contentLength TO fileContent:LENGTH - 1.
 	FROM { LOCAL i TO 0. } UNTIL i > contentLength STEP { SET i TO i + 1. } DO {
 		LOCAL line TO fileContent[i].
-		LOCAL lineLength TO line:LENGTH.
 
 		SET line TO remove_leading_white_space(line, notStrCarry).
-
 		SET line TO remove_comments(line, notStrCarry).
-		
 		SET line TO removed_padding_around(line, notStrCarry, removePaddingAround).
 		
 		//update string carry flag
-		FROM { LOCAL j TO 0. } UNTIL j >= lineLength STEP { SET j TO j + 1. } DO {
+		FROM { LOCAL j TO 0. } UNTIL j >= line:LENGTH STEP { SET j TO j + 1. } DO {
 			IF line[j] = """" {
 				SET notStrCarry TO NOT notStrCarry.
 			}
@@ -76,7 +74,7 @@ LOCAL FUNCTION remove_leading_white_space {
 			}
 		}
 	}
-	RETURN line
+	RETURN line.
 }
 
 LOCAL FUNCTION remove_comments {
@@ -104,11 +102,11 @@ LOCAL FUNCTION removed_padding_around {
 			IF line:CONTAINS(" " + pChar) OR line:CONTAINS(pChar + " ") {
 				LOCAL outOfStr TO notStrCarry.
 				LOCAL changedLine TO FALSE.
-				LOCAL limit IS line:LENGTH - 1.
+				LOCAL lineLength TO line:LENGTH.
+				LOCAL limit TO lineLength - 1.
 				FROM { LOCAL j TO 0. } UNTIL j >= lineLength STEP { SET j TO j + 1. } DO {
 					IF line[j] = """" {
 						SET outOfStr TO NOT outOfStr.
-						// PRINT "inStr".
 					}
 					IF outOfStr AND (line[j] = pChar) {//left padding removal
 						IF (j < limit) AND (line[j + 1] = " " OR line[j + 1] = tab) {
@@ -145,4 +143,5 @@ FUNCTION remove_trailing_white_space {
 			}
 		}
 	}
+	RETURN line.
 }
