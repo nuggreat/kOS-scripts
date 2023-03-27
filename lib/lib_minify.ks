@@ -38,7 +38,7 @@ FUNCTION minify {
 	} ELSE {
 		SET term TO cr.
 	}
-	SET fileContent TO fileContent:REPLACE(term,lf).
+	SET fileContent TO fileContent:REPLACE(term, lf).
 
 	LOCAL contentLength TO fileContent:LENGTH - 1.
 
@@ -59,11 +59,11 @@ FUNCTION minify {
 	LOCAL removeTrailingWhite TO FALSE.
 	UNTIL i > contentLength {
 		LOCAL currentChar TO fileContent[i].
-		PRINT "---------".
-		PRINT fileContent:SUBSTRING(MAX(i - subLead, 0), MIN(subTail + MIN(i, subLead), contentLength - i + subLead + 1)):REPLACE(lf,"!"):REPLACE(" ","~"):REPLACE(tab,"~").
-		IF currentChar = lf {
-			SET line TO line + 1.
-		}
+		// PRINT "---------".
+		// PRINT fileContent:SUBSTRING(MAX(i - subLead, 0), MIN(subTail + MIN(i, subLead), contentLength - i + subLead + 1)):REPLACE(lf, "!"):REPLACE(" ", "~"):REPLACE(tab, "~").
+		// IF currentChar = lf {
+			// SET line TO line + 1.
+		// }
 
 		IF notInStr {
 			//comment removal
@@ -72,7 +72,7 @@ FUNCTION minify {
 				UNTIL j > contentLength OR fileContent[j] = lf {
 					SET j TO j + 1.
 				}
-				SET fileContent TO fileContent:REMOVE(i,j - i).
+				SET fileContent TO fileContent:REMOVE(i, j - i).
 				SET i TO i - 1.
 				SET contentLength TO fileContent:LENGTH - 1.
 
@@ -108,16 +108,16 @@ FUNCTION minify {
 			SET i TO i - 1.
 			SET contentLength TO fileContent:LENGTH - 1.
 		}
-		PRINT fileContent:SUBSTRING(MAX(i - subLead, 0), MIN(subTail + MIN(i, subLead), contentLength - i + subLead + 1)):REPLACE(lf,"!"):REPLACE(" ","~"):REPLACE(tab,"~").
-		PRINT "|":PADRIGHT(MIN(subLead,i)) + "^" + "|":PADLEFT(MIN((subTail) - 1, contentLength - i + 1)).
-		PRINT ROUND(i * 100 / contentLength, 2):TOSTRING():PADRIGHT(5) + "%, line: " + line + " i: " + i.
-		PRINT notInStr.
+		// PRINT fileContent:SUBSTRING(MAX(i - subLead, 0), MIN(subTail + MIN(i, subLead), contentLength - i + subLead + 1)):REPLACE(lf, "!"):REPLACE(" ", "~"):REPLACE(tab, "~").
+		// PRINT "|":PADRIGHT(MIN(subLead, i)) + "^" + "|":PADLEFT(MIN((subTail) - 1, contentLength - i + 1)).
+		// PRINT ROUND(i * 100 / contentLength, 2):TOSTRING():PADRIGHT(5) + "%, line: " + line + " i: " + i.
+		// PRINT notInStr.
 		// IF line = 6 {
-		IF i = 220 {
-			SET SAS TO FALSE.
-		}
-		SET RCS TO SAS.
-		WAIT UNTIL RCS.
+		// IF i = 220 {
+			// SET SAS TO FALSE.
+		// }
+		// SET RCS TO SAS.
+		// WAIT UNTIL RCS.
 
 		SET i TO i + 1.
 	}
@@ -132,5 +132,5 @@ FUNCTION minify {
 		SET i TO j.
 		SET contentLength TO fileContent:LENGTH - 1.
 	}
-	fileDest:WRITE(fileContent:REPLACE(lf,term)).
+	fileDest:WRITE(fileContent:REPLACE(lf, term)).
 }
