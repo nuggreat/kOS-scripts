@@ -11,33 +11,31 @@
 	
   This function has no return.
   
+  Be aware this function takes aproximatly 40 instructions per character in the file you are reducing.  Thus at an IPU of 200 it will process approximately 250 characters per ingame second.
+  
   To illustrate this code snippet from lib_minify.ks
   
-    		IF i < contentLength AND whiteSpaceChars:CONTAINS(currentChar) AND whiteSpaceChars:CONTAINS(fileContent[i + 1]) {
-    			SET removeLeadingWhite TO TRUE.
-
-    		//comment removal
-    		} ELSE IF currentChar = "/" AND i < contentLength AND fileContent[i + 1] {
-    			LOCAL j TO i + 2.
-    			UNTIL j > contentLength OR fileContent[j] = lf {
-    				SET j TO j + 1.
-    			}
-    			SET fileContent TO fileContent:REMOVE(i,j - i).
-    			SET i TO i - 1.
-    			SET contentLength TO fileContent:LENGTH - 1.
+    		IF notInStr {
+    			//comment removal
+    			IF currentChar = "/" AND i < contentLength AND fileContent[i + 1] = "/" {
+    				LOCAL j TO i + 2.
+    				UNTIL j > contentLength OR fileContent[j] = lf {
+    					SET j TO j + 1.
+    				}
+    				SET fileContent TO fileContent:REMOVE(i,j - i).
+    				SET i TO i - 1.
+    				SET contentLength TO fileContent:LENGTH - 1.
     
-    		//removal of padding around listed chars
-    		} ELSE IF removePaddingAround:CONTAINS(currentChar) {
+    			//removal of padding around listed chars
+    			} ELSE IF removePaddingAround:CONTAINS(currentChar) {
 
   gets reduced to this
   
-    IF i<contentLength AND whiteSpaceChars:CONTAINS(currentChar) AND whiteSpaceChars:CONTAINS(fileContent[i+1]){
-    SET removeLeadingWhite TO TRUE.
-
+    IF notInStr {
     
-    }ELSE IF currentChar="/"AND i<contentLength AND fileContent[i+1]{
+    IF currentChar="/"AND i<contentLength AND fileContent[i+1]="/"{
     LOCAL j TO i+2.
-    UNTIL j>contentLength OR fileContent[j]=lf{
+    UNTIL j>contentLength OR fileContent[j]=lf {
     SET j TO j+1.
     }
     SET fileContent TO fileContent:REMOVE(i,j-i).
@@ -45,4 +43,4 @@
     SET contentLength TO fileContent:LENGTH-1.
     
     
-    } ELSE IF removePaddingAround:CONTAINS(currentChar){
+    }ELSE IF removePaddingAround:CONTAINS(currentChar){
