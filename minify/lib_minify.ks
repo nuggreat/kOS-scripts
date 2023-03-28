@@ -129,8 +129,6 @@ FUNCTION minify {
 	}
 	IF i - j > 0 {
 		SET fileContent TO fileContent:REMOVE(j, i - j).
-		SET i TO j.
-		SET contentLength TO fileContent:LENGTH - 1.
 	}
 	fileDest:WRITE(fileContent:REPLACE(lf, term)).
 }
