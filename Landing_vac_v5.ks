@@ -11,6 +11,13 @@ WAIT UNTIL active_engine().
 LOCAL vertMargin TO lowist_part(SHIP) + 2.5.	//Sets the margin for the Sucide Burn and Final Decent
 SET retroMargin TO retroMargin + vertMargin.
 LOCAL retroMarginLow TO retroMargin - 100.
+LOCAL localBody TO SHIP:BODY.
+
+//time warp set up
+LOCAL warpBase TO KUNIVERSE:TIMEWARP.
+LOCAL railRateList TO warpBase:RAILSRATELIST.
+LOCAL maxRate TO 3.
+LOCAL factorThreshold TO 20.
 
 // LOCAL logPath TO "0:/landingLog.csv".
 // IF EXISTS(logPath) { DELETEPATH(logPath). }
@@ -22,25 +29,27 @@ LOCAL shipThrust IS SHIP:AVAILABLETHRUST.
 LOCAL shipThrustFrac IS shipThrust * thrustCoef.
 LOCAL shipPos TO SHIP:POSITION.
 LOCAL shipVel TO SHIP:VELOCITY:ORBIT.
-LOCAL bodyPos TO BODY:POSITION.
+LOCAL bodyPos TO localBody:POSITION.
 LOCAL deltaTime TO delta_time_init().
-LOCAL dtFilter TO low_pass_filter_init(5,1).
+LOCAL dtFilter TO low_pass_filter_init(3,1).
 LOCAL tsLimitFIlter IS low_pass_filter_init(5,1).
 
 //sim result vars
 // LOCAL radDelta TO delta_init(BODY:RADIUS).
 // LOCAL radDeltaFilter IS low_pass_filter_init(SHIP:VERTICALSPEED,5)
 LOCAL simResults TO LEX("pos",SHIP:POSITION,"seconds", 30).
-LOCAL gm TO BODY:MU.
+LOCAL gm TO localBody:MU.
 LOCAL stopPos TO SHIP:POSITION.
 LOCAL stopGapRaw TO 0.
-LOCAL stopGapFilter IS low_pass_filter_init(3,0).
+LOCAL stopGapFilter IS low_pass_filter_init(2,0).
 LOCAL stopGapFiltered TO 0.
+LOCAL altOffset TO 0.
 LOCAL pitchOffset TO 0.
 LOCAL headingOffset TO 0.
 LOCAL throt TO 1.
 LOCAL landingChord TO FALSE.
 LOCAL engineOn TO FALSE.
+LOCAL canWarp TO FALSE.
 SET simDelay TO 1.
 
 //PID setup PIDLOOP(kP,kI,kD,min,max)
@@ -59,24 +68,45 @@ IF NOT landingTar:ISTYPE("boolean") {
 		PRINT "No Target Set".
 	}
 }
-
-WHEN (SHIP:BODY:ALTITUDEOF(stopPos) - SHIP:BODY:GEOPOSITIONOF(stopPos):TERRAINHEIGHT) < retroMargin THEN {
-	LOCK THROTTLE TO throt.
-	SET engineOn TO TRUE.
-	SET simDelay TO FALSE.
-	GEAR ON.
-	LIGHTS ON.
-	WAIT 0.
+//possibly add warp based ipu modification
+WHEN TRUE THEN {
+	LOCAL stopGap TO ((SHIP:ALTITUDE - altOffset) - localBody:GEOPOSITIONOF(stopPos):TERRAINHEIGHT) - retroMargin.
+	IF canWarp {
+		LOCAL burnEt TO stopGap / ABS(VERTICALSPEED).
+		IF warping AND warpBase:ISSETTLED {
+			// PRINT "be " + burnEt.
+			// PRINT "wf " + warpFactor.
+			IF (burnEt / railRateList[warpBase:WARP]) < factorThreshold {
+				SET warpBase:WARP TO MAX(warpBase:WARP - 1,0).
+			} ELSE IF (burnEt / railRateList[warpBase:WARP + 1]) > factorThreshold {
+				SET warpBase:WARP TO MIN(warpBase:WARP + 1,maxRate).
+			}
+		}
+	}
+	IF (stopGap < 0) AND (warpBase:WARP = 0) {
+		LOCK THROTTLE TO throt.
+		SET engineOn TO TRUE.
+		SET simDelay TO FALSE.
+		GEAR ON.
+		LIGHTS ON.
+	} ELSE {
+		RETURN TRUE.
+	}
 }
 
-IF haveTarget { LOCK STEERING TO adjusted_retorgrade(headingOffset,pitchOffset). } ELSE { LOCK STEERING TO SHIP:SRFRETROGRADE. }
+IF haveTarget {
+	LOCK STEERING TO adjusted_retorgrade(headingOffset,pitchOffset).
+} ELSE {
+	LOCK STEERING TO SHIP:SRFRETROGRADE.
+}
 
 SET NAVMODE TO "SURFACE".
 //LOCAL done TO FALSE.
 UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical speed is greater than -2
+	SET localBody TO SHIP:BODY.
 	LOCAL dt IS deltaTime().
 	LOCAL tsLimit IS tsLimitFIlter(MAX(simResults["seconds"] / 10 - 0.1,1)).
-	LOCAL ts IS MIN(dtFilter(dt),tsLimit).
+	LOCAL ts IS MIN(dtFilter(dt * 2),tsLimit).
 
 	WAIT 0.
 	LOCAL solarPrime TO SOLARPRIMEVECTOR.
@@ -95,24 +125,28 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 	SET simResults TO sim_land_vac(shipPos,shipVel,shipISP,shipThrustFrac,initalMass,lowestMass,bodyPos,BODY,solarPrime,ts,TRUE).
 
 	SET stopPos TO simResults["pos"].
-	SET stopGapRaw TO simResults["alt"] - SHIP:BODY:GEOPOSITIONOF(stopPos):TERRAINHEIGHT.
+	SET stopGapRaw TO simResults["alt"] - localBody:GEOPOSITIONOF(stopPos):TERRAINHEIGHT.
 	SET stopGapFiltered TO stopGapFilter(stopGapRaw).
+	SET altOffset TO SHIP:ALTITUDE - simResults["alt"].
+	SET canWarp TO warping.
 
 	LOCAL gravAcc TO gm / simResults["rad"]^2.
 	//equation is t = (sqrt(2*a*d + v^2) - v) / a,  the '- v' was changed to '+ v' to flip the sign on vertical speed
+	//d = v * t + 0.5 * a * t^2
+	
 	// PRINT gravAcc.
 	// PRINT stopGapFiltered.
 	// PRINT retroMargin.
 	// PRINT VERTICALSPEED.
-	LOCAL burnEta TO (SQRT(2 * gravAcc * MAX((stopGapFiltered - retroMargin) + VERTICALSPEED^2,0)) + VERTICALSPEED) / gravAcc.
+	LOCAL burnEt TO (SQRT(MAX(2 * gravAcc * (stopGapFiltered - retroMargin) + VERTICALSPEED^2,0)) + VERTICALSPEED) / gravAcc.
 	// PRINT initalMass.
 	// PRINT simResults["mass"].
 	// PRINT simResults["cycles"].
 	SET burnDv TO shipISP*gg0*LN(initalMass/simResults["mass"]).
 
 	CLEARSCREEN.
-	PRINT "Terrain Gap:    " + ROUND(stopGapRaw).
-	PRINT "Terrain Gap:    " + ROUND(stopGapFiltered).
+	PRINT "Terrain GapR:    " + ROUND(stopGapRaw).
+	PRINT "Terrain GapF:    " + ROUND(stopGapFiltered).
 	PRINT "Dv Needed:      " + ROUND(burnDv).
 	PRINT " ".
 	PRINT "time to Stop:   " + ROUND(simResults["seconds"],1).
@@ -120,29 +154,24 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 	PRINT "time step:      " + ROUND(ts,2).
 	PRINT "Steps Per Sim:  " + simResults["cycles"].
 	PRINT "Vert Speed:     " + ROUND(VERTICALSPEED).
-	PRINT "burn start eta: " + ROUND(ABS(stopGapFiltered / VERTICALSPEED),2).
-	PRINT "burn start eta: " + ROUND(burnEta,2).
-	IF warping {
-		SET KUNIVERSE:TIMEWARP:WARP TO MIN(MAX(CEILING(stopGapFiltered / ABS(VERTICALSPEED * 60)) - 1,0),4).
-	} ELSE IF KUNIVERSE:TIMEWARP:WARP > 1 AND ABS(stopGapFiltered / VERTICALSPEED) < 60 {
-		IF NOT engineOn {
-			SET KUNIVERSE:TIMEWARP:WARP TO 0.
-		}
+	PRINT "burn start et: " + ROUND(burnEt,2).
+	IF RCS {
+		KUNIVERSE:PAUSE.
 	}
+
+	SET throt TO (retroMargin) / MAX(stopGapRaw ,1).
 	IF haveTarget AND engineOn {
-		PRINT " ".
 		LOCAL distVec TO  stopPos - landingChord:ALTITUDEPOSITION(retroMargin).
 		LOCAL positionUpVec TO (stopPos - SHIP:BODY:POSITION):NORMALIZED.
 		LOCAL retrogradeVec TO SHIP:SRFRETROGRADE:FOREVECTOR.
 		LOCAL upVec TO UP:VECTOR.
-		LOCAL averageAcc IS burnDv / simResults["seconds"].
+		LOCAL averageAcc IS (burnDv - gravAcc * simResults["seconds"]) / simResults["seconds"].
 
-		SET throt TO (retroMargin) / MAX(stopGapRaw ,1).
 
 		LOCAL leftVec TO VCRS(retrogradeVec,positionUpVec):NORMALIZED.//vector normal to retrograde and up
 		LOCAL retroVec TO VXCL(positionUpVec,retrogradeVec):NORMALIZED.//retrograde vector parallel to the ground
-		LOCAL overshootError TO VDOT(distVec, retroVec).	//if positive then will land short, if negative than will land long
-		LOCAL lateralError TO VDOT(distVec, leftVec).	//if positive then landingChord is to the left, if negative landingChord is to the right
+		LOCAL overshootError TO VDOT(distVec, retroVec).//if positive then will land short, if negative than will land long
+		LOCAL lateralError TO VDOT(distVec, leftVec).//if positive then landingChord is to the left, if negative landingChord is to the right
 
 
 		//arccos(adjacent/thrustCoef) = angle
@@ -168,7 +197,7 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 		// LOCAL pitchMIN TO MAX(stopGapRaw / (retroMargin / 5),0).
 		LOCAL inlineAccChange TO 2 * overshootError / simResults["seconds"]^2.
 		LOCAL inlineAcc TO SIN(velAng) * averageAcc.
-		LOCAL vertAcc TO COS(velAng) * MAX(averageAcc - gravAcc, gravAcc - averageAcc).
+		LOCAL vertAcc TO COS(velAng) * (averageAcc).
 		LOCAL netInlineAcc TO inlineAcc - inlineAccChange.
 		// LOCAL newPitchAng TO ARCTAN(MAX(-1,MIN(1,netInlineAcc / vertAcc))).
 		LOCAL newPitchAng TO ARCTAN(netInlineAcc / vertAcc).
@@ -178,11 +207,12 @@ UNTIL VERTICALSPEED > -2 AND GROUNDSPEED < 10 {	//retrograde burn until vertical
 		// SET pitch_PID:MINOUTPUT TO MIN(MAX(-PIDclamp,-5),0).
 		// SET pitchOffset TO pitch_PID:UPDATE(TIME:SECONDS,-overshootError).
 
-		LOCAL lateralAcc IS 3 * lateralError / simResults["seconds"]^2.
+		LOCAL lateralAcc IS 3 * (lateralError / simResults["seconds"]^2).
 		SET headingOffset TO ARCSIN(MAX(MIN(lateralAcc / averageAcc,headingClamp),-headingClamp)).
 		
 		// LOG LIST(velAng,overshootError,simResults["seconds"],burnDv):JOIN(",") TO logPath.
 		
+		PRINT " ".
 		PRINT "overshoot Error: " + ROUND(overshootError,2).
 		PRINT "velAng: " + velAng.
 		PRINT "inlineAccChange: " + inlineAccChange.
@@ -207,7 +237,7 @@ LOCAL srfGrav TO SHIP:BODY:MU/(SHIP:BODY:RADIUS)^2.
 LOCAL shipAcc TO (shipThrust / SHIP:MASS).
 LOCAL sucideMargin TO vertMargin + 7.5.
 LOCAL decentLex TO decent_math(shipThrust,srfGrav).
-LOCK STEERING TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR,SHIP:NORTH:FOREVECTOR).
+LOCK STEERING TO LOOKDIRUP(-SHIP:VELOCITY:SURFACE + UP:VECTOR,SHIP:NORTH:FOREVECTOR).
 //SET landing_PID:SETPOINT TO sucideMargin - 0.1.
 LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 //LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,ALT:RADAR - decentLex["stopDist"]).
@@ -226,7 +256,7 @@ UNTIL ALT:RADAR < sucideMargin {	//vertical suicide burn stopping at about 10m a
 }
 //landing_PID:RESET().
 
-LOCAL steeringTar TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR:NORMALIZED + (SHIP:UP:FOREVECTOR:NORMALIZED * 3),SHIP:NORTH:FOREVECTOR).
+LOCAL steeringTar TO LOOKDIRUP(SHIP:SRFRETROGRADE:FOREVECTOR + (SHIP:UP:FOREVECTOR * 3),SHIP:NORTH:FOREVECTOR).
 LOCK STEERING TO steeringTar.
 //LOCK THROTTLE TO landing_PID:UPDATE(TIME:SECONDS,VERTICALSPEED).
 //LOCAL done TO FALSE.
@@ -280,9 +310,9 @@ FUNCTION lowist_part {//returns the largest dist from the root part for a part i
 	PARAMETER craft TO SHIP.
 	LOCAL largest TO 0.
 	FOR par IN craft:PARTS {
-		LOCAL aft_dist TO VDOT((craft:ROOTPART:POSITION - par:POSITION), craft:FACING:FOREVECTOR).
-		IF aft_dist > largest {
-			SET largest TO aft_dist.
+		LOCAL aftDist TO VDOT((craft:ROOTPART:POSITION - par:POSITION), craft:FACING:FOREVECTOR).
+		IF aftDist > largest {
+			SET largest TO aftDist.
 		}
 	}
 	RETURN largest.
@@ -291,5 +321,6 @@ FUNCTION lowist_part {//returns the largest dist from the root part for a part i
 FUNCTION adjusted_retorgrade {
 	PARAMETER yawOffset,pitchOffset.//positive yaw is yawing to the right, positive pitch is pitching up
 	LOCAL returnDir TO ANGLEAXIS(-pitchOffset,SHIP:SRFRETROGRADE:STARVECTOR) * SHIP:SRFRETROGRADE.
+
 	RETURN ANGLEAXIS(yawOffset,UP:VECTOR) * returnDir.
 }

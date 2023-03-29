@@ -1,5 +1,5 @@
 PARAMETER doLiftOff IS TRUE,tar IS TARGET.
-FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities","lib_formating") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities","lib_formatting") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 IF tar:ISTYPE("STRING") {
 	LOCAL vesselList IS LIST().
 	LIST TARGETS IN vesselList.
@@ -73,7 +73,7 @@ FUNCTION warp_to_closest {
 				SET done TO TRUE.
 			}
 		}
-		LOCAL etaString IS "targetETA: " + time_formating((targetTime + timeGap) - TIME:SECONDS).
+		LOCAL etaString IS "targetETA: " + time_formatting((targetTime + timeGap) - TIME:SECONDS).
 		WAIT 0.
 		CLEARSCREEN.
 		PRINT etaString.

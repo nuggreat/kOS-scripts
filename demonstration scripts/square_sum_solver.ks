@@ -44,7 +44,7 @@ FUNCTION generate_tree {
 	LOCAL maxSquared IS treeCurrent * 2 - 1
 	LOCAL iSquared IS 0.
 	FROM { LOCAL i IS 2. UNTIL } iSquared > maxSquared STEP { SET i TO i + 1. } DO {
-		LOCAL iSquared IS (i^2).
+		SET iSquared TO (i^2).
 		LOCAL half IS iSquared / 2.
 		FROM { LOCAL j IS 1. } UNTIL j >= half STEP {SET j TO j + 1. } DO {
 			tree[j]:ADD(iSquared - j).

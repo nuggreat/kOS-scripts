@@ -8,9 +8,9 @@ LOCAL stationPortListRaw IS port_scan_of(SHIP).
 LOCAL buffer IS SHIP:MESSAGES.
 buffer:CLEAR().
 
-PRINT "Waiting Untill Docking Request.".
+PRINT "Waiting Until Docking Request.".
 message_wait(buffer).					//waiting for handshake
-PRINT "Request Receved Responding.".
+PRINT "Request Received Responding.".
 LOCAL signal IS buffer:POP().
 LOCAL craft IS signal:SENDER.
 LOCAL cratConect IS craft:CONNECTION.

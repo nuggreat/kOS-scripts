@@ -1,8 +1,9 @@
 LOCAL yRef TO v(0,1,0).
 LOCAL gg0 TO CONSTANT:g0.
+LOCAL ppi TO CONSTANT:PI.
 LOCAL zeroVec TO v(0,0,0).
 
-FUNCTION sim_land_vac {//credit to dunbaratu for the original code
+FUNCTION sim_land_vac {
 	PARAMETER
 		vesPos,		//the initial position of the vessel
 		vesVel,		//the initial velocity of the vessel, should be orbital velocity
@@ -21,8 +22,9 @@ FUNCTION sim_land_vac {//credit to dunbaratu for the original code
 	LOCAL sixthTimeStep TO timeStep / 6.
 
 	LOCAL GM TO localBody:MU.			//the MU of the body the ship is in orbit of
-	LOCAL angVel TO localBody:ANGULARVEL.
-	LOCAL massFlow TO vesThrust / (gg0 * vesISP) * timeStep.
+	// LOCAL angVel TO localBody:ANGULARVEL.
+	LOCAL angVel TO -yRef * ppi * 2 / localBody:ROTATIONPERIOD.
+	LOCAL massFlow TO vesThrust / (gg0 * vesISP).
 	LOCAL timeLimit TO (vesMass - vesLowMass) / massFlow.
 
 	FUNCTION current_accel {
@@ -30,6 +32,8 @@ FUNCTION sim_land_vac {//credit to dunbaratu for the original code
 		LOCAL radInVec TO bodyPos - vesPos.
 		LOCAL gravAcc TO radInVec:NORMALIZED * (GM / radInVec:SQRMAGNITUDE).
 		LOCAL srfRetroVel TO VCRS(radInVec, angVel) - vesVel.
+		// RCS OFF.
+		// WAIT UNTIL RCS.
 		LOCAL currentMass TO vesMass - massFlow * currentTime.
 		LOCAL engAcc TO srfRetroVel:NORMALIZED *  vesThrust / currentMass.
 		RETURN gravAcc + engAcc.
@@ -70,16 +74,16 @@ FUNCTION sim_land_vac {//credit to dunbaratu for the original code
 		SET totalTime TO totalTime + timeStep.
 
 		//kraken's bane
-		// IF vesPosSol:SQRMAGNITUDE > 36_000_000 {//equivalent to vesPosSol:MAG > 6_000
-			// LOCAL baneVec IS vesPosSol + vesVelSol:NORMALIZED * 3_000.
-			// SET vesPosSol TO vesPosSol - baneVec.
-			// SET krakenBane TO krakenBane - baneVec.
+		// IF vesPosSol:SQRMAGNITUDE > 36_000_000 {//equivalent to vesPosSol:MAG > 6000
+			// LOCAL baneVec IS -vesPosSol + vesVelSol:NORMALIZED * 3000.
+			// SET vesPosSol TO vesPosSol + baneVec.
+			// SET krakenBane TO krakenBane + baneVec.
 			// SET bodyPosSol TO bodyPosSolRoot + baneVec.
 		// }
 
 		//termination check
 		SET newSurfVel TO vesVelSol - VCRS(angVel, vesPosSol - bodyPosSol).
-		IF terminate OR (VANG(oldSurfVel, newSurfVel) > 90 OR (timeLimit > totalTime) {//simulation end conditions
+		IF terminate OR (VANG(oldSurfVel, newSurfVel) > 90) OR (timeLimit < totalTime) {//simulation end conditions
 			BREAK.
 		} ELSE {
 			SET oldSurfVel TO newSurfVel.
@@ -88,7 +92,18 @@ FUNCTION sim_land_vac {//credit to dunbaratu for the original code
 		//tweak final time step to reduce error/overshoot.
 		LOCAL nextAccel TO current_accel(vesPosSol, vesVelSol, bodyPosSol, totalTime).
 		LOCAL potentialStep IS newSurfVel:MAG / nextAccel:MAG.
-		IF potentialStep < 1 {
+		// PRINT " ".
+		// PRINT "time " + totalTime.
+		// PRINT "surfVelAng " + VANG(oldSurfVel, newSurfVel).
+		// PRINT "surfVel " + newSurfVel.
+		// PRINT "nextAccel " + nextAccel.
+		// PRINT "nextAccelMag " + nextAccel:MAG.
+		// PRINT "surfVelMag " + newSurfVel:MAG.
+		// PRINT "potentialStep " + potentialStep.
+		// IF RCS {
+			// KUNIVERSE:PAUSE.
+		// }
+		IF potentialStep < timeStep {
 			IF potentialStep > 0.02 {//sets time step such that velocity will be near or at zero at the end of the next step
 				SET timeStep TO potentialStep.
 				SET halfTimeStep TO timeStep / 2.
@@ -103,10 +118,10 @@ FUNCTION sim_land_vac {//credit to dunbaratu for the original code
 	LOCAL radOutVec TO vesPosSol - bodyPosSol.
 	LOCAL vesAlt TO radOutVec:MAG - localBody:RADIUS.
 	IF rotCorrect {//TODO: need to verfy rotation is correct
-		SET radOutVec TO radOutVec * ANGLEAXIS(angVel:NORMALIZED, totalTime / localBody:PERIOD * -360).
+		SET radOutVec TO radOutVec * ANGLEAXIS(totalTime / localBody:ROTATIONPERIOD * -360, angVel:NORMALIZED).
 	}
 	WAIT 0.
 	SET shipRawToShipSolar TO LOOKDIRUP(SOLARPRIMEVECTOR, yRef).
 	LOCAL pos TO localBody:POSITION - SHIP:POSITION + radOutVec * shipRawToShipSolar:INVERSE.
-	RETURN LEX("pos", pos,"radius", radOutVec:MAG,"alt", vesAlt, "seconds", totalTime, "mass", finalMass, "cycles", cycles).
+	RETURN LEX("pos", pos,"rad", radOutVec:MAG,"alt", vesAlt, "seconds", totalTime, "mass", finalMass, "cycles", cycles).
 }

@@ -198,32 +198,32 @@ CLEARVECDRAWS().
 
 FUNCTION screen_update {
 	PARAMETER tarDist,etaStr,pointBearing,forSpeed,speedDif,speedRestrict.
-	LOCAL printList IS LIST().
-	printList:ADD(" ").
-	printList:ADD("Roving To: " + destName).
-	printList:ADD("Distance : " + si_formating(tarDist,"m")).
-	//printList:ADD("ETA      : " + time_formating(average_eta(tarDist - stopDist),5)).
-	printList:ADD("ETA      : " + etaStr).
-	printList:ADD(" ").
-	printList:ADD("Slope Limit     :" + padding(speedRestrict,2,2) + "m/s").
-	printList:ADD("Current Speed   :" + padding(forSpeed,2,2) + "m/s").
-	printList:ADD(" Target Speed   :" + padding(throttlePID:SETPOINT,2,2) + "m/s").
-	printList:ADD("Speed Difference:" + padding(speedDif,2,2) + "m/s").
-	printList:ADD("  Wheel Throttle: " + padding(SHIP:CONTROL:WHEELTHROTTLE,1,2)).
-	printList:ADD(" ").
-	printList:ADD(" Bearing to Point:" + padding(pointBearing,2,3)).
-	printList:ADD("Wheel Steering Is: " + padding(SHIP:CONTROL:WHEELSTEER,1,3)).
+	LOCAL pList IS LIST().
+	pList:ADD(" ").
+	pList:ADD("Roving To: " + destName).
+	pList:ADD("Distance : " + si_formating(tarDist,"m")).
+	//pList:ADD("ETA      : " + time_formating(average_eta(tarDist - stopDist),5)).
+	pList:ADD("ETA      : " + etaStr).
+	pList:ADD(" ").
+	pList:ADD("Slope Limit     :" + padding(speedRestrict,2,2) + "m/s").
+	pList:ADD("Current Speed   :" + padding(forSpeed,2,2) + "m/s").
+	pList:ADD(" Target Speed   :" + padding(throttlePID:SETPOINT,2,2) + "m/s").
+	pList:ADD("Speed Difference:" + padding(speedDif,2,2) + "m/s").
+	pList:ADD("  Wheel Throttle: " + padding(SHIP:CONTROL:WHEELTHROTTLE,1,2)).
+	pList:ADD(" ").
+	pList:ADD(" Bearing to Point:" + padding(pointBearing,2,3)).
+	pList:ADD("Wheel Steering Is: " + padding(SHIP:CONTROL:WHEELSTEER,1,3)).
 
-//	printList:ADD(" Input: " + ROUND(steeringPID:INPUT,3) + "    ").
-//	printList:ADD("     P: " + ROUND(steeringPID:PTERM,3) + "    ").
-//	printList:ADD("     I: " + ROUND(steeringPID:ITERM,3) + "    ").
-//	printList:ADD("     D: " + ROUND(steeringPID:DTERM,3) + "    ").
-//	printList:ADD("Output: " + ROUND(steeringPID:OUTPUT,2) + "    ").
-//	printList:ADD(" ").
-//	printList:ADD("upError: " + ROUND(upError,2) + "    ").
+//	pList:ADD(" Input: " + ROUND(steeringPID:INPUT,3) + "    ").
+//	pList:ADD("     P: " + ROUND(steeringPID:PTERM,3) + "    ").
+//	pList:ADD("     I: " + ROUND(steeringPID:ITERM,3) + "    ").
+//	pList:ADD("     D: " + ROUND(steeringPID:DTERM,3) + "    ").
+//	pList:ADD("Output: " + ROUND(steeringPID:OUTPUT,2) + "    ").
+//	pList:ADD(" ").
+//	pList:ADD("upError: " + ROUND(upError,2) + "    ").
 
-	FROM { LOCAL i IS printList:LENGTH - 1. } UNTIL 0 > i STEP { SET i TO i - 1. } DO {
-		PRINT printList[i] + " " AT(0,i).
+	FROM { LOCAL i IS pList:LENGTH - 1. } UNTIL 0 > i STEP { SET i TO i - 1. } DO {
+		PRINT pList[i] + " " AT(0,i).
 	}
 }
 

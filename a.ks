@@ -1,9 +1,6 @@
 PRINT " ".
 LOCAL runMult IS 1.
-LOCAL runningIPU IS 200.
-LOCAL oldIPU IS CONFIG:IPU.
 LOCAL totalCalls IS FLOOR(runMult) * CONFIG:IPU.
-SET CONFIG:IPU TO MAX(runningIPU,totalCalls).
 LOCAL opCodeFrac IS totalCalls / CONFIG:IPU * 0.02.
 
 WAIT 0.

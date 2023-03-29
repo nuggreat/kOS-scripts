@@ -2,7 +2,7 @@
 COPYPATH("0:/lib/lib_orbital_math.ks","1:/lib/").
 COPYPATH("0:/lib/lib_hill_climb.ks","1:/lib/").
 PARAMETER incMatch IS TRUE,hohmann IS TRUE,refine IS TRUE,asap IS FALSE,skipConfirms IS FALSE.
-FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities","lib_formating","lib_hill_climb") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
+FOR lib IN LIST("lib_orbital_math","lib_rocket_utilities","lib_formatting","lib_hill_climb") { IF EXISTS("1:/lib/" + lib + ".ksm") { RUNPATH("1:/lib/" + lib + ".ksm"). } ELSE { RUNPATH("1:/lib/" + lib + ".ks"). }}
 //control_point().
 //WAIT UNTIL active_engine().
 GLOBAL vecDrawList IS LIST().
@@ -22,7 +22,6 @@ UNTIL done {
 }
 
 IF incMatch {
-	LOCAL startTime IS TIME:SECONDS.
 	clear_all_nodes().
 	LOCAL nodesUTs IS UTs_of_nodes(SHIP,TARGET).
 	LOCAL highNode IS "an".
@@ -60,8 +59,6 @@ IF incMatch {
 
 	LOCAL baseNode IS node_from_vector(vecBurn,nodesUTs[highNode]).
 	ADD baseNode.
-	PRINT "elapsedTime: " + (TIME:SECONDS - startTime).
-	WAIT UNTIL FALSE.
 	RUNPATH("1:/node_burn",TRUE).
 //	RCS OFF.
 //	WAIT UNTIL RCS.

@@ -1,26 +1,25 @@
-PARAMETER tarAlt IS 1000.
-LOCAL velCoef IS 1.
-LOCAL accelCoef IS 1.
-LOCAL accel IS 0.
-LOCAL sign IS 1.
-LOCAL tSpeed IS 0.
-LOCAL rampDuration IS 5.
-LOCAL rampDurSquared IS rampDuration^2.
-LOCAL rampDurCubed IS rampDuration^3.
-LOCAL engList IS LIST().
-LIST ENGINES IN engList.
+PARAMETER tarAlt TO 1000.
+LOCAL velCoef TO 1.
+LOCAL accelCoef TO 1.
+LOCAL accel TO 0.
+LOCAL sign TO 1.
+LOCAL tSpeed TO 0.
+LOCAL rampDuration TO 5.
+LOCAL rampDurSquared TO rampDuration^2.
+LOCAL rampDurCubed TO rampDuration^3.
+LOCAL engList SHIP:ENGINES.
 
-LOCAL throtPID IS PIDLOOP(1,0.1,0.1,0,1).
+LOCAL throtPID TO PIDLOOP(1,0.1,0.1,0,1).
 SET throtPID:SETPOINT TO tSpeed.
-LOCAL bMU IS SHIP:BODY:MU.
+LOCAL bMU TO SHIP:BODY:MU.
 LOCK THROTTLE TO throtPID:UPDATE(TIME:SECONDS,current_thrust()/SHIP:MASS).
 LOCK STEERING TO UP.
-LOCAL sufGrav IS bMU / BODY:RADIUS^2.
+LOCAL sufGrav TO bMU / BODY:RADIUS^2.
 CLEARSCREEN.
 RCS OFF.
 UNTIL RCS {
-    LOCAL distError IS tarAlt - SHIP:ALTITUDE.
-	LOCAL lGrav IS (bMU / (SHIP:POSITION - BODY:POSITION):SQRMAGNITUDE).
+    LOCAL distError TO tarAlt - SHIP:ALTITUDE.
+	LOCAL lGrav TO (bMU / (SHIP:POSITION - BODY:POSITION):SQRMAGNITUDE).
     IF distError > 0 {//below tarAlt
         SET accel TO sufGrav.
         SET sign TO 1.
@@ -28,9 +27,9 @@ UNTIL RCS {
         SET accel TO SHIP:AVAILABLETHRUST * 0.5 / SHIP:MASS - sufGrav.
         SET sign TO -1.
     }
-	LOCAL locCoef IS CHOOSE accelCoef IF ABS(distError) > -100 ELSE 0.01.
-    LOCAL tSpeed IS SQRT(ABS(2 * distError * ramp_accel(ABS(distError),accel) * locCoef)) * sign * velCoef.
-    //LOCAL tSpeed IS ramp_accel(ABS(distError),accel) * sign.
+	LOCAL locCoef TO CHOOSE accelCoef IF ABS(distError) > -100 ELSE 0.01.
+    LOCAL tSpeed TO SQRT(ABS(2 * distError * ramp_accel(ABS(distError),accel) * locCoef)) * sign * velCoef.
+    //LOCAL tSpeed TO ramp_accel(ABS(distError),accel) * sign.
 	SET throtPID:SETPOINT TO ((tSpeed - SHIP:VERTICALSPEED) + lGrav).
 	//CLEARSCREEN.
 	PRINT tSpeed + "     " AT(0,0).
@@ -40,18 +39,18 @@ UNTIL RCS {
 }
 
 //PARAMETER ac,di.
-//LOCAL rampDuration IS 5.
-//LOCAL rampDurSquared IS rampDuration^2.
+//LOCAL rampDuration TO 5.
+//LOCAL rampDurSquared TO rampDuration^2.
 //ramp_accel(ac,di).
 
 FUNCTION ramp_accel {
 	PARAMETER dError,baseAcc.
-	LOCAL j IS baseAcc / rampDuration.
-	LOCAL rampDist IS 1/6 * j * rampDurCubed.
+	LOCAL j TO baseAcc / rampDuration.
+	LOCAL rampDist TO 1/6 * j * rampDurCubed.
 	IF rampDist < dError {
-		LOCAL rampSpeed IS 1/2 * j * rampDurSquared.
+		LOCAL rampSpeed TO 1/2 * j * rampDurSquared.
 		//full duration dervies from `distance = initalSpeed * time + acceleration * time^2
-		LOCAL fullDuration IS (SQRT(2 * baseAcc * (dError - rampDist) + rampSpeed^2) - rampSpeed) / baseAcc.
+		LOCAL fullDuration TO (SQRT(2 * baseAcc * (dError - rampDist) + rampSpeed^2) - rampSpeed) / baseAcc.
 		RETURN (baseAcc * fullDuration + rampSpeed) / (rampDuration + fullDuration).//average accel
 		//RETURN (baseAcc * fullDuration + rampSpeed).
 		
@@ -74,10 +73,10 @@ FUNCTION ramp_accel {
 		//d = dError
 		//i = 25
 			
-		//LOCAL rampAccel IS (a / 2).
-		//LOCAL rampDist IS ((a / 2) / 2 * r^2).
-		//LOCAL rampSpeed IS (r * (a / 2)).
-		//LOCAL fullDuration IS ((SQRT(2*a*(d - ((a / 2) / 2 * r^2))+(r * (a / 2))^2) - (r * (a / 2))) / a).
+		//LOCAL rampAccel TO (a / 2).
+		//LOCAL rampDist TO ((a / 2) / 2 * r^2).
+		//LOCAL rampSpeed TO (r * (a / 2)).
+		//LOCAL fullDuration TO ((SQRT(2*a*(d - ((a / 2) / 2 * r^2))+(r * (a / 2))^2) - (r * (a / 2))) / a).
 		//RETURN (a * ((SQRT(2*a*(d - ((a / 2) / 2 * r^2))+(r * (a / 2))^2) - (r * (a / 2))) / a) + (r * (a / 2))) / (r + ((SQRT(2*a*(d - ((a / 2) / 2 * r^2))+(r * (a / 2))^2) - (r * (a / 2))) / a)).
 		//1 / ((rampDuration / SQRT( baseAcc * (8 * dError - baseAcc * rampDuration^2))) + (1 / baseAcc))
 		
@@ -90,7 +89,7 @@ FUNCTION ramp_accel {
 		//PRINT 1/6 * j * 5^3.
 		//PRINT baseAcc / 4 * 5^2.
 		//PRINT " ".
-		LOCAL jDuration IS (dError * 6 / j)^(1/3).
+		LOCAL jDuration TO (dError * 6 / j)^(1/3).
 		//d / t  = s
 		//dist = initalDist + initalVel * time + initalAccel / 2 * time^2 + initalJerk / 6 * time^3
 		//PRINT dError * 2 / jDuration^2.
@@ -100,7 +99,7 @@ FUNCTION ramp_accel {
 }
 
 FUNCTION current_thrust {
-	LOCAL curThrust IS 0.
+	LOCAL curThrust TO 0.
 	FOR eng IN engList {
 		SET curThrust TO eng:THRUST + curThrust.
 	}
@@ -130,7 +129,7 @@ FUNCTION pid_debug {
     // local altError is target_alt - altitude.
     // local cenAccel is vxcl(up:vector, velocity:orbit):sqrmagnitude / body:position:mag.
     // local g is body:mu / body:position:sqrmagnitude.
-	// LOCAL accMod IS -verticalspeed^2 / (2 * altError).
+	// LOCAL accMod TO -verticalspeed^2 / (2 * altError).
     // local vert_accel is 2 * (altError - verticalspeed * damp * settleTime) / settleTime^2.
     // return res.
     // return g - cenAccel + vert_accel + accMod.

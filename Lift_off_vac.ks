@@ -322,20 +322,19 @@ FUNCTION azimuth {
 	LOCAL sufaceLAN IS targetLAN - BODY:ROTATIONANGLE.//lan converted to a surface longitude
 
 	LOCAL lanVec IS (LATLNG(0,sufaceLAN):POSITION - BODY:POSITION):NORMALIZED.//vector pointing to the LAN
-	// LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * (LATLNG(-90,0):POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
-	// LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * -(northReff:POSITION - BODY:POSITION):NORMALIZED.//computing the normal vector of the desired orbit
 	LOCAL targetNormal IS ANGLEAXIS(-targetInc,lanVec) * -refferenceVector.//computing the normal vector of the desired orbit
 	LOCAL radVec IS SHIP:POSITION - BODY:POSITION.//current radius as a vector
 	LOCAL currentVel IS SHIP:VELOCITY:ORBIT.
+	LOCAL upVec IS UP:VECTOR.
 
 	LOCAL targetSpeed IS MAX(speed_given_ap(radVec:MAG,targetAP),currentVel:MAG + 1).//calculating speed at current radius to reach given AP with current PE, also has MAX call so that said speed is always 1 m/s greater than currentVel
-	SET planerError TO CHOOSE 90 - VANG(radVec,targetNormal) IF correctPlane ELSE 0.
 	// SET incError TO VANG(targetNormal,VCRS(SHIP:POSITION - BODY:POSITION, SHIP:VELOCITY:ORBIT)).
 
 	LOCAL targetVel IS VCRS(targetNormal,radVec:NORMALIZED):NORMALIZED * targetSpeed.//desired velocity vector
-	SET currentVel TO VXCL(UP:VECTOR,currentVel):NORMALIZED * currentVel:MAG.//current velocity flattened to match targetVel
+	SET currentVel TO VXCL(upVec,currentVel):NORMALIZED * currentVel:MAG.//current velocity flattened to match targetVel
 	LOCAL difVec IS targetVel - currentVel.//difference
 	IF headingOfDiff {
+		SET planerError TO 90 - VANG(radVec,targetNormal).
 		RETURN heading_of_vector(difVec) - max(min(planerError * 10,10),-10).
 	} ELSE {
 		RETURN heading_of_vector(targetVel).
@@ -400,7 +399,7 @@ FUNCTION range_scan {
 		LOCAL ts IS TIME:SECONDS.
 		LOCAL lanVec IS (lanGeoPos:POSITION - BODY:POSITION):NORMALIZED.//vector pointing to the LAN
 		LOCAL radVec IS (SHIP:POSITION - BODY:POSITION):NORMALIZED.
-		LOCAL arcNormal IS ANGLEAXIS(arcRot,radVec) * (ANGLEAXIS(tarInc,lanVec) * V(0,-1,0)).//computing the normal to the arc to scan along
+		LOCAL arcNormal IS ANGLEAXIS(arcRot,radVec) * (ANGLEAXIS(tarInc,lanVec) * -refferenceVector).//computing the normal to the arc to scan along
 
 		LOCAL outerProg IS ROUND((arcRot - arcRotStart) / (arcRotStep)) / totalSteps.//percentage progress of outer loop
 		PRINT (printPrefix + padding((outerProg * 100),2,3) + "%"):PADRIGHT(TERMINAL:WIDTH) AT(0,printHeight).
@@ -462,7 +461,7 @@ FUNCTION UTs_of_orbit_cross {//returns the UTs of when the craft can launch into
 
 FUNCTION cross_point_to_UTs {//calculates the time to the given crossing point
 	PARAMETER startTime,targetLng,currentLng,leadTime.
-	LOCAL lngDiff IS (CHOOSE (targetLng - currentLng) IF VDOT(BODY:ANGULARVEL,V(0,1,0)) < 0 ELSE (currentLng - targetLng)).
+	LOCAL lngDiff IS (CHOOSE (targetLng - currentLng) IF VDOT(BODY:ANGULARVEL,refferenceVector) < 0 ELSE (currentLng - targetLng)).
 	LOCAL timeDiff IS MOD(lngDiff + 720,360) * (BODY:ROTATIONPERIOD / 360) - leadTime.
 	IF timeDiff < 0 { SET timeDiff TO timeDiff + BODY:ROTATIONPERIOD. }
 	RETURN timeDiff + startTime.

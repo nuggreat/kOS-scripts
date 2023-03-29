@@ -181,9 +181,9 @@ SET STEERINGMANAGER:MAXSTOPPINGTIME TO 2.
 
 //end of core logic start of functions
 FUNCTION screen_update {
-	PARAMETER printList.
+	PARAMETER pList.
 	CLEARSCREEN.
-	FOR printLine IN printList {
+	FOR printLine IN pList {
 		PRINT printLine.
 	}
 }
