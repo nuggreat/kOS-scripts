@@ -8,7 +8,8 @@
 
 
 
-
+LOCAL gg0 TO CONSTANT:g0.
+LOCAL ee TO CONSTANT:e.
 
 
 
@@ -24,8 +25,10 @@ FUNCTION get_all_sections {
 }
 
 FUNCTION get_section {
-	// all resources in a given stage are assumed accessible by parts in that stage
+	// all resources in a given stage are assumed accessible by parts in that section
 	//  docking ports are ignored by this system
+	// walks the tree away from the root part to discover all parts in a section
+	// assumes section separation occurs on decopler/separator parts
 	PARAMETER firstPart,boundryParts.
 	LOCAL parentParts TO QUEUE().
 	//walk up until decopler/separator
@@ -41,6 +44,7 @@ FUNCTION get_section {
 		FOR childPart IN parentPart:CHILDREN {
 			IF childPart:ISTYPE("Separator") {
 				boundryParts:PUSH(childPart).
+				partSection["subSections"]:ADD(childPart).
 			} ELSE {
 				parentParts:PUSH(childPart).
 			}
@@ -52,12 +56,12 @@ FUNCTION get_section {
 FUNCTION part_section_init {
 	PARAMETER sectionRoot.
 	RETURN LEX(
-		"sectionRoot",sectionRoot,
-		"parts",LIST(),
-		"resources",LEX(),
-		"engines",LIST(),
-		"fullWetMass",0,
-		"dryMass".
+		"sectionRoot", sectionRoot,
+		"parts", LIST(),
+		"subSections", LIST(),
+		"resources", LEX(),
+		"engines", LIST(),
+		"fullWetMass", 0.
 	).
 }
 
@@ -99,15 +103,15 @@ FUNCTION add_part_to_section {
 
 //map from engine stage numbers to the section that has said engine
 FUNCTION engine_sections_by_stage {
-	LOCAL engineSections TO LIST().
+	LOCAL engineCollections TO LIST().
 	LOCAL stageToIdxMap IS LEX().
 	LOCAL stages IS 1.
 	FOR eng IN SHIP:ENGINES {
 		LOCAL engStage TO eng:STAGE.
 		IF stageToIdxMap:HASKEY(engStage) {
-			engineSections[stageToIdxMap[engStage]]:ADD(eng).
+			engineCollections[stageToIdxMap[engStage]]:ADD(eng).
 		} ELSE {
-			insertion_sort(engineSections, LIST(eng), { PARAMETER i. RETURN -(i[0]:STAGE). }).
+			insertion_into_sorted(engineCollections, LIST(eng), { PARAMETER i. RETURN -(i[0]:STAGE). }).
 			FOR key IN stageToIdxMap {
 				IF key < engStage {
 					SET stageToIdxMap[key] TO stageToIdxMap[key] + 1.
@@ -182,7 +186,7 @@ FUNCTION build_stage {
 		}
 		sectionsWithEngines:ADD(section).
 	}
-	//
+	//work out if an engine draws fuel from beyond it's own section
 }
 
 FUNCTION section_with_engine {
@@ -195,6 +199,48 @@ FUNCTION section_with_engine {
 			}
 		}
 	}
+}
+
+//works out the between section flow connections based on engine resources and decoupler information. 
+FUNCTION flow_map {
+	PARAMETER sections.
+	
+}
+
+FUNCTION net_engine {
+	PARAMETER engList.
+	LOCAL netThrustCurrent IS 0.
+	LOCAL netThrustVac IS 0.
+	LOCAL netFlow IS 0.
+	LOCAL netFlows IS LEXICON().
+	LOCAL currentPressure TO BODY:ATM:ALTITUDEPRESSURE(SHIP:ALTITUDE).
+	FOR eng IN engList {
+		SET netThrustVac TO netThrustVac + eng:POSSIBLETHRUSTAT(0).
+		SET netThrustCurrent TO netThrustCurrent + eng:POSSIBLETHRUSTAT(currentPressure).
+		LOCAL thrustLim TO eng:THRUSTLIMIT / 100.
+		SET netFlow TO netFlowVac + (engine:POSSIBLETHRUSTAT(0) / (engine:VACUUMISP * gg0)).
+		FOR res IN eng:CONSUMEDRESOURCES:VALUES {
+			IF netFlows:HASKEY(res:NAME) {
+				LOCAL resFlow TO netFlows[res:NAME].
+				SET resFlow["abilableMassFlow"] TO resFlow["abilableMassFlow"] + res:MAXMASSFLOW * thrustLim.
+				SET resFlow["avilableVolumeFlow"] TO resFlow["avilableVolumeFlow"] + res:MAXFUELFLOW * thrustLim.
+				// SET netFlow[] TO netFlow[] + .
+			} ELSE {
+				netFlows:ADD(res:NAME,LEX(
+					"abilableMassFlow", res:MAXMASSFLOW * thrustLim,
+					"avilableVolumeFlow", res:MAXFUELFLOW * thrustLim,
+				)).
+			}
+		}
+	}
+	RETURN LEX (
+		"engines", engList.
+		"avilableThrust", netThrustCurrent,
+		"avilableThrustVac", netThrustVac,
+		"massFlow", netFlow,
+		"ISP", netThrustCurrent / (netFlow * gg0),
+		"consumedResources", netFlows
+	).
 }
 
 FUNCTION within_range {
