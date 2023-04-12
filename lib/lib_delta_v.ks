@@ -17,10 +17,31 @@ LOCAL ee TO CONSTANT:e.
 
 FUNCTION get_all_sections {
 	LOCAL sections TO LIST().
-	LOCAL partQueue TO QUEUE(SHIP:ROOT:PART).
+	LOCAL partQueue TO LIST(SHIP:ROOT:PART).
+	LOCAL sectionRootToSectionID TO LEX().
+	LOCAL sectionID TO 0.
 	UNTIL partQueue:EMPTY {
-		sections:ADD(get_section(partQueue:POP(),partQueue)).
+		LOCAL newPendingParts IS LIST().
+		LOCAL pendingPart TO partQueue[0].
+		
+		sections:ADD(get_section(pendingPart, newPendingParts, sectionID)).
+		
+		sectionRootToSectionID:ADD(pendingPart:UID, sectionID).
+		SET sectionID TO sectionID + 1.
+		partQueue:REMOVE(0).
+		FOR p IN newPendingParts {
+			insertion_into_sorted(partQueue, p, { PARAMETER i. RETURN i:STAGE. }).
+		}
 	}
+	
+	FOR section IN sections {
+		LOCAL subSectionRoots TO section["subSectionIDs"].
+		FROM { LOCAL i TO subSectionRoots:LENGTH - 1. } UNTIL i < 0 STEP { SET i TO i - 1. } DO {
+			SET subSectionRoots[i] TO sectionRootToSectionID[subSectionRoots[i]:UID].
+		}
+	}
+	
+	map_resouce_flow(sections).
 	RETURN sections.
 }
 
@@ -29,7 +50,7 @@ FUNCTION get_section {
 	//  docking ports are ignored by this system
 	// walks the tree away from the root part to discover all parts in a section
 	// assumes section separation occurs on decopler/separator parts
-	PARAMETER firstPart,boundryParts.
+	PARAMETER firstPart, boundryParts, sectionID.
 	LOCAL parentParts TO QUEUE().
 	//walk up until decopler/separator
 	// if firstPart is not decopler/separator and has parent parts
@@ -37,14 +58,14 @@ FUNCTION get_section {
 		SET firstPart TO firstPart:PARENT.
 	}
 	parentParts:PUSH(firstPart).
-	LOCAL partSection TO part_section_init(firstPart).
+	LOCAL partSection TO part_section_init(firstPart, sectionID).
 	UNTIL parentParts:EMPTY {
 		LOCAL parentPart TO parentParts:POP().
 		add_part_to_section(parentPart,partSection).
 		FOR childPart IN parentPart:CHILDREN {
 			IF childPart:ISTYPE("Separator") {
 				boundryParts:PUSH(childPart).
-				partSection["subSections"]:ADD(childPart).
+				partSection["subSectionIDs"]:ADD(childPart).
 			} ELSE {
 				parentParts:PUSH(childPart).
 			}
@@ -54,11 +75,12 @@ FUNCTION get_section {
 }
 
 FUNCTION part_section_init {
-	PARAMETER sectionRoot.
+	PARAMETER sectionRoot, sectionID.
 	RETURN LEX(
 		"sectionRoot", sectionRoot,
+		"sectionID", sectionID,
 		"parts", LIST(),
-		"subSections", LIST(),
+		"subSectionIDs", LIST(),
 		"resources", LEX(),
 		"engines", LIST(),
 		"fullWetMass", 0.
@@ -88,7 +110,11 @@ FUNCTION add_part_to_section {
 						"resStructs",LIST(res).
 						"amount",res:AMOUNT,
 						"capacity",res:CAPACITY,
-						"density",res:DENSITY
+						"density",res:DENSITY,
+						"hasInFlow",FALSE,
+						"hasOutFlow",FALSE,
+						"flowToSections",LIST(),
+						"flowFromSections",LIST()
 					).
 				}
 			}
@@ -98,6 +124,73 @@ FUNCTION add_part_to_section {
 	
 	IF localPart:ISTYPE("engine") {
 		partSection["engines"]:ADD(localPart).
+	}
+}
+
+//works out the between section flow connections based on engine resources and decoupler information.
+//all subSections with the same stage number are assumed to all have resource flow
+//resource flow into into a section is assumed to be from the lowest stage numbers
+FUNCTION map_resouce_flow {
+	PARAMETER sections.
+	
+	FOR section IN sections {
+		LOCAL sectionID TO section["sectionID"].
+		LOCAL flowingResources TO LIST().
+		FOR eng IN section["engines"] {
+			FOR engRes IN eng:CONSUMEDRESOURCES:VALUE {
+				IF NOT within_range_ratio(engRes:CAPACITY, section["resources"][engRes:NAME]["capacity"], 0.99) {
+					LOCAL sectionRes TO section["resources"][engRes:NAME].
+					LOCAL resCapacity TO sectionRes["capacity"].
+					LOCAL subSectionIDs TO LIST().
+					LOCAL newIDs TO LIST(sectionID).
+
+					LOCAL lowestSubSection TO 1.
+					LOCAL highestSubSection TO 0.
+					LOCAL flowSectionIDs TO LIST().
+					UNTIL within_range_ratio(engRes:CAPACITY, resCapacity, 0.99) {
+						IF lowestSubSection > highestSubSection {//need more subsection depth
+							flowSectionIDs:CLEAR().
+							SET resCapacity TO sectionRes["capacity"].
+							LOCAL pendingIDs TO LIST().
+							FOR subSectionID IN newIDs {
+								FOR newSubSectionID IN sections[subSectionID]["subSectionIDs"] {
+									pendingIDs:ADD(newSubSectionID).
+									subSectionIDs:ADD(newSubSectionID).
+								}
+							}
+							SET lowestSubSection TO sections[subSectionIDs[0]]["sectionRoot"]:STAGE.
+							SET highestSubSection TO lowestSubSection.
+							SET newIDs TO pendingIDs.
+							FOR subSectionID IN subSectionIDs {
+								LOCAL subSectionStage TO sections[subSectionID]["sectionRoot"]:STAGE.
+								IF subSectionStage < lowestSubSection {
+									SET lowestSubSection TO subSectionStage.
+								} ELSE IF subSectionStage > lowestSubSection {
+									SET highestSubSection TO subSectionStage.
+								}
+							}
+							
+						}
+						//adding resource capacity of all subsections in a given stage to total
+						FOR subSectionID IN subSectionIDs {
+							IF sections[subSectionID]["sectionRoot"]:STAGE = lowestSubSection {
+								SET resCapacity TO resCapacity + sections[subSectionID]["resources"][engRes:NAME]["capacity"].
+								flowSectionIDs:ADD(subSectionID).
+							}
+						}
+						SET lowestSubSection TO lowestSubSection + 1.
+					}
+					SET sectionRes["hasInFlow"] TO TRUE.
+					FOR subSectionID IN flowSectionIDs {
+						LOCAL subSecRes TO sections[subSectionID]["resources"][engRes:NAME].
+						SET subSecRes["hasOutFlow"] TO TRUE.
+						subSecRes["flowToSections"]:ADD(sectionID).
+						
+						sectionRes["flowFromSections"]:ADD(subSectionID).
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -201,12 +294,6 @@ FUNCTION section_with_engine {
 	}
 }
 
-//works out the between section flow connections based on engine resources and decoupler information. 
-FUNCTION flow_map {
-	PARAMETER sections.
-	
-}
-
 FUNCTION net_engine {
 	PARAMETER engList.
 	LOCAL netThrustCurrent IS 0.
@@ -243,7 +330,12 @@ FUNCTION net_engine {
 	).
 }
 
-FUNCTION within_range {
+FUNCTION within_range_fixed {
 	PARAMETER valA, valB, epsilon.
-	RETURN ABS(valA - valB) < epsilon
+	RETURN ABS(valA - valB) <= epsilon
+}
+
+FUNCTION within_range_ratio {
+	PARAMETER valA, valB, epsilon.
+	RETURN ABS(valA - valB) <= ((1 - epsilon) * valA).
 }
