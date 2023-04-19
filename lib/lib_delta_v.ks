@@ -34,14 +34,24 @@ FUNCTION get_all_sections {
 		}
 	}
 	
+	LOCAL sectionsByStage TO LEX("highest", 0).
 	FOR section IN sections {
 		LOCAL subSectionRoots TO section["subSectionIDs"].
 		FROM { LOCAL i TO subSectionRoots:LENGTH - 1. } UNTIL i < 0 STEP { SET i TO i - 1. } DO {
 			SET subSectionRoots[i] TO sectionRootToSectionID[subSectionRoots[i]:UID].
 		}
+		LOCAL sectionStage TO section["sectionStage"].
+		IF sectionsByStage:HASKEY(sectionStage) {
+			sectionsByStage[sectionStage]:ADD(section).
+		} ELSE {
+			sectionsByStage:ADD(sectionStage, LIST(section)).
+			IF sectionStage > sectionsByStage["highest"] {
+				SET sectionsByStage["highest"] TO sectionStage.
+			}
+		}
 	}
-	
-	map_resouce_flow(sections).
+	LOCAL stageSections TO sections_to_stage_section(sections, sectionsByStage).
+	map_resource_flow(sections, stageSections, sectionsByStage).
 	RETURN sections.
 }
 
@@ -58,10 +68,20 @@ FUNCTION get_section {
 		SET firstPart TO firstPart:PARENT.
 	}
 	parentParts:PUSH(firstPart).
-	LOCAL partSection TO part_section_init(firstPart, sectionID).
+	LOCAL partSection TO LEX(
+		"sectionRoot", firstPart,
+		"sectionStage", firstPart:STAGE,
+		"sectionID", sectionID,
+		"parts", LIST(),
+		"subSectionIDs", LIST(),
+		"resources", LEX(),
+		"engines", LIST(),
+		"netEngine", LEX(),
+		"fullWetMass", 0
+	).
 	UNTIL parentParts:EMPTY {
 		LOCAL parentPart TO parentParts:POP().
-		add_part_to_section(parentPart,partSection).
+		add_part_to_section(parentPart, partSection).
 		FOR childPart IN parentPart:CHILDREN {
 			IF childPart:ISTYPE("Separator") {
 				boundryParts:PUSH(childPart).
@@ -71,20 +91,8 @@ FUNCTION get_section {
 			}
 		}
 	}
+	SET partSection["netEngine"] TO net_engine(partSection["engines"]).
 	RETURN partSection.
-}
-
-FUNCTION part_section_init {
-	PARAMETER sectionRoot, sectionID.
-	RETURN LEX(
-		"sectionRoot", sectionRoot,
-		"sectionID", sectionID,
-		"parts", LIST(),
-		"subSectionIDs", LIST(),
-		"resources", LEX(),
-		"engines", LIST(),
-		"fullWetMass", 0.
-	).
 }
 
 FUNCTION add_part_to_section {
@@ -105,16 +113,16 @@ FUNCTION add_part_to_section {
 					SET resStruct["amount"] TO resStruct["amount"] + res:AMOUNT.
 					SET resStruct["capacity"] TO resStruct["capacity"] + res:CAPACITY.
 				} ELSE {
-					stageResources:ADD(res:NAME,LEX(
-						"parts",LIST(localPart),
-						"resStructs",LIST(res).
-						"amount",res:AMOUNT,
-						"capacity",res:CAPACITY,
-						"density",res:DENSITY,
-						"hasInFlow",FALSE,
-						"hasOutFlow",FALSE,
-						"flowToSections",LIST(),
-						"flowFromSections",LIST()
+					stageResources:ADD(res:NAME, LEX(
+						"parts", LIST(localPart),
+						"resStructs", LIST(res).
+						"amount", res:AMOUNT,
+						"capacity", res:CAPACITY,
+						"density", res:DENSITY,
+						"hasInFlow", FALSE,
+						"hasOutFlow", FALSE,
+						"flowToSections", LIST(),
+						"flowFromSections", LIST()
 					).
 				}
 			}
@@ -127,11 +135,84 @@ FUNCTION add_part_to_section {
 	}
 }
 
+FUNCTION sections_to_stage_section {
+	PARAMETER section, sectionsByStage, highest
+	LOCAL stageSections TO LIST().
+	FROM { LOCAL i TO sectionsByStage["highest"]. } UNTIL i < -1 STEP { SET i TO i - 1. } DO {
+		IF sectionsByStage:HASKEY(i) {
+			LOCAL stageSection TO LEX(
+				"sectionRoots", LIST(),
+				"sectionStage", i,
+				"sectionIDs", LIST(),
+				"parts", LIST(),
+				"resources", LEX(),
+				"engines", LIST(),
+				"netEngine", LEX(),
+				"fullWetMass", 0
+				
+			).
+			FOR section IN sectionsByStage[i] {
+				stageSection["sectionRoots"]:ADD(section["sectionRoot"].
+				stageSection["sectionIDs"]:ADD(section["sectionID"],
+				FOR p IN section["parts"] {
+					stageSection["parts"]:ADD(p).
+				}
+				
+				LOCAL stageSectionRes TO stageSection["resources"].
+				stageSectionRes:ADD(res:NAME, LEX(
+					"parts", LIST(localPart),
+					"resStructs", LIST(res).
+					"amount", res:AMOUNT,
+					"capacity", res:CAPACITY,
+					"density", res:DENSITY,
+					"hasInFlow", FALSE,
+					"hasOutFlow", FALSE,
+					"flowToSections", LIST(),
+					"flowFromSections", LIST()
+				).
+				LOCAL sectionRes TO section["resources"].
+				FOR key IN sectionRes {
+					LOCAL res TO sectionRes[key].
+					IF stageSectionRes:HASKEY {
+						SET stageSectionRes["amount"] TO res["amount"].
+						SET stageSectionRes["capacity"] TO res["capacity"].
+						SET stageSectionRes["density"] TO res["density"].
+					} ELSE {
+						stageSectionRes:ADD(key, LEX(
+							"parts", LIST(),
+							"resStructs", LIST().
+							"amount", res["amount"],
+							"capacity", res["capacity"],
+							"density", res["density"],
+							"hasInFlow", FALSE,
+							"hasOutFlow", FALSE,
+							"flowToSections", LIST(),
+							"flowFromSections", LIST()
+						).
+					}
+					LOCAL stageResParts TO stageSectionRes["parts"].
+					FOR p IN res["parts"] {
+						stageResParts:ADD(p).
+					}
+					LOCAL stageResStructs TO stageSectionRes["resStructs"].
+					FOR resStruct IN res["resStructs"] {
+						stageResStructs:ADD(resStruct).
+					}
+				}
+				LOCAL stageSectionEng TO stageSection["engines"].
+				FOR eng IN section["engines"] {
+					stageSectionEng:ADD(eng).
+				}
+				SET stageSection["fullWetMass"] TO section["fullWetMass"].
+			}
+			stageSections:INSERT(0, stageSection).
+		}
+	}
+}
+
 //works out the between section flow connections based on engine resources and decoupler information.
-//all subSections with the same stage number are assumed to all have resource flow
-//resource flow into into a section is assumed to be from the lowest stage numbers
-FUNCTION map_resouce_flow {
-	PARAMETER sections.
+FUNCTION map_resource_flow {
+	PARAMETER sections, stageSection, sectionsByStage.
 	
 	FOR section IN sections {
 		LOCAL sectionID TO section["sectionID"].
@@ -141,45 +222,18 @@ FUNCTION map_resouce_flow {
 				IF NOT within_range_ratio(engRes:CAPACITY, section["resources"][engRes:NAME]["capacity"], 0.99) {
 					LOCAL sectionRes TO section["resources"][engRes:NAME].
 					LOCAL resCapacity TO sectionRes["capacity"].
-					LOCAL subSectionIDs TO LIST().
+					LOCAL subSectionIDs TO LEX().
+					// LOCAL subSectionIDs TO LIST().
 					LOCAL newIDs TO LIST(sectionID).
 
-					LOCAL lowestSubSection TO 1.
-					LOCAL highestSubSection TO 0.
+					LOCAL lowestSubSection TO section["sectionStage"].
+					LOCAL highestSubSection TO lowestSubSection.
+					LOCAL nextSubSection TO lowestSubSection.
 					LOCAL flowSectionIDs TO LIST().
-					UNTIL within_range_ratio(engRes:CAPACITY, resCapacity, 0.99) {
-						IF lowestSubSection > highestSubSection {//need more subsection depth
-							flowSectionIDs:CLEAR().
-							SET resCapacity TO sectionRes["capacity"].
-							LOCAL pendingIDs TO LIST().
-							FOR subSectionID IN newIDs {
-								FOR newSubSectionID IN sections[subSectionID]["subSectionIDs"] {
-									pendingIDs:ADD(newSubSectionID).
-									subSectionIDs:ADD(newSubSectionID).
-								}
-							}
-							SET lowestSubSection TO sections[subSectionIDs[0]]["sectionRoot"]:STAGE.
-							SET highestSubSection TO lowestSubSection.
-							SET newIDs TO pendingIDs.
-							FOR subSectionID IN subSectionIDs {
-								LOCAL subSectionStage TO sections[subSectionID]["sectionRoot"]:STAGE.
-								IF subSectionStage < lowestSubSection {
-									SET lowestSubSection TO subSectionStage.
-								} ELSE IF subSectionStage > lowestSubSection {
-									SET highestSubSection TO subSectionStage.
-								}
-							}
-							
-						}
-						//adding resource capacity of all subsections in a given stage to total
-						FOR subSectionID IN subSectionIDs {
-							IF sections[subSectionID]["sectionRoot"]:STAGE = lowestSubSection {
-								SET resCapacity TO resCapacity + sections[subSectionID]["resources"][engRes:NAME]["capacity"].
-								flowSectionIDs:ADD(subSectionID).
-							}
-						}
-						SET lowestSubSection TO lowestSubSection + 1.
-					}
+					LOCAL flowFraction TO LEXICON().
+					
+					
+					
 					SET sectionRes["hasInFlow"] TO TRUE.
 					FOR subSectionID IN flowSectionIDs {
 						LOCAL subSecRes TO sections[subSectionID]["resources"][engRes:NAME].
@@ -188,10 +242,34 @@ FUNCTION map_resouce_flow {
 						
 						sectionRes["flowFromSections"]:ADD(subSectionID).
 					}
-				}
+				}//
 			}
 		}
 	}
+}
+
+//check all sections with a lower ID than sectionID looking for one that matches totalCapacity for the given resource.
+// 
+FUNCTION flow_check {
+	PARAMETER sections, sectionID, resName, currentCapacity, depth, maxIdx, epsilon.
+	LOCAL localMaxIdx TO maxIdx + depth.
+	IF depth > 0 {
+		FROM { LOCAL i IS sectionID + 1. } UNTIL i > localMaxIdx STEP { SET i TO i + 1. } DO {
+			LOCAL sectionCapacity TO sections[i]["resources"][resName].
+			LOCAL results TO flow_check(sections, i, resName, currentCapacity - sectionCapacity, depth, maxIdx, epsilon).
+			IF results[0] {
+				results[1]:ADD(i).
+				RETURN results.
+			}
+		}
+	} ELSE {
+		FROM { LOCAL i IS sectionID + 1. } UNTIL i > localMaxIdx STEP { SET i TO i + 1. } DO {
+			IF within_range_fixed(0, currentCapacity - sections[i]["resources"][resName], epsilon) {
+				LIST(TRUE, LIST(i)).
+			}
+		}
+	}
+	RETURN LIST(FALSE).
 }
 
 //map from engine stage numbers to the section that has said engine
@@ -224,33 +302,33 @@ FUNCTION insertion_into_sorted {// inserts items into an already sorted list wit
 		theList:ADD(item).
 		RETURN 0.
 	} ELSE {
-		LOCAL inc IS MAX(FLOOR(theLength / 2),1).
-		LOCAL i IS MAX(inc - 1,0).
+		LOCAL inc IS MAX(FLOOR(theLength / 2), 1).
+		LOCAL i IS MAX(inc - 1, 0).
 		UNTIL FALSE {
-			SET inc TO MAX(FLOOR(inc/2),0).
+			SET inc TO MAX(FLOOR(inc/2), 0).
 			IF inc <= 0 {
 				BREAK.
 			}
 			
 			IF evaluation(theList[i]) < itemValue {
-				SET i TO MIN(i + inc,theLength).
+				SET i TO MIN(i + inc, theLength).
 			} ELSE {
-				SET i TO MAX(i - inc,0).
+				SET i TO MAX(i - inc, 0).
 			}
 		} 
 		UNTIL FALSE {
 			IF evaluation(theList[i]) < itemValue {
-				SET i TO MIN(i + 1,theLength).
+				SET i TO MIN(i + 1, theLength).
 				IF (i >= theLength) OR (evaluation(theList[i]) >= itemValue) {
-					theList:INSERT(i,item).
+					theList:INSERT(i, item).
 					BREAK.
 				}
 			} ELSE {
 				IF i <= 0 {
-					theList:INSERT(i,item).
+					theList:INSERT(i, item).
 					BREAK.
 				}
-				SET i TO MAX(i - 1,0).
+				SET i TO MAX(i - 1, 0).
 			}
 		}
 		RETURN i.
@@ -267,7 +345,7 @@ FUNCTION build_stage {
 	LOCAL localEngInStage TO engInStage:COPY.
 	LOCAL sectionsWithEngines TO LIST().
 	UNTIL localEngInStage:LENGTH = 0 {
-		LOCAL section TO section_with_engine(localEngInStage[0],sections).
+		LOCAL section TO section_with_engine(localEngInStage[0], sections).
 		FOR eng IN section["engines"] {
 			LOCAL engUID IS eng:UID.
 			FROM { LOCAL i TO 0. } UNTIL i >= localEngInStage:LENGTH STEP { SET i TO i + 1 } DO {
@@ -309,13 +387,17 @@ FUNCTION net_engine {
 		FOR res IN eng:CONSUMEDRESOURCES:VALUES {
 			IF netFlows:HASKEY(res:NAME) {
 				LOCAL resFlow TO netFlows[res:NAME].
+				SET resFlow["maxMassFlow"] TO resFlow["maxMassFlow"] + res:MAXMASSFLOW.
+				SET resFlow["maxVolumeFlow"] TO resFlow["maxVolumeFlow"] + res:MAXFUELFLOW.
 				SET resFlow["abilableMassFlow"] TO resFlow["abilableMassFlow"] + res:MAXMASSFLOW * thrustLim.
 				SET resFlow["avilableVolumeFlow"] TO resFlow["avilableVolumeFlow"] + res:MAXFUELFLOW * thrustLim.
 				// SET netFlow[] TO netFlow[] + .
 			} ELSE {
-				netFlows:ADD(res:NAME,LEX(
+				netFlows:ADD(res:NAME, LEX(
+					"maxMassFlow", res:MAXMASSFLOW,
+					"maxVolumeFlow", res:MAXFUELFLOW,
 					"abilableMassFlow", res:MAXMASSFLOW * thrustLim,
-					"avilableVolumeFlow", res:MAXFUELFLOW * thrustLim,
+					"avilableVolumeFlow", res:MAXFUELFLOW * thrustLim
 				)).
 			}
 		}
