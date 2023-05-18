@@ -118,9 +118,9 @@ FUNCTION clear_all_nodes {
 	IF HASNODE { PRINT "havenode". UNTIL NOT HASNODE { REMOVE NEXTNODE. PRINT "removed node". WAIT 0. }}
 }
 
-lib_rocket_utilities_lex:ADD("steering_alinged_duration",LEX("maxError",1,"careAboutRoll",FALSE,"alignedTime",TIME:SECONDS)).
-FUNCTION steering_alinged_duration {//wait until steering is aligned with what it is locked to
-	LOCAL dataLex TO lib_rocket_utilities_lex["steering_alinged_duration"].
+lib_rocket_utilities_lex:ADD("steering_aligned_duration",LEX("maxError",1,"careAboutRoll",FALSE,"alignedTime",TIME:SECONDS)).
+FUNCTION steering_aligned_duration {//wait until steering is aligned with what it is locked to
+	LOCAL dataLex TO lib_rocket_utilities_lex["steering_aligned_duration"].
 	PARAMETER configure TO FALSE,
 	maxError TO dataLex["maxError"],
 	careAboutRoll TO dataLex["careAboutRoll"].

@@ -41,20 +41,20 @@ FUNCTION warp_to_closest {
 	UNTIL done {
 		IF warpState = 0 {//init of warp calculation
 			LOCK STEERING TO TARGET:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT.
-			steering_alinged_duration(TRUE,5,FALSE).
+			steering_aligned_duration(TRUE,5,FALSE).
 			SET warpState TO 1.//state warp state
 		} ELSE IF warpState = 1 {//wait for alignment 
 			IF (TIME:SECONDS >= (targetTime - 5)) {
 				SET warpState TO 3.//done state
 				KUNIVERSE:TIMEWARP:CANCELWARP().
 			}
-			IF (steering_alinged_duration() > 5) {
+			IF (steering_aligned_duration() > 5) {
 				KUNIVERSE:TIMEWARP:WARPTO(targetTime).
 				//WAIT UNTIL NOT not_warping().
 				SET warpState TO 2.//warping state
 			}
 		} ELSE IF warpState = 2 {//warp so long as craft is aligned 
-			IF steering_alinged_duration() <= 5 {
+			IF steering_aligned_duration() <= 5 {
 				KUNIVERSE:TIMEWARP:CANCELWARP().
 				WAIT UNTIL not_warping().
 				SET warpState TO 1.//start warp state

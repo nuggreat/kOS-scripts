@@ -104,8 +104,8 @@ message_wait(buffer).
 SET signal TO buffer:POP().
 
 PRINT "Alineing to Target.".
-steering_alinged_duration(TRUE,0.5,TRUE).
-WAIT UNTIL (steering_alinged_duration() >= 5) OR ABORT.
+steering_aligned_duration(TRUE,0.5,TRUE).
+WAIT UNTIL (steering_aligned_duration() >= 5) OR ABORT.
 ABORT OFF.
 
 RCS ON.
