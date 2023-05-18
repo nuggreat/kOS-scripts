@@ -520,11 +520,11 @@ FUNCTION burn {
 		SET burnData["throttle"] TO 0.
 		LOCK STEERING TO LOOKDIRUP(burnData["steerTar"],SHIP:FACING:TOPVECTOR).
 		LOCK THROTTLE TO burnData["throttle"].
-		steering_alinged_duration(TRUE,1,FALSE).
+		steering_aligned_duration(TRUE,1,FALSE).
 		taskList:ADD(burn@:BIND((burnState + 1),localTarget,targetSpeed,targetDist)).
 		RETURN TRUE.
 	} ELSE IF burnState = 1 {
-		LOCAL alingedTime IS 5 - steering_alinged_duration().
+		LOCAL alingedTime IS 5 - steering_aligned_duration().
 		SET statusData["data"][8] TO alingedTime.
 		IF alingedTime <= 0 {
 			taskList:ADD(burn@:BIND((burnState + 1),localTarget,targetSpeed,targetDist)).
@@ -920,14 +920,14 @@ FUNCTION translate {
 		SET statusData["data"][5] TO V(0,0,0).
 		SAS OFF.
 		LOCK STEERING TO translateData["steerTar"].
-		steering_alinged_duration(TRUE,5,TRUE).
+		steering_aligned_duration(TRUE,5,TRUE).
 		//LOCK THROTTLE TO 0.
 		//FOR key IN varConstants["translationPIDs"] { PID[key]:RESET(). }
 		translation_control_init().
 		taskList:ADD(translate@:BIND((translateState + 1),shipPoint,targetPoint,isKlaw)).
 		RETURN TRUE.
 	} ELSE IF translateState = 1 {
-		IF steering_alinged_duration() > 1 {
+		IF steering_aligned_duration() > 1 {
 			PRINT "Starting Translation".
 			taskList:ADD(translate@:BIND((translateState + 1),shipPoint,targetPoint,isKlaw)).
 			translation_control_init().
