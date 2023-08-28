@@ -60,29 +60,29 @@ UNTIL done {
 	// LOCAL newTime IS TIME:SECONDS.
 	// LOCAL dt IS newTime - oldTime.
 	// SET oldTime TO newTime.
-    LOCAL distError IS tarAlt - SHIP:ALTITUDE.// - SHIP:VERTICALSPEED * dt.
+	LOCAL distError IS tarAlt - SHIP:ALTITUDE.// - SHIP:VERTICALSPEED * dt.
 	LOCAL rad IS (SHIP:POSITION - SHIP:BODY:POSITION):MAG.
 	LOCAL tiltError IS COS(VANG(UP:VECTOR,SHIP:FACING:FOREVECTOR)).
-    SET engineAcc TO SHIP:AVAILABLETHRUST * tiltError / SHIP:MASS.
+	SET engineAcc TO SHIP:AVAILABLETHRUST * tiltError / SHIP:MASS.
 	SET gravAcc TO SHIP:BODY:MU / (rad * (rad + distError)).
 	pid_tune(throtPID,throtlePIDbaseTuning,1/engineAcc).
-    IF distError > 0 {//below tarAlt
-        SET accel TO gravAcc.
-        SET sign TO 1.
-    } ELSE {//above or at tarAlt
-        SET accel TO (engineAcc - sufGrav).
-        SET sign TO -1.
-    }
-    SET gravOffset TO gravAcc / engineAcc.
-    LOCAL tSpeed IS MIN(SQRT(MAX(ABS(1 * distError * accel),0.0001)), ABS(distError)) * sign.
+	IF distError > 0 {//below tarAlt
+		SET accel TO gravAcc.
+		SET sign TO 1.
+	} ELSE {//above or at tarAlt
+		SET accel TO (engineAcc - sufGrav).
+		SET sign TO -1.
+	}
+	SET gravOffset TO gravAcc / engineAcc.
+	LOCAL tSpeed IS MIN(SQRT(MAX(ABS(1 * distError * accel),0.0001)), ABS(distError)) * sign.
 	SET throtPID:SETPOINT TO tSpeed.
 	// SET throt TO (throtPID:UPDATE(TIME:SECONDS,SHIP:VERTICALSPEED / engineAcc) + throt) / (11/10).
 	pid_debug(throtPID).
-	PRINT "distError: " + distError + "      " AT(0,8).
-	PRINT "vSpeed: " + SHIP:VERTICALSPEED + "      " AT(0,9).
+	PRINT "distError: " + distError + "	  " AT(0,8).
+	PRINT "vSpeed: " + SHIP:VERTICALSPEED + "	  " AT(0,9).
 	//PRINT gravOffset AT(0,10).
-	PRINT "gravValue: " + gravAcc + "     " AT(0,11).
-    WAIT 0.
+	PRINT "gravValue: " + gravAcc + "	 " AT(0,11).
+	WAIT 0.
 }
 SAS ON.
 interface:CLEAR().
@@ -97,13 +97,13 @@ FUNCTION pid_tune {
 FUNCTION pid_debug {
 	PARAMETER pidToDebug.
 	//CLEARSCREEN.
-	PRINT "Setpoint: " + ROUND(pidToDebug:SETPOINT,2) + "     " AT(0,0).
-	PRINT "   Error: " + ROUND(pidToDebug:ERROR,2) + "     " AT(0,1).
-	PRINT "       P: " + ROUND(pidToDebug:PTERM,3) + "      " AT(0,2).
-	PRINT "       I: " + ROUND(pidToDebug:ITERM,3) + "      " AT(0,3).
-	PRINT "       D: " + ROUND(pidToDebug:DTERM,3) + "      " AT(0,4).
-	PRINT "     Max: " + ROUND(pidToDebug:MAXOUTPUT,2) + "     " AT(0,5).
-	PRINT "  Output: " + ROUND(pidToDebug:OUTPUT,2) + "     " AT(0,6).
-	PRINT "     min: " + ROUND(pidToDebug:MINOUTPUT,2) + "     " AT(0,7).
+	PRINT "Setpoint: " + ROUND(pidToDebug:SETPOINT,2) + "	 " AT(0,0).
+	PRINT "   Error: " + ROUND(pidToDebug:ERROR,2) + "	 " AT(0,1).
+	PRINT "	   P: " + ROUND(pidToDebug:PTERM,3) + "	  " AT(0,2).
+	PRINT "	   I: " + ROUND(pidToDebug:ITERM,3) + "	  " AT(0,3).
+	PRINT "	   D: " + ROUND(pidToDebug:DTERM,3) + "	  " AT(0,4).
+	PRINT "	 Max: " + ROUND(pidToDebug:MAXOUTPUT,2) + "	 " AT(0,5).
+	PRINT "  Output: " + ROUND(pidToDebug:OUTPUT,2) + "	 " AT(0,6).
+	PRINT "	 min: " + ROUND(pidToDebug:MINOUTPUT,2) + "	 " AT(0,7).
 //	LOG (pidToDebug:SETPOINT + "," + pidToDebug:ERROR + "," + pidToDebug:PTERM + "," + pidToDebug:ITERM + "," + pidToDebug:DTERM + "," + pidToDebug:MAXOUTPUT + "," + pidToDebug:OUTPUT +  "," + pidToDebug:MINOUTPUT) TO PATH("0:/pidLog.txt").
 }

@@ -18,24 +18,24 @@ LOCAL sufGrav TO bMU / BODY:RADIUS^2.
 CLEARSCREEN.
 RCS OFF.
 UNTIL RCS {
-    LOCAL distError TO tarAlt - SHIP:ALTITUDE.
+	LOCAL distError TO tarAlt - SHIP:ALTITUDE.
 	LOCAL lGrav TO (bMU / (SHIP:POSITION - BODY:POSITION):SQRMAGNITUDE).
-    IF distError > 0 {//below tarAlt
-        SET accel TO sufGrav.
-        SET sign TO 1.
-    } ELSE {//above or at tarAlt
-        SET accel TO SHIP:AVAILABLETHRUST * 0.5 / SHIP:MASS - sufGrav.
-        SET sign TO -1.
-    }
+	IF distError > 0 {//below tarAlt
+		SET accel TO sufGrav.
+		SET sign TO 1.
+	} ELSE {//above or at tarAlt
+		SET accel TO SHIP:AVAILABLETHRUST * 0.5 / SHIP:MASS - sufGrav.
+		SET sign TO -1.
+	}
 	LOCAL locCoef TO CHOOSE accelCoef IF ABS(distError) > -100 ELSE 0.01.
-    LOCAL tSpeed TO SQRT(ABS(2 * distError * ramp_accel(ABS(distError),accel) * locCoef)) * sign * velCoef.
-    //LOCAL tSpeed TO ramp_accel(ABS(distError),accel) * sign.
+	LOCAL tSpeed TO SQRT(ABS(2 * distError * ramp_accel(ABS(distError),accel) * locCoef)) * sign * velCoef.
+	//LOCAL tSpeed TO ramp_accel(ABS(distError),accel) * sign.
 	SET throtPID:SETPOINT TO ((tSpeed - SHIP:VERTICALSPEED) + lGrav).
 	//CLEARSCREEN.
-	PRINT tSpeed + "     " AT(0,0).
-	PRINT distError + "     " AT(0,1).
+	PRINT tSpeed + "	 " AT(0,0).
+	PRINT distError + "	 " AT(0,1).
 	pid_debug(throtPID).
-    WAIT 0.
+	WAIT 0.
 }
 
 //PARAMETER ac,di.
@@ -109,14 +109,14 @@ FUNCTION current_thrust {
 FUNCTION pid_debug {
 	PARAMETER pidToDebug.
 	//CLEARSCREEN.
-	PRINT "Setpoint: " + ROUND(pidToDebug:SETPOINT,2) + "     " AT(0,2).
-	PRINT "   Error: " + ROUND(pidToDebug:ERROR,2) + "     " AT(0,3).
-	PRINT "       P: " + ROUND(pidToDebug:PTERM,3) + "      " AT(0,4).
-	PRINT "       I: " + ROUND(pidToDebug:ITERM,3) + "      " AT(0,5).
-	PRINT "       D: " + ROUND(pidToDebug:DTERM,3) + "      " AT(0,6).
-	PRINT "     Max: " + ROUND(pidToDebug:MAXOUTPUT,2) + "     " AT(0,7).
-	PRINT "  Output: " + ROUND(pidToDebug:OUTPUT,2) + "     " AT(0,8).
-	PRINT "     min: " + ROUND(pidToDebug:MINOUTPUT,2) + "     " AT(0,9).
+	PRINT "Setpoint: " + ROUND(pidToDebug:SETPOINT,2) + "	 " AT(0,2).
+	PRINT "   Error: " + ROUND(pidToDebug:ERROR,2) + "	 " AT(0,3).
+	PRINT "	   P: " + ROUND(pidToDebug:PTERM,3) + "	  " AT(0,4).
+	PRINT "	   I: " + ROUND(pidToDebug:ITERM,3) + "	  " AT(0,5).
+	PRINT "	   D: " + ROUND(pidToDebug:DTERM,3) + "	  " AT(0,6).
+	PRINT "	 Max: " + ROUND(pidToDebug:MAXOUTPUT,2) + "	 " AT(0,7).
+	PRINT "  Output: " + ROUND(pidToDebug:OUTPUT,2) + "	 " AT(0,8).
+	PRINT "	 min: " + ROUND(pidToDebug:MINOUTPUT,2) + "	 " AT(0,9).
 //	LOG (pidToDebug:SETPOINT + "," + pidToDebug:ERROR + "," + pidToDebug:PTERM + "," + pidToDebug:ITERM + "," + pidToDebug:DTERM + "," + pidToDebug:MAXOUTPUT + "," + pidToDebug:OUTPUT +  "," + pidToDebug:MINOUTPUT) TO PATH("0:/pidLog.txt").
 }
 
@@ -126,13 +126,13 @@ FUNCTION pid_debug {
 // SAS OFF.
 // function v_accel {
 	// CLEARSCREEN.
-    // local altError is target_alt - altitude.
-    // local cenAccel is vxcl(up:vector, velocity:orbit):sqrmagnitude / body:position:mag.
-    // local g is body:mu / body:position:sqrmagnitude.
+	// local altError is target_alt - altitude.
+	// local cenAccel is vxcl(up:vector, velocity:orbit):sqrmagnitude / body:position:mag.
+	// local g is body:mu / body:position:sqrmagnitude.
 	// LOCAL accMod TO -verticalspeed^2 / (2 * altError).
-    // local vert_accel is 2 * (altError - verticalspeed * damp * settleTime) / settleTime^2.
-    // return res.
-    // return g - cenAccel + vert_accel + accMod.
+	// local vert_accel is 2 * (altError - verticalspeed * damp * settleTime) / settleTime^2.
+	// return res.
+	// return g - cenAccel + vert_accel + accMod.
 // }
 
 // LOCK maxAccel TO ship:availablethrust / ship:mass.

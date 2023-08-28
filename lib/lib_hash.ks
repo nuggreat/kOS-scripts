@@ -462,11 +462,11 @@ LOCAL FUNCTION SHA_2 {//an implementation of the SHA-256 algorithm
       //SET s1 TO bin_XOR(s1,bin_rotate_right(eSeg,s1r2)).
       //LOCAL ch IS bin_AND(eSeg,fSeg).
       //SET ch TO bin_XOR(ch,bin_AND(bin_NOT(eSeg),gSeg)).
-      //LOCAL tmp1 IS bin_ADD(hSeg,s1).
-      //SET tmp1 TO bin_ADD(tmp1,ch).
-      //SET tmp1 TO bin_ADD(tmp1,kList[w]).
-      //SET tmp1 TO bin_ADD(tmp1,wordList[w]).
-      LOCAL tmp1 IS bin_ADD_multi(LIST(hSeg,bin_XOR(bin_XOR(bin_rotate_right(eSeg,s1r0),bin_rotate_right(eSeg,s1r1)),bin_rotate_right(eSeg,s1r2)),bin_XOR(bin_AND(eSeg,fSeg),bin_AND(bin_NOT(eSeg),gSeg)),kList[w],wordList[w])).
+      //SET tmpSeg1 TO bin_ADD(hSeg,s1).
+      //SET tmpSeg1 TO bin_ADD(tmpSeg1,ch).
+      //SET tmpSeg1 TO bin_ADD(tmpSeg1,kList[w]).
+      //SET tmpSeg1 TO bin_ADD(tmpSeg1,wordList[w]).
+      SET tmpSeg1 TO bin_ADD_multi(LIST(hSeg,bin_XOR(bin_XOR(bin_rotate_right(eSeg,s1r0),bin_rotate_right(eSeg,s1r1)),bin_rotate_right(eSeg,s1r2)),bin_XOR(bin_AND(eSeg,fSeg),bin_AND(bin_NOT(eSeg),gSeg)),kList[w],wordList[w])).
 
       //LOCAL s0 IS bin_rotate_right(aSeg,s0r0).
       //SET s0 TO bin_XOR(s0,bin_rotate_right(aSeg,s0r1)).
@@ -474,17 +474,17 @@ LOCAL FUNCTION SHA_2 {//an implementation of the SHA-256 algorithm
       //LOCAL maj IS bin_AND(aSeg,bSeg).
       //SET maj TO bin_XOR(maj,bin_AND(aSeg,cSeg)).
       //SET maj TO bin_XOR(maj,bin_AND(bSeg,cSeg)).
-      //LOCAL tmp2 IS bin_ADD(s0,maj).
-      LOCAL tmp2 IS bin_ADD(bin_XOR(bin_XOR(bin_rotate_right(aSeg,s0r0),bin_rotate_right(aSeg,s0r1)),bin_rotate_right(aSeg,s0r2)),bin_XOR(bin_XOR(bin_AND(aSeg,bSeg),bin_AND(aSeg,cSeg)),bin_AND(bSeg,cSeg))).
+      //SET tmpSeg2 TO bin_ADD(s0,maj).
+      SET tmpSeg2 TO bin_ADD(bin_XOR(bin_XOR(bin_rotate_right(aSeg,s0r0),bin_rotate_right(aSeg,s0r1)),bin_rotate_right(aSeg,s0r2)),bin_XOR(bin_XOR(bin_AND(aSeg,bSeg),bin_AND(aSeg,cSeg)),bin_AND(bSeg,cSeg))).
 
       SET hSeg TO gSeg.
       SET gSeg TO fSeg.
       SET fSeg TO eSeg.
-      SET eSeg TO bin_ADD(dSeg,tmp1).
+      SET eSeg TO bin_ADD(dSeg,tmpSeg1).
       SET dSeg TO cSeg.
       SET cSeg TO bSeg.
       SET bSeg TO aSeg.
-      SET aSeg TO bin_ADD(tmp1,tmp2).
+      SET aSeg TO bin_ADD(tmpSeg1,tmpSeg2).
     }
     SET h0 TO bin_ADD(h0,aSeg).
     SET h1 TO bin_ADD(h1,bSeg).
@@ -524,7 +524,7 @@ LOCAL md5Data IS LEX(
       4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
       6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
   ),
-  "k",LIST().
+  "k",LIST(),
   "cfg",LEX(
     "fullRounds",64,
     "reducedRounds",16,
@@ -553,7 +553,7 @@ LOCAL FUNCTION MD5 {
   LOCAL b0 IS md5Data:b0.
   LOCAL c0 IS md5Data:c0.
   LOCAL d0 IS md5Data:d0.
-  LOCAL f0 IS md5Data:f0
+  LOCAL f0 IS md5Data:f0.
   LOCAL kList IS md5Data:k.
   LOCAL sList IS md5Data:s.
   LOCAL blockSize IS md5Data:cfg:blockSize.
@@ -607,7 +607,7 @@ LOCAL FUNCTION MD5 {
           SET fSeg TO bin_XOR(bin_XOR(bSeg,cSeg),dSeg).
           SET gVal TO MOD(w * 3 + 5,16).
         } ELSE {
-          F := C xor (B or (not D))
+          //F = C xor (B or (not D))
           // LOCAL tmp1 IS bin_NOT(dSeg).
           // LOCAL tmp2 IS bin_OR(bSeg,tmp1).
           // SET f TO bin_XOR(cSeg,tmp2).

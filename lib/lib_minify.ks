@@ -9,7 +9,7 @@ LOCAL whiteSpaceChars TO LIST(" ", tab).
 
 LOCAL subLead TO 30.
 LOCAL subTail TO 30. //RCS ON.
-LOCAL line TO 0.
+// LOCAL line TO 0.
 
 FUNCTION minify {
 	PARAMETER fileSource, fileDest.

@@ -137,6 +137,43 @@ FUNCTION rotate_vec_into_solar_raw {
   RETURN rawRawVec * rawToSolar.
 }
 
+FUNCTION drag_force_vector {
+	LOCAL yRef TO v(0,1,0).
+	LOCAL rawToSolar TO LOOKDIRUP(SOLARPRIMEVECTOR, yRef).
+	LOCAL gg0 TO CONSTANT:g0.
+	LOCAL bodyMu TO -BODY:MU.
+
+	LOCAL oldMass TO SHIP:MASS.
+	LOCAL oldVel TO SHIP:VELOCITY:ORBIT * rawToSolar.
+	LOCAL oldTime TO TIME:SECONDS.
+	LOCAL newMass TO preMass.
+	LOCAL newVel TO oldVel.
+	LOCAL newTime TO oldTime.
+
+	WAIT 0.
+	UNTIL FALSE {
+		SET newTime TO TIME:SECONDS.
+		SET newMass TO SHIP:MASS.
+		SET rawToSolar TO LOOKDIRUP(SOLARPRIMEVECTOR, yRef).
+		SET newVel TO SHIP:VELOCITY:ORBIT * rawToSolar.
+		LOCAL foreVec TO SHIP:FACING:FOREVECTOR * rawToSolar.
+		LOCAL gravVec TO UP:VECTOR * (bodyMu / (BODY:POSITION - SHIP:POSITION):SQRMAGNITUDE) * rawToSolar.
+		
+		LOCAL dt TO newTime - oldTime.
+		LOCAL burnDV TO shipISP * gg0 * LN(oldMass / newMass) * burnCoeff.
+		LOCAL accelVec TO foreVec * burnDV.
+		LOCAL dragAcc TO (newVel - (preVel + gravVec + accelVec)) / deltaTime.
+		LOCAL dragForce TO newMass * VDOT(dragAcc,avrForeVec).
+		
+		PRINT "drag force: " + ROUND(dragForce, 3). + "kN      " AT(0,0).
+
+		SET oldMass TO newMass.
+		SET oldVel TO newVel.
+		SET oldTime TO newTime.
+		WAIT 0.
+	}
+}
+
 FUNCTION burn_vec_constructor {
 	PARAMETER burnTime,burnRadial,burnNormal,burnPrograde,localBody IS SHIP:BODY.
 	// LOCAL localBody IS ORBITAT(SHIP,nodeTime):BODY.
@@ -625,6 +662,33 @@ FUNCTION low_pass_filter_init {
 		SET pastVal TO pastVal * lowPassHighVal + newVal * lowPassLowVal.
 		RETURN pastVal.
 	}.
+}
+
+FUNCTION running_average_init {//needs testing to verify logic
+	PARAMETER numberOfPoints, initalVal IS 0.
+	LOCAL i TO 0.
+	LOCAL runningTotal TO initalVal * numberOfPoints.
+	LOCAL runningReset TO 0.
+	LOCAL pastPoints TO LIST().
+	UNTIL pastPoints:LENGTH >= numberOfPoints {
+		pastPoints:ADD(initalVal).
+	}
+	RETURN {
+		PARAMETER newVal.
+		LOCAL oldVal TO pastPoints[0].
+		pastPoints:REMOVE(0).
+		pastPoints:ADD(newVal).
+		
+		IF i < numberOfPoints {
+			SET i TO i + 1.
+			SET runningReset TO runningReset + newVal.
+		} ELSE {
+			SET i TO 0.
+			SET runningTotal TO runningReset.
+		}
+		SET runningTotal TO runningTotal - oldVal - newVal.
+		RETURN runningTotal / numberOfPoints.
+	}
 }
 
 FUNCTION circ_at_pe {
