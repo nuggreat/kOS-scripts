@@ -1,6 +1,6 @@
-LOCAL targetAP IS 80_000.//the desired Apoapsis, though the true AP will likey be higher due to how the circularization logic works
-LOCAL initalPitch IS 20.//the number of degrees to pitch down from vertical when at vMax, pitch down will be lerped based on the difference between vMax and vertical speed in the inital phase of flight
-LOCAL vMax IS 200.//the vertical velocity at which maximum inital pitch is acheaved during the "inital pitch manuver"
+LOCAL targetAP IS 80_000.//the desired Apoapsis, though the true AP will likely be higher due to how the circularization logic works
+LOCAL initalPitch IS 20.//the number of degrees to pitch down from vertical when at vMax, pitch down will be lerped based on the difference between vMax and vertical speed in the initial phase of flight
+LOCAL vMax IS 200.//the vertical velocity at which maximum initial pitch is achieved during the "initial pitch maneuver"
 
 //constants chached now to speed up main loops.
 LOCAL bodyRad IS BODY:RADIUS.
@@ -19,7 +19,7 @@ LOCK THROTTLE TO MAX(MIN(CHOOSE throt IF throt > 0.01 ELSE 0,1),0).
 
 PRINT "inital pitch manuver".
 UNTIL VERTICALSPEED > vMax AND VANG(SRFPROGRADE:VECTOR,UP:VECTOR) > initalPitch {
-	SET tarPitch TO 90 - MAX(MIN(VERTICALSPEED / vMax,initalPitch) * initalPitch,0).
+    SET tarPitch TO 90 - MAX(MIN(VERTICALSPEED / vMax, 1) * initalPitch,0).
 	LOCAL currentAcc IS MAX(SHIP:AVAILABLETHRUST,0.001) / SHIP:MASS.
 	LOCAL desiredSpeed IS speed_given_ap(ALTITUDE + bodyRad, targetAP).
 	SET throt TO ((desiredSpeed - SHIP:VELOCITY:ORBIT:MAG) / currentAcc).

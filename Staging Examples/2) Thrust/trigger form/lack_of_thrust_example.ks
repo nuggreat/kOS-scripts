@@ -17,7 +17,7 @@ LOCAL stagingStruct IS staging_start().
 
 PRINT "initial pitch maneuver".
 UNTIL VERTICALSPEED > vMax AND VANG(SRFPROGRADE:VECTOR,UP:VECTOR) > initalPitch {
-  SET tarPitch TO 90 - MAX(MIN(VERTICALSPEED / vMax,initalPitch) * initalPitch,0).
+  SET tarPitch TO 90 - MAX(MIN(VERTICALSPEED / vMax, 1) * initalPitch,0).
   LOCAL currentAcc IS MAX(SHIP:AVAILABLETHRUST,0.001) / SHIP:MASS.
   LOCAL desiredSpeed IS speed_given_ap(ALTITUDE + bodyRad, targetAP).
   SET throt TO ((desiredSpeed - SHIP:VELOCITY:ORBIT:MAG) / currentAcc).
