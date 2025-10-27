@@ -42,7 +42,7 @@ calculated_impact_eta is an example script showing the use of several functions 
 
 **Notes about function**
 
-  There is no protection coded into the function for if you pass in a altitude not between the AP and PE.  The function be tested with hyperbolic orbit and i don't believe the math works for said hyperbolic orbits
+  There is no protection coded into the function for if you pass in a altitude not between the AP and PE.  The function has not been tested with hyperbolic orbit and i don't believe the math works for said hyperbolic orbits
 
   function derived from this equation:
 
